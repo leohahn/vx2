@@ -21,7 +21,7 @@ struct ResourceManager
     void free_all_resources();
 
 private:
-    std::string m_resources_path;
+    std::string m_shaders_path;
     std::unordered_map<std::string, std::unique_ptr<Shader>> m_shaders;
 };
 

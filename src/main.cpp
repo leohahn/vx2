@@ -67,8 +67,10 @@ main()
 {
     //
     // TODO:
-    //   - Add decent main loop with interpolation.
+    //   - Render skybox with forward-rendering.
     //   - Create landscape with random noise.
+    //   - Add decent main loop with interpolation.
+    //   - Reduce number of polygons needed to render the world.
     //
     ResourceManager resource_manager;
     resource_manager.load_from_file("basic.glsl", ResourceType_Shader);

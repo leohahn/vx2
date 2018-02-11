@@ -6,7 +6,7 @@ lt_global_variable lt::Logger logger("resource_manager");
 
 ResourceManager::ResourceManager()
 {
-    m_resources_path = ltfs::absolute_path("../resources");
+    m_shaders_path = ltfs::absolute_path("../resources/shaders");
 }
 
 bool
@@ -16,7 +16,7 @@ ResourceManager::load_from_file(const std::string &filename, ResourceType type)
     // this is probably changing in the future.
     LT_Assert(type == ResourceType_Shader);
 
-    std::string filepath = ltfs::join(m_resources_path, filename);
+    std::string filepath = ltfs::join(m_shaders_path, filename);
 
     if (type == ResourceType_Shader)
     {
