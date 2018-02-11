@@ -27,6 +27,8 @@ struct Shader
     u32 texture_unit(const char *name) const;
     u32 texture_unit(const std::string &name) const;
 
+    void use() const;
+
 private:
     bool m_is_loaded;
     i32 m_next_texture_unit;

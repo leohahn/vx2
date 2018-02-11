@@ -4,6 +4,14 @@
 #include "lt_core.hpp"
 #include "lt_math.hpp"
 
+struct Sun
+{
+    Vec3f direction;
+    Vec3f ambient;
+    Vec3f diffuse;
+    Vec3f specular;
+};
+
 enum BlockType
 {
     BlockType_Air = 0,
@@ -25,11 +33,15 @@ struct World
 {
     constexpr static i32 NUM_CHUNKS_PER_AXIS = 1;
 
+    World();
+    ~World();
+
     Chunk chunks[NUM_CHUNKS_PER_AXIS][NUM_CHUNKS_PER_AXIS][NUM_CHUNKS_PER_AXIS];
+    Sun sun;
     Vec3f origin;
 
+private:
     void initialize_buffers();
-    ~World();
 };
 
 #endif // __WORLD_HPP__

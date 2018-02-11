@@ -7,6 +7,6 @@ struct Shader;
 struct Application;
 
 void render_world(const World &world, const Camera &camera, Shader *shader);
-void render_final_quad(const Application &app, Shader *shader);
+void render_final_quad(const Application &app, const Camera &camera, Shader *shader);
 
 #endif // __RENDERER_HPP__

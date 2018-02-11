@@ -49,9 +49,10 @@ render_mesh(const Mesh &mesh, Shader *shader)
 }
 
 void
-render_final_quad(const Application &app, Shader *shader)
+render_final_quad(const Application &app, const Camera &camera, Shader *shader)
 {
     glUseProgram(shader->program);
+    shader->set3f("view_position", camera.frustum.position);
     render_mesh(app.render_quad, shader);
 }
 
@@ -245,6 +246,7 @@ render_chunk(const World &world, Chunk &chunk)
     glBindBuffer(GL_ARRAY_BUFFER, chunk.vbo);
     // TODO: Figure out if GL_DYNAMIC_DRAW is the best enum to use or there's something better.
     glBufferData(GL_ARRAY_BUFFER, sizeof(Vertex_PUN) * num_vertices_used, chunk_vertices, GL_DYNAMIC_DRAW);
+    dump_opengl_errors("glBufferData");
 
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex_PUN),
                           (const void*)offsetof(Vertex_PUN, position));

@@ -30,7 +30,7 @@ main_render(const Application &app, const World &world, const Camera &camera,
 
     app.bind_default_framebuffer(); // render gbuffer back to the screen
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    render_final_quad(app, deferred_shading_shader);
+    render_final_quad(app, camera, deferred_shading_shader);
 
     glfwPollEvents();
     glfwSwapBuffers(app.window);
@@ -49,12 +49,15 @@ main()
     resource_manager.load_from_file("basic.glsl", ResourceType_Shader);
     resource_manager.load_from_file("deferred_shading.glsl", ResourceType_Shader);
 
-    Application app("Deferred renderer", 800, 600);
+    Application app("Deferred renderer", 1024, 768);
 
-    World world = {};
-    world.initialize_buffers();
-
+    World world;
     world.chunks[0][0][0].blocks[0][0][0] = BlockType_Terrain;
+
+    world.sun.direction = Vec3f(0, -1, 0);
+    world.sun.ambient = Vec3f(.1f);
+    world.sun.diffuse = Vec3f(.7f);
+    world.sun.specular = Vec3f(1.0f);
 
     const f32 FIELD_OF_VIEW = 60.0f;
     const f32 MOVE_SPEED = 0.33f;
@@ -74,6 +77,11 @@ main()
     deferred_shading_shader->add_texture("texture_position");
     deferred_shading_shader->add_texture("texture_normal");
     deferred_shading_shader->add_texture("texture_albedo_specular");
+    deferred_shading_shader->use();
+    deferred_shading_shader->set3f("sun.direction", world.sun.direction);
+    deferred_shading_shader->set3f("sun.ambient", world.sun.ambient);
+    deferred_shading_shader->set3f("sun.diffuse", world.sun.diffuse);
+    deferred_shading_shader->set3f("sun.specular", world.sun.specular);
 
     glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
     app.bind_gbuffer();

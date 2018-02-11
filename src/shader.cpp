@@ -174,6 +174,8 @@ Shader::set3f(const char *name, Vec3f v)
     glUniform3f(get_location(name), v.x, v.y, v.z);
 }
 
+void Shader::use() const { glUseProgram(program); }
+
 void
 Shader::set1i(const char *name, i32 i)
 {

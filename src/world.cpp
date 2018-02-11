@@ -13,6 +13,13 @@ World::initialize_buffers()
             }
 }
 
+World::World()
+    : chunks()
+    , sun()
+{
+    initialize_buffers();
+}
+
 World::~World()
 {
     for (i32 x = 0; x < NUM_CHUNKS_PER_AXIS; x++)
