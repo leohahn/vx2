@@ -21,6 +21,7 @@ add_executable(dr
   src/resource_manager.cpp
   src/shader.cpp
   src/world.cpp
+  src/input.cpp
   lt/src/lt_math.cpp
   lt/src/lt_fs.cpp
   thirdparty/glad/glad.cpp)

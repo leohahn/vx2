@@ -3,8 +3,6 @@
 
 #include "lt_core.hpp"
 #include "lt_utils.hpp"
-#include "lt_fs.hpp"
-#include "resources.hpp"
 #include "application.hpp"
 #include "shader.hpp"
 #include "world.hpp"
@@ -12,48 +10,6 @@
 #include "renderer.hpp"
 #include "camera.hpp"
 #include "resource_manager.hpp"
-
-lt_internal void
-update_key_state(i32 key_code, Key *kb, GLFWwindow *win)
-{
-    const bool key_pressed = glfwGetKey(win, key_code);
-    Key &key = kb[key_code];
-
-    if ((key_pressed && key.is_pressed) || (!key_pressed && !key.is_pressed))
-    {
-        key.last_transition = Key::Transition_None;
-    }
-    else if (key_pressed && !key.is_pressed)
-    {
-        key.is_pressed = true;
-        key.last_transition = Key::Transition_Down;
-    }
-    else if (!key_pressed && key.is_pressed)
-    {
-        key.is_pressed = false;
-        key.last_transition = Key::Transition_Up;
-    }
-}
-
-lt_internal void
-process_input(GLFWwindow *win, Key *kb)
-{
-    LT_Unused(kb);
-
-    if (glfwGetKey(win, GLFW_KEY_ESCAPE) == GLFW_PRESS ||
-        glfwGetKey(win, GLFW_KEY_Q) == GLFW_PRESS)
-    {
-        glfwSetWindowShouldClose(win, true);
-    }
-
-    const i32 key_codes[] = {
-        GLFW_KEY_W, GLFW_KEY_S, GLFW_KEY_A, GLFW_KEY_D, GLFW_KEY_UP,
-        GLFW_KEY_DOWN, GLFW_KEY_LEFT, GLFW_KEY_RIGHT,
-    };
-
-    for (auto key_code : key_codes)
-        update_key_state(key_code, kb, win);
-}
 
 lt_global_variable lt::Logger logger("main");
 lt_global_variable Key g_keyboard[NUM_KEYBOARD_KEYS] = {};
@@ -83,11 +39,16 @@ main_render(const Application &app, const World &world, const Camera &camera,
 int
 main()
 {
+    //
+    // TODO:
+    //   - Add decent main loop with interpolation.
+    //   - Add basic shading.
+    //   - Create landscape with random noise.
+    //
     ResourceManager resource_manager;
     resource_manager.load_from_file("basic.glsl", ResourceType_Shader);
     resource_manager.load_from_file("deferred_shading.glsl", ResourceType_Shader);
 
-    Resources resources = {};
     Application app("Deferred renderer", 800, 600);
 
     World world = {};
