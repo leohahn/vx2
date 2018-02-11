@@ -1,0 +1,6 @@
+[submodule "src/lt"]
+	path = src/lt
+	url = https://github.com/leohahn/lt.git
+[submodule "lt"]
+	path = lt
+	url = https://github.com/leohahn/lt.git
