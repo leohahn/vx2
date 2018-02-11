@@ -51,8 +51,6 @@ render_mesh(const Mesh &mesh, Shader *shader)
 void
 render_final_quad(const Application &app, const Camera &camera, Shader *shader)
 {
-    glUseProgram(shader->program);
-    shader->set3f("view_position", camera.frustum.position);
     render_mesh(app.render_quad, shader);
 }
 
@@ -270,9 +268,6 @@ void
 render_world(const World &world, const Camera &camera, Shader *shader)
 {
     // Assuming that every chunk uses the same shader program.
-    glUseProgram(shader->program);
-    shader->set_matrix("view", camera.view_matrix());
-
     // logger.log("view_matrix: \n", camera.view_matrix());
     // logger.log("pos: ", camera.frustum.position);
     // logger.log("front: ", camera.frustum.front.v);

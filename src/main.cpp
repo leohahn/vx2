@@ -13,23 +13,49 @@
 
 lt_global_variable lt::Logger logger("main");
 lt_global_variable Key g_keyboard[NUM_KEYBOARD_KEYS] = {};
+lt_global_variable bool g_render_wireframe = false;
 
 lt_internal void
 main_update(Key *kb, Camera &camera)
 {
     camera.update(kb);
+
+    if (kb[GLFW_KEY_T].last_transition == Key::Transition_Down)
+        g_render_wireframe = !g_render_wireframe;
 }
 
 lt_internal void
-main_render(const Application &app, const World &world, const Camera &camera,
-            Shader *basic_shader, Shader *deferred_shading_shader)
+main_render(const Application &app, Key *kb, const World &world, const Camera &camera,
+            Shader *basic_shader, Shader *wireframe_shader, Shader *deferred_shading_shader)
 {
     app.bind_gbuffer();
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    render_world(world, camera, basic_shader); // render world to the gbuffer
+
+    if (g_render_wireframe)
+    {
+        // Wireframe rendering
+        glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+
+        wireframe_shader->use();
+        wireframe_shader->set_matrix("view", camera.view_matrix());
+        render_world(world, camera, wireframe_shader);
+
+        glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+    }
+    else
+    {
+        basic_shader->use();
+        basic_shader->set_matrix("view", camera.view_matrix());
+        render_world(world, camera, basic_shader); // render world to the gbuffer
+    }
 
     app.bind_default_framebuffer(); // render gbuffer back to the screen
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+    glUseProgram(deferred_shading_shader->program);
+    deferred_shading_shader->set3f("view_position", camera.frustum.position);
+    deferred_shading_shader->set1i("render_only_albedo", g_render_wireframe);
+
     render_final_quad(app, camera, deferred_shading_shader);
 
     glfwPollEvents();
@@ -42,12 +68,12 @@ main()
     //
     // TODO:
     //   - Add decent main loop with interpolation.
-    //   - Add basic shading.
     //   - Create landscape with random noise.
     //
     ResourceManager resource_manager;
     resource_manager.load_from_file("basic.glsl", ResourceType_Shader);
     resource_manager.load_from_file("deferred_shading.glsl", ResourceType_Shader);
+    resource_manager.load_from_file("wireframe.glsl", ResourceType_Shader);
 
     Application app("Deferred renderer", 1024, 768);
 
@@ -60,7 +86,7 @@ main()
     world.sun.specular = Vec3f(1.0f);
 
     const f32 FIELD_OF_VIEW = 60.0f;
-    const f32 MOVE_SPEED = 0.33f;
+    const f32 MOVE_SPEED = 0.13f;
     const f32 ROTATION_SPEED = 0.050f;
     const Vec3f CAMERA_POSITION(0, 0, 15);
     const Vec3f CAMERA_FRONT(0, 0, -1);
@@ -71,6 +97,10 @@ main()
     Shader *basic_shader = resource_manager.get_shader("basic.glsl");
     basic_shader->load();
     basic_shader->setup_projection_matrix(app.aspect_ratio());
+
+    Shader *wireframe_shader = resource_manager.get_shader("wireframe.glsl");
+    wireframe_shader->load();
+    wireframe_shader->setup_projection_matrix(app.aspect_ratio());
 
     Shader *deferred_shading_shader = resource_manager.get_shader("deferred_shading.glsl");
     deferred_shading_shader->load();
@@ -100,6 +130,6 @@ main()
             continue;
         }
 
-        main_render(app, world, camera, basic_shader, deferred_shading_shader);
+        main_render(app, g_keyboard, world, camera, basic_shader, wireframe_shader, deferred_shading_shader);
     }
 }

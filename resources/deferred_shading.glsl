@@ -54,6 +54,7 @@ uniform sampler2D texture_albedo_specular;
 
 uniform Sun sun;
 uniform vec3 view_position;
+uniform bool render_only_albedo;
 
 vec3
 apply_gamma_correction(vec3 color)
@@ -94,7 +95,10 @@ main()
     vec3 sun_contribution = calc_directional_light(sun, frag_albedo, frag_specular, frag_normal);
     vec3 color = sun_contribution;
 
-    color = apply_gamma_correction(color);
+    if (render_only_albedo)
+        color = frag_albedo;
+    else
+        color = apply_gamma_correction(color);
     // Set the final color
     frag_color = vec4(color, 1.0);
 }
