@@ -41,7 +41,7 @@ private:
     Mesh create_render_quad();
 };
 
-void dump_opengl_errors(const char *func);
+void dump_opengl_errors(const char *func, const char *file = nullptr);
 
 
 #endif // __APPLICATION_HPP__

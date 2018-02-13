@@ -17,7 +17,7 @@ framebuffer_size_callback(GLFWwindow *w, i32 width, i32 height)
 }
 
 void
-dump_opengl_errors(const char *func)
+dump_opengl_errors(const char *func, const char *file)
 {
 #ifdef LT_DEBUG
     GLenum err;
@@ -53,7 +53,10 @@ dump_opengl_errors(const char *func)
         }
         default: LT_Assert(false);
         }
-        gl_logger.log(func, ": ", desc);
+        if (file)
+            gl_logger.log(func, " (", file, ") : ", desc);
+        else
+            gl_logger.log(func,": ", desc);
     }
 #endif
 }
@@ -121,9 +124,9 @@ Application::create_render_quad()
     Submesh sm = {};
     sm.start_index = 0;
     sm.num_indices = mesh.num_indices();
-    sm.textures.push_back(Texture(gbuffer.position_buffer, "texture_position"));
-    sm.textures.push_back(Texture(gbuffer.normal_buffer, "texture_normal"));
-    sm.textures.push_back(Texture(gbuffer.albedo_specular_buffer, "texture_albedo_specular"));
+    sm.textures.push_back(TextureInfo(gbuffer.position_buffer, "texture_position", GL_TEXTURE_2D));
+    sm.textures.push_back(TextureInfo(gbuffer.normal_buffer, "texture_normal", GL_TEXTURE_2D));
+    sm.textures.push_back(TextureInfo(gbuffer.albedo_specular_buffer, "texture_albedo_specular", GL_TEXTURE_2D));
     mesh.submeshes.push_back(sm);
 
     setup_mesh_buffers_pu(mesh);
@@ -236,7 +239,9 @@ Application::Application(const char *title, i32 width, i32 height)
     glEnable(GL_STENCIL_TEST);
     glViewport(0, 0, width, height);
 
+    logger.log("Setting up the gbuffer");
     setup_gbuffer(gbuffer, width, height);
 
+    logger.log("Creating render quad");
     render_quad = create_render_quad();
 }

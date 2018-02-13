@@ -30,7 +30,6 @@ struct Shader
     void use() const;
 
 private:
-    bool m_is_loaded;
     i32 m_next_texture_unit;
     std::unordered_map<std::string, u32> m_locations;
     std::unordered_map<std::string, u32> m_texture_units;

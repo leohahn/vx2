@@ -19,12 +19,16 @@ add_executable(dr
   src/renderer.cpp
   src/resources.cpp
   src/resource_manager.cpp
+  src/io_task_manager.cpp
+  src/io_task.cpp
   src/shader.cpp
   src/world.cpp
+  src/skybox.cpp
   src/input.cpp
   lt/src/lt_math.cpp
   lt/src/lt_fs.cpp
-  thirdparty/glad/glad.cpp)
+  thirdparty/glad/glad.cpp
+  thirdparty/stb_image.cpp)
 
 target_link_libraries(dr -ldl -lm)
 

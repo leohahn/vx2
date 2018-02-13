@@ -243,7 +243,7 @@ Resources::load_cubemap(u32 cubemap_texture)
     Submesh sm = {};
     sm.start_index = 0;
     sm.num_indices = mesh->num_indices();
-    sm.textures.push_back(Texture(cubemap_texture, "texture_cubemap"));
+    sm.textures.push_back(TextureInfo(cubemap_texture, "texture_cubemap", GL_TEXTURE_CUBE_MAP));
     mesh->submeshes.push_back(sm);
 
     setup_mesh_buffers_p(*mesh);
@@ -281,7 +281,7 @@ Resources::load_shadow_map_render_surface(u32 shadow_map_texture)
     Submesh sm = {};
     sm.start_index = 0;
     sm.num_indices = mesh->num_indices();
-    sm.textures.push_back(Texture(shadow_map_texture, "texture_shadow_map"));
+    sm.textures.push_back(TextureInfo(shadow_map_texture, "texture_shadow_map", GL_TEXTURE_2D));
     mesh->submeshes.push_back(sm);
 
     setup_mesh_buffers_pu(*mesh);
@@ -321,7 +321,7 @@ Resources::load_hdr_render_quad(u32 hdr_texture)
     Submesh sm = {};
     sm.start_index = 0;
     sm.num_indices = mesh->num_indices();
-    sm.textures.push_back(Texture(hdr_texture, "texture_hdr"));
+    sm.textures.push_back(TextureInfo(hdr_texture, "texture_hdr", GL_TEXTURE_2D));
     mesh->submeshes.push_back(sm);
 
     setup_mesh_buffers_pu(*mesh);
@@ -406,10 +406,10 @@ Resources::load_unit_cube(u32 diffuse_texture, u32 specular_texture, u32 normal_
     Submesh sm = {};
     sm.start_index = 0;
     sm.num_indices = mesh->num_indices();
-    sm.textures.push_back(Texture(diffuse_texture, "material.texture_diffuse1"));
-    sm.textures.push_back(Texture(specular_texture, "material.texture_specular1"));
+    sm.textures.push_back(TextureInfo(diffuse_texture, "material.texture_diffuse1", GL_TEXTURE_2D));
+    sm.textures.push_back(TextureInfo(specular_texture, "material.texture_specular1", GL_TEXTURE_2D));
     if (normal_texture)
-        sm.textures.push_back(Texture(normal_texture, "material.texture_normal1"));
+        sm.textures.push_back(TextureInfo(normal_texture, "material.texture_normal1", GL_TEXTURE_2D));
     mesh->submeshes.push_back(sm);
 
     setup_mesh_buffers_puntb(*mesh);
@@ -494,10 +494,10 @@ Resources::load_unit_plane(f32 tex_coords_scale, u32 diffuse_texture,
     Submesh sm = {};
     sm.start_index = 0;
     sm.num_indices = mesh->num_indices();
-    sm.textures.push_back(Texture(diffuse_texture, "material.texture_diffuse1"));
-    sm.textures.push_back(Texture(specular_texture, "material.texture_specular1"));
+    sm.textures.push_back(TextureInfo(diffuse_texture, "material.texture_diffuse1", GL_TEXTURE_2D));
+    sm.textures.push_back(TextureInfo(specular_texture, "material.texture_specular1", GL_TEXTURE_2D));
     if (normal_texture)
-        sm.textures.push_back(Texture(normal_texture, "material.texture_normal1"));
+        sm.textures.push_back(TextureInfo(normal_texture, "material.texture_normal1", GL_TEXTURE_2D));
     mesh->submeshes.push_back(sm);
 
     setup_mesh_buffers_puntb(*mesh);
@@ -587,10 +587,10 @@ Resources::load_mesh_from_model(const char *path, u32 diffuse_texture, u32 specu
         Submesh sm = {};
         sm.start_index = 0;
         sm.num_indices = mesh->num_indices();
-        sm.textures.push_back(Texture(diffuse_texture, "material.texture_diffuse1"));
-        sm.textures.push_back(Texture(specular_texture, "material.texture_specular1"));
+        sm.textures.push_back(TextureInfo(diffuse_texture, "material.texture_diffuse1", GL_TEXTURE_2D));
+        sm.textures.push_back(TextureInfo(specular_texture, "material.texture_specular1", GL_TEXTURE_2D));
         if (normal_texture)
-            sm.textures.push_back(Texture(normal_texture, "material.texture_normal1"));
+            sm.textures.push_back(TextureInfo(normal_texture, "material.texture_normal1", GL_TEXTURE_2D));
         mesh->submeshes.push_back(sm);
 
         setup_mesh_buffers_puntb(*mesh);

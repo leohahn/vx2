@@ -8,12 +8,13 @@
 #include "lt_core.hpp"
 #include "lt_math.hpp"
 
-struct Texture
+struct TextureInfo
 {
     u32 id;
-    std::string type;
+    std::string name;
+    i32 type;
 
-    Texture(u32 id, const char *type) : id(id), type(type) {}
+    TextureInfo(u32 id, const char *name, i32 type) : id(id), name(name), type(type) {}
 };
 
 typedef Vec3i Face;
@@ -22,7 +23,7 @@ struct Submesh
 {
     isize                start_index;
     i32                  num_indices;
-    std::vector<Texture> textures;
+    std::vector<TextureInfo> textures;
 };
 
 struct Mesh
@@ -40,6 +41,8 @@ struct Mesh
 
     std::vector<Face>               faces;
     // std::vector<Texture>            textures;
+
+    inline bool is_invalid() { return vao == 0; }
 
     inline isize num_indices() const {return faces.size() * 3;}
 };

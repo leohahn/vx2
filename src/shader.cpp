@@ -11,6 +11,7 @@
 #include "lt_utils.hpp"
 #include "camera.hpp"
 #include "resource_manager.hpp"
+#include "application.hpp"
 
 lt_internal lt::Logger logger("shader");
 
@@ -116,7 +117,6 @@ error_cleanup:
 
 Shader::Shader(const std::string &filepath)
     : filepath(filepath)
-    , m_is_loaded(false)
     , m_next_texture_unit(0)
 {
 }
@@ -137,13 +137,21 @@ Shader::add_texture(const char *name)
 {
     std::string str_name(name);
     LT_Assert(m_texture_units.find(str_name) == m_texture_units.end());
+
     m_texture_units[str_name] = m_next_texture_unit;
 
-    glUseProgram(program);
-    set1i(name, m_next_texture_unit);
-    glUseProgram(0);
+    if (program)
+    {
+        glUseProgram(program);
+        set1i(name, m_next_texture_unit);
+        glUseProgram(0);
+    }
+    else
+        logger.error("Shader ", filepath, " is not yet loaded.");
 
     m_next_texture_unit++;
+
+    dump_opengl_errors("add_texture", __FILE__);
 }
 
 u32

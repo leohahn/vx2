@@ -6,6 +6,8 @@
 #include "camera.hpp"
 #include "lt_core.hpp"
 #include "lt_utils.hpp"
+#include "skybox.hpp"
+#include "mesh.hpp"
 
 lt_global_variable lt::Logger logger("renderer");
 
@@ -36,12 +38,13 @@ render_mesh(const Mesh &mesh, Shader *shader)
 
 				for (usize t = 0; t < sm.textures.size(); t++)
 				{
-            const std::string &name = sm.textures[t].type;
+            const std::string &name = sm.textures[t].name;
             const u32 texture_unit = shader->texture_unit(name);
             glActiveTexture(GL_TEXTURE0 + texture_unit);
-            glBindTexture(GL_TEXTURE_2D, sm.textures[t].id);
+            glBindTexture(sm.textures[t].type, sm.textures[t].id);
 				}
 
+        LT_Assert(mesh.vao != 0);
         glBindVertexArray(mesh.vao);
 				glDrawElements(GL_TRIANGLES, sm.num_indices, GL_UNSIGNED_INT, (const void*)sm.start_index);
         glBindVertexArray(0);
@@ -241,39 +244,38 @@ render_chunk(const World &world, Chunk &chunk)
     LT_Assert(chunk.vbo != 0); // The vbo should already be created.
 
     glBindVertexArray(chunk.vao);
+    dump_opengl_errors("glBindVertexArray", __FILE__);
     glBindBuffer(GL_ARRAY_BUFFER, chunk.vbo);
+    dump_opengl_errors("glBindBuffer", __FILE__);
     // TODO: Figure out if GL_DYNAMIC_DRAW is the best enum to use or there's something better.
     glBufferData(GL_ARRAY_BUFFER, sizeof(Vertex_PUN) * num_vertices_used, chunk_vertices, GL_DYNAMIC_DRAW);
-    dump_opengl_errors("glBufferData");
+    dump_opengl_errors("glBufferData", __FILE__);
 
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex_PUN),
                           (const void*)offsetof(Vertex_PUN, position));
+    dump_opengl_errors("glVertexAttribPointer", __FILE__);
     glEnableVertexAttribArray(0);
 
     glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex_PUN),
                           (const void*)offsetof(Vertex_PUN, tex_coords));
+    dump_opengl_errors("glVertexAttribPointer", __FILE__);
     glEnableVertexAttribArray(1);
 
     glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex_PUN),
                           (const void*)offsetof(Vertex_PUN, normal));
+    dump_opengl_errors("glVertexAttribPointer", __FILE__);
     glEnableVertexAttribArray(2);
 
     glDrawArrays(GL_TRIANGLES, 0, num_vertices_used);
-    dump_opengl_errors("glDrawArrays");
+    dump_opengl_errors("glDrawArrays", __FILE__);
 
     glBindBuffer(GL_ARRAY_BUFFER, 0);
 }
 
 void
-render_world(const World &world, const Camera &camera, Shader *shader)
+render_world(const World &world)
 {
     // Assuming that every chunk uses the same shader program.
-    // logger.log("view_matrix: \n", camera.view_matrix());
-    // logger.log("pos: ", camera.frustum.position);
-    // logger.log("front: ", camera.frustum.front.v);
-    // logger.log("right: ", camera.frustum.right.v);
-    // logger.log("up: ", camera.frustum.up.v);
-
     for (i32 chunk_xi = 0; chunk_xi < World::NUM_CHUNKS_PER_AXIS; chunk_xi++)
     {
         for (i32 chunk_yi = 0; chunk_yi < World::NUM_CHUNKS_PER_AXIS; chunk_yi++)
@@ -285,4 +287,41 @@ render_world(const World &world, const Camera &camera, Shader *shader)
             }
         }
     }
+}
+
+void
+render_skybox(const Skybox &skybox)
+{
+    glDepthFunc(GL_LEQUAL);
+    render_mesh(skybox.quad, skybox.shader);
+    glDepthFunc(GL_LESS);
+}
+
+void
+render_setup_mesh_buffers_p(Mesh *m)
+{
+    glGenVertexArrays(1, &m->vao);
+    glGenBuffers(1, &m->vbo);
+    glGenBuffers(1, &m->ebo);
+
+    glBindVertexArray(m->vao);
+    glBindBuffer(GL_ARRAY_BUFFER, m->vbo);
+
+    glBufferData(GL_ARRAY_BUFFER, m->vertices.size() * sizeof(Vec3f), &m->vertices[0], GL_STATIC_DRAW);
+
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m->ebo);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, m->faces.size() * sizeof(Face), &m->faces[0], GL_STATIC_DRAW);
+
+    // vertex positions
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vec3f), (void*)0);
+    glEnableVertexAttribArray(0);
+
+    glBindVertexArray(0);
+}
+
+void
+render_loading_screen()
+{
+    glClearColor(1.0f, 0.0f, 0.0f, 1.0f);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 }

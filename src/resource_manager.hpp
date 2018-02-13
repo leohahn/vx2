@@ -3,26 +3,74 @@
 
 #include <string>
 #include <memory>
+#include <vector>
 #include <unordered_map>
+#include "glad/glad.h"
 #include "lt_core.hpp"
 #include "shader.hpp"
 
-enum ResourceType
+struct IOTaskManager;
+struct LoadImagesTask;
+
+enum TextureFormat
 {
-    ResourceType_Shader,
+    TextureFormat_RGB = GL_RGB8,
+    TextureFormat_RGBA = GL_RGBA,
+    TextureFormat_SRGB = GL_SRGB8,
+    TextureFormat_SRGBA = GL_SRGB_ALPHA,
+};
+
+enum PixelFormat
+{
+    PixelFormat_RGB = GL_RGB,
+    PixelFormat_RGBA = GL_RGBA,
+};
+
+enum TextureType
+{
+    TextureType_Unknown,
+    TextureType_2D,
+    TextureType_Cubemap,
+};
+
+struct Texture
+{
+    TextureType type;
+    TextureFormat texture_format;
+    PixelFormat pixel_format;
+
+    std::vector<std::string> filepaths;
+    u32 id;
+
+    Texture(TextureType type, TextureFormat tf, PixelFormat pf,
+            const std::vector<std::string> &filepaths, IOTaskManager *manager);
+
+    inline bool is_loaded() const { return m_is_loaded; }
+    bool load();
+
+private:
+    bool m_is_loaded;
+    IOTaskManager *m_io_task_manager;
+    std::unique_ptr<LoadImagesTask> m_task;
 };
 
 struct ResourceManager
 {
-    ResourceManager();
+    ResourceManager(IOTaskManager *io_task_manager);
 
-    bool load_from_file(const std::string &filename, ResourceType type);
+    bool load_from_shader_file(const std::string &filename);
+    bool load_from_texture_file(const std::string &filename);
+
     Shader *get_shader(const std::string &filename) const;
+    Texture *get_texture(const std::string &filename) const;
     void free_all_resources();
 
 private:
+    IOTaskManager *m_io_task_manager;
     std::string m_shaders_path;
+    std::string m_textures_path;
     std::unordered_map<std::string, std::unique_ptr<Shader>> m_shaders;
+    std::unordered_map<std::string, std::unique_ptr<Texture>> m_textures;
 };
 
 #endif // __RESOURCE_MANAGER_HPP__

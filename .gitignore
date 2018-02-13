@@ -1,3 +1,9 @@
 /.dir-locals.el
 /.vscode/c_cpp_properties.json
 build/
+/deferred-renderer.includes
+/deferred-renderer.files
+/deferred-renderer.creator.user
+/deferred-renderer.creator
+/deferred-renderer.config
+/CMakeLists.txt.user

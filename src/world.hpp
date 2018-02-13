@@ -3,6 +3,10 @@
 
 #include "lt_core.hpp"
 #include "lt_math.hpp"
+#include "skybox.hpp"
+#include "camera.hpp"
+
+struct Key;
 
 struct Sun
 {
@@ -29,19 +33,34 @@ struct Chunk
     u32 vao, vbo;
 };
 
+enum WorldState
+{
+    WorldState_InitialLoad,
+    WorldState_Running,
+    WorldState_Paused,
+};
+
 struct World
 {
     constexpr static i32 NUM_CHUNKS_PER_AXIS = 1;
 
-    World();
+    World(const ResourceManager &manager, f32 aspect_ratio);
     ~World();
 
+    Camera camera;
     Chunk chunks[NUM_CHUNKS_PER_AXIS][NUM_CHUNKS_PER_AXIS][NUM_CHUNKS_PER_AXIS];
+    Skybox skybox;
     Sun sun;
     Vec3f origin;
 
+    void update(Key *kb);
+
+    WorldState state = WorldState_InitialLoad;
+    bool render_wireframe = false;
+
 private:
     void initialize_buffers();
+    Camera create_camera(f32 aspect_ratio);
 };
 
 #endif // __WORLD_HPP__

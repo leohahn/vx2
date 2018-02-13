@@ -9,54 +9,72 @@
 #include "input.hpp"
 #include "renderer.hpp"
 #include "camera.hpp"
+#include "io_task_manager.hpp"
 #include "resource_manager.hpp"
+#include "skybox.hpp"
 
 lt_global_variable lt::Logger logger("main");
 lt_global_variable Key g_keyboard[NUM_KEYBOARD_KEYS] = {};
-lt_global_variable bool g_render_wireframe = false;
 
 lt_internal void
-main_update(Key *kb, Camera &camera)
-{
-    camera.update(kb);
-
-    if (kb[GLFW_KEY_T].last_transition == Key::Transition_Down)
-        g_render_wireframe = !g_render_wireframe;
-}
-
-lt_internal void
-main_render(const Application &app, Key *kb, const World &world, const Camera &camera,
+main_render(const Application &app, const World &world, const Camera &camera,
             Shader *basic_shader, Shader *wireframe_shader, Shader *deferred_shading_shader)
 {
-    app.bind_gbuffer();
+    glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+
+    app.bind_default_framebuffer();
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-    if (g_render_wireframe)
+    if (world.state == WorldState_InitialLoad)
     {
-        // Wireframe rendering
-        glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-
-        wireframe_shader->use();
-        wireframe_shader->set_matrix("view", camera.view_matrix());
-        render_world(world, camera, wireframe_shader);
-
-        glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+        render_loading_screen();
+        dump_opengl_errors("After loading screen", __FILE__);
     }
     else
     {
-        basic_shader->use();
-        basic_shader->set_matrix("view", camera.view_matrix());
-        render_world(world, camera, basic_shader); // render world to the gbuffer
+        app.bind_gbuffer();
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+        if (world.render_wireframe)
+        {
+            // Wireframe rendering
+            glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+
+            wireframe_shader->use();
+            wireframe_shader->set_matrix("view", camera.view_matrix());
+            render_world(world);
+
+            glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+        }
+        else
+        {
+            basic_shader->use();
+            basic_shader->set_matrix("view", camera.view_matrix());
+            render_world(world); // render world to the gbuffer
+        }
+
+        app.bind_default_framebuffer(); // render gbuffer back to the screen
+
+        glUseProgram(deferred_shading_shader->program);
+        deferred_shading_shader->set3f("view_position", camera.frustum.position);
+        deferred_shading_shader->set1i("render_only_albedo", world.render_wireframe);
+
+        render_final_quad(app, camera, deferred_shading_shader);
+
+        // Draw the skybox
+
+        // Copy the depth buffer from the gbuffer to the default framebuffer.
+        glBindFramebuffer(GL_READ_FRAMEBUFFER, app.gbuffer.fbo);
+        glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+        glBlitFramebuffer(0, 0, app.screen_width, app.screen_height,
+                          0, 0, app.screen_width, app.screen_height,
+                          GL_DEPTH_BUFFER_BIT, GL_NEAREST);
+
+        world.skybox.shader->use();
+        world.skybox.shader->set_matrix("view", camera.view_matrix());
+        render_skybox(world.skybox);
+        dump_opengl_errors("After render_skybox", __FILE__);
     }
-
-    app.bind_default_framebuffer(); // render gbuffer back to the screen
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-    glUseProgram(deferred_shading_shader->program);
-    deferred_shading_shader->set3f("view_position", camera.frustum.position);
-    deferred_shading_shader->set1i("render_only_albedo", g_render_wireframe);
-
-    render_final_quad(app, camera, deferred_shading_shader);
 
     glfwPollEvents();
     glfwSwapBuffers(app.window);
@@ -72,29 +90,32 @@ main()
     //   - Add decent main loop with interpolation.
     //   - Reduce number of polygons needed to render the world.
     //
-    ResourceManager resource_manager;
-    resource_manager.load_from_file("basic.glsl", ResourceType_Shader);
-    resource_manager.load_from_file("deferred_shading.glsl", ResourceType_Shader);
-    resource_manager.load_from_file("wireframe.glsl", ResourceType_Shader);
+    IOTaskManager io_task_manager;
+
+    ResourceManager resource_manager(&io_task_manager);
+    {
+        const char *shaders_to_load[] = {
+            "basic.glsl",
+            "deferred_shading.glsl",
+            "wireframe.glsl",
+            "skybox.glsl",
+        };
+        const char *textures_to_load[] = {
+            "skybox.texture",
+        };
+
+        for (auto name : shaders_to_load)
+            resource_manager.load_from_shader_file(name);
+
+        for (auto name : textures_to_load)
+            resource_manager.load_from_texture_file(name);
+    }
 
     Application app("Deferred renderer", 1024, 768);
 
-    World world;
-    world.chunks[0][0][0].blocks[0][0][0] = BlockType_Terrain;
-
-    world.sun.direction = Vec3f(0, -1, 0);
-    world.sun.ambient = Vec3f(.1f);
-    world.sun.diffuse = Vec3f(.7f);
-    world.sun.specular = Vec3f(1.0f);
-
-    const f32 FIELD_OF_VIEW = 60.0f;
-    const f32 MOVE_SPEED = 0.13f;
-    const f32 ROTATION_SPEED = 0.050f;
-    const Vec3f CAMERA_POSITION(0, 0, 15);
-    const Vec3f CAMERA_FRONT(0, 0, -1);
-    const Vec3f UP_WORLD(0.0f, 1.0f, 0.0f);
-    Camera camera(CAMERA_POSITION, CAMERA_FRONT, UP_WORLD,
-                  FIELD_OF_VIEW, app.aspect_ratio(), MOVE_SPEED, ROTATION_SPEED);
+    World world(resource_manager, app.aspect_ratio());
+    // world.chunks[0][0][0].blocks[0][0][0] = BlockType_Terrain;
+    world.chunks[0][0][0].blocks[3][0][0] = BlockType_Terrain;
 
     Shader *basic_shader = resource_manager.get_shader("basic.glsl");
     basic_shader->load();
@@ -103,6 +124,11 @@ main()
     Shader *wireframe_shader = resource_manager.get_shader("wireframe.glsl");
     wireframe_shader->load();
     wireframe_shader->setup_projection_matrix(app.aspect_ratio());
+
+    Shader *skybox_shader = resource_manager.get_shader("skybox.glsl");
+    skybox_shader->load();
+    skybox_shader->setup_projection_matrix(app.aspect_ratio());
+    skybox_shader->add_texture("texture_cubemap");
 
     Shader *deferred_shading_shader = resource_manager.get_shader("deferred_shading.glsl");
     deferred_shading_shader->load();
@@ -116,14 +142,16 @@ main()
     deferred_shading_shader->set3f("sun.specular", world.sun.specular);
 
     glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
-    app.bind_gbuffer();
 
     bool running = true;
+
+    dump_opengl_errors("Before loop", __FILE__);
+
     while (running)
     {
         process_input(app.window, g_keyboard);
 
-        main_update(g_keyboard, camera);
+        world.update(g_keyboard);
 
         // Check if the window should close.
         if (glfwWindowShouldClose(app.window))
@@ -132,6 +160,9 @@ main()
             continue;
         }
 
-        main_render(app, g_keyboard, world, camera, basic_shader, wireframe_shader, deferred_shading_shader);
+        main_render(app, world, world.camera, basic_shader, wireframe_shader, deferred_shading_shader);
     }
+
+    io_task_manager.stop();
+    io_task_manager.join_thread();
 }
