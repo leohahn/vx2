@@ -6,6 +6,9 @@ add_subdirectory(src)
 add_subdirectory(lt)
 add_subdirectory(thirdparty)
 
+add_subdirectory(thirdparty/freetype-2.9)
+include_directories(thirdparty/freetype-2.9/include)
+
 include_directories(src thirdparty lt/src)
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14")
@@ -30,7 +33,7 @@ add_executable(dr
   thirdparty/glad/glad.cpp
   thirdparty/stb_image.cpp)
 
-target_link_libraries(dr -ldl -lm)
+target_link_libraries(dr -ldl -lm ${CMAKE_BINARY_DIR}/thirdparty/freetype-2.9/libfreetyped.a)
 
 # GLFW 3
 find_package(glfw3 REQUIRED)
