@@ -17,7 +17,8 @@ struct Shader
 
     void load();
 
-    void setup_projection_matrix(f32 aspect_ratio);
+    void setup_perspective_matrix(f32 aspect_ratio);
+    void setup_orthographic_matrix(f32 left, f32 right, f32 bottom, f32 top);
     void set3f(const char *name, Vec3f v);
     void set1i(const char *name, i32 i);
     void set1f(const char *name, f32 f);

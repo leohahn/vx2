@@ -12,14 +12,23 @@
 #include "io_task_manager.hpp"
 #include "resource_manager.hpp"
 #include "skybox.hpp"
+#include "font.hpp"
 
 lt_global_variable lt::Logger logger("main");
 lt_global_variable Key g_keyboard[NUM_KEYBOARD_KEYS] = {};
 
+// TODO: Remove this, since it is only for debugging.
+lt_global_variable std::vector<Vertex_PU> g_text_buf;
+lt_global_variable u32 atlas_id;
+
 lt_internal void
-main_render(const Application &app, const World &world, const Camera &camera,
-            Shader *basic_shader, Shader *wireframe_shader, Shader *deferred_shading_shader)
+main_render(const Application &app, const World &world, const Camera &camera, ResourceManager &resource_manager)
 {
+    Shader *basic_shader = resource_manager.get_shader("basic.glsl");
+    Shader *wireframe_shader = resource_manager.get_shader("wireframe.glsl");
+    Shader *font_shader = resource_manager.get_shader("font.glsl");
+    Shader *deferred_shading_shader = resource_manager.get_shader("deferred_shading.glsl");
+
     glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 
     app.bind_default_framebuffer();
@@ -75,6 +84,43 @@ main_render(const Application &app, const World &world, const Camera &camera,
         render_skybox(world.skybox);
         dump_opengl_errors("After render_skybox", __FILE__);
     }
+    // FIXME: Remove this part
+    {
+        u32 vao, vbo;
+        glGenVertexArrays(1, &vao);
+        glBindVertexArray(vao);
+
+        glGenBuffers(1, &vbo);
+        glBindBuffer(GL_ARRAY_BUFFER, vbo);
+        glBufferData(GL_ARRAY_BUFFER, sizeof(Vertex_PU)*g_text_buf.size(), &g_text_buf[0], GL_STATIC_DRAW);
+
+        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex_PU), (void*)offsetof(Vertex_PU, position));
+        glEnableVertexAttribArray(0);
+
+        glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex_PU), (void*)offsetof(Vertex_PU, tex_coords));
+        glEnableVertexAttribArray(1);
+
+        font_shader->use();
+        glDisable(GL_DEPTH_TEST);
+        glDisable(GL_CULL_FACE);
+
+        glActiveTexture(GL_TEXTURE0 + font_shader->texture_unit("font_atlas"));
+        glBindTexture(GL_TEXTURE_2D, atlas_id);
+
+        // Enable blending
+        glEnable(GL_BLEND);
+        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+        glDrawArrays(GL_TRIANGLES, 0, g_text_buf.size());
+
+        glDisable(GL_BLEND);
+
+        glEnable(GL_DEPTH_TEST);
+        glEnable(GL_CULL_FACE);
+
+        glBindVertexArray(0);
+        dump_opengl_errors("After font", __FILE__);
+    }
 
     glfwPollEvents();
     glfwSwapBuffers(app.window);
@@ -83,13 +129,13 @@ main_render(const Application &app, const World &world, const Camera &camera,
 int
 main()
 {
-    //
+    // --------------------------------------------------------------
     // TODO:
-    //   - Render skybox with forward-rendering.
     //   - Create landscape with random noise.
     //   - Add decent main loop with interpolation.
     //   - Reduce number of polygons needed to render the world.
-    //
+    // --------------------------------------------------------------
+
     IOTaskManager io_task_manager;
 
     ResourceManager resource_manager(&io_task_manager);
@@ -99,6 +145,7 @@ main()
             "deferred_shading.glsl",
             "wireframe.glsl",
             "skybox.glsl",
+            "font.glsl",
         };
         const char *textures_to_load[] = {
             "skybox.texture",
@@ -115,19 +162,25 @@ main()
 
     World world(resource_manager, app.aspect_ratio());
     // world.chunks[0][0][0].blocks[0][0][0] = BlockType_Terrain;
+    world.chunks[0][0][0].blocks[2][0][0] = BlockType_Terrain;
     world.chunks[0][0][0].blocks[3][0][0] = BlockType_Terrain;
 
     Shader *basic_shader = resource_manager.get_shader("basic.glsl");
     basic_shader->load();
-    basic_shader->setup_projection_matrix(app.aspect_ratio());
+    basic_shader->setup_perspective_matrix(app.aspect_ratio());
 
     Shader *wireframe_shader = resource_manager.get_shader("wireframe.glsl");
     wireframe_shader->load();
-    wireframe_shader->setup_projection_matrix(app.aspect_ratio());
+    wireframe_shader->setup_perspective_matrix(app.aspect_ratio());
+
+    Shader *font_shader = resource_manager.get_shader("font.glsl");
+    font_shader->load();
+    font_shader->setup_orthographic_matrix(0, app.screen_width, 0, app.screen_height);
+    font_shader->add_texture("font_atlas");
 
     Shader *skybox_shader = resource_manager.get_shader("skybox.glsl");
     skybox_shader->load();
-    skybox_shader->setup_projection_matrix(app.aspect_ratio());
+    skybox_shader->setup_perspective_matrix(app.aspect_ratio());
     skybox_shader->add_texture("texture_cubemap");
 
     Shader *deferred_shading_shader = resource_manager.get_shader("deferred_shading.glsl");
@@ -141,11 +194,26 @@ main()
     deferred_shading_shader->set3f("sun.diffuse", world.sun.diffuse);
     deferred_shading_shader->set3f("sun.specular", world.sun.specular);
 
-    glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
-
     bool running = true;
 
     dump_opengl_errors("Before loop", __FILE__);
+
+    AsciiFontAtlas font_atlas(
+        "/home/lhahn/dev/cpp/deferred-renderer/resources/fonts/dejavu/ttf/DejaVuSansMono.ttf",
+        32.0f, 512, 512
+    );
+
+    LT_Assert(font_atlas.is_valid());
+
+    g_text_buf = font_atlas.render_text_to_buffer("carro", 30.5f, 30.5f);
+    atlas_id = font_atlas.id;
+
+    for (auto &t : g_text_buf)
+    {
+        logger.log("position: ", t.position);
+        logger.log("tex_coords: ", t.tex_coords);
+        logger.log();
+    }
 
     while (running)
     {
@@ -160,7 +228,7 @@ main()
             continue;
         }
 
-        main_render(app, world, world.camera, basic_shader, wireframe_shader, deferred_shading_shader);
+        main_render(app, world, world.camera, resource_manager);
     }
 
     io_task_manager.stop();

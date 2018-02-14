@@ -11,6 +11,12 @@
 
 lt_global_variable lt::Logger logger("renderer");
 
+struct Vertex_PUN
+{
+    Vec3f position;
+    Vec2f tex_coords;
+    Vec3f normal;
+};
 
 lt_internal inline Vec3f
 get_world_coords(const Chunk &chunk, i32 block_xi, i32 block_yi, i32 block_zi)
@@ -21,13 +27,6 @@ get_world_coords(const Chunk &chunk, i32 block_xi, i32 block_yi, i32 block_zi)
     coords.z = chunk.origin.z + (block_zi * Chunk::BLOCK_SIZE);
     return coords;
 }
-
-struct Vertex_PUN
-{
-    Vec3f position;
-    Vec2f tex_coords;
-    Vec3f normal;
-};
 
 lt_internal void
 render_mesh(const Mesh &mesh, Shader *shader)
@@ -317,6 +316,12 @@ render_setup_mesh_buffers_p(Mesh *m)
     glEnableVertexAttribArray(0);
 
     glBindVertexArray(0);
+}
+
+void
+render_text(const std::string &text, Shader &shader, const std::vector<Vertex_PU> &vertexes)
+{
+
 }
 
 void

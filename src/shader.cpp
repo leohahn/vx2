@@ -169,9 +169,17 @@ Shader::texture_unit(const std::string &name) const
 }
 
 void
-Shader::setup_projection_matrix(f32 aspect_ratio)
+Shader::setup_perspective_matrix(f32 aspect_ratio)
 {
     const Mat4f projection = lt::perspective(60.0f, aspect_ratio, Camera::ZNEAR, Camera::ZFAR);
+    glUseProgram(program);
+    glUniformMatrix4fv(get_location("projection"), 1, GL_FALSE, projection.data());
+}
+
+void
+Shader::setup_orthographic_matrix(f32 left, f32 right, f32 bottom, f32 top)
+{
+    const Mat4f projection = lt::orthographic(left, right, bottom, top);
     glUseProgram(program);
     glUniformMatrix4fv(get_location("projection"), 1, GL_FALSE, projection.data());
 }

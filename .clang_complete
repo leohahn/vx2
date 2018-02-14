@@ -1,5 +1,6 @@
 -std=c++14
 -I./src
 -I./thirdparty
+-I./thirdparty/freetype-2.9/include
 -I./lt/src
 -DLT_DEBUG

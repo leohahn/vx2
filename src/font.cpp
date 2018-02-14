@@ -1,0 +1,105 @@
+#include "font.hpp"
+#include "lt_core.hpp"
+#include "lt_utils.hpp"
+#include "lt_fs.hpp"
+#include "stb_truetype.h"
+#include "stb_rect_pack.h"
+#define STB_IMAGE_WRITE_IMPLEMENTATION
+#include "stb_image_write.h"
+#include "glad/glad.h"
+
+lt_global_variable lt::Logger logger("font");
+
+AsciiFontAtlas::AsciiFontAtlas()
+    : width(0)
+    , height(0)
+    , bitmap(nullptr)
+{}
+
+AsciiFontAtlas::AsciiFontAtlas(const std::string &fontpath, f32 font_size, i32 width, i32 height)
+    : fontpath(fontpath)
+    , width(width)
+    , height(height)
+    , bitmap(new u8[width*height])
+{
+    LT_Assert(bitmap != nullptr);
+
+    FileContents *ttf_buffer = file_read_contents(fontpath.c_str());
+    if (ttf_buffer->error != FileError_None)
+    {
+        logger.error("Failed to open font file in ", fontpath);
+    }
+
+    stbtt_fontinfo info;
+    if (stbtt_InitFont(&info, (u8*)ttf_buffer->data, 0) == 0)
+    {
+        logger.error("Failed to initialize font buffer");
+    }
+
+    stbtt_pack_context context;
+
+    const i32 stride_in_bytes = 0;
+    const i32 padding = 1;
+    if (stbtt_PackBegin(&context, bitmap, width, height,
+                        stride_in_bytes, padding, nullptr))
+    {
+        stbtt_PackSetOversampling(&context, 2, 2);
+        stbtt_PackFontRange(&context, (u8*)ttf_buffer->data, 0, font_size, 0, 256, char_data);
+        LT_Assert(stbi_write_png("bitmap.png", width, height, 1, (void*)bitmap, width));
+        stbtt_PackEnd(&context);
+
+        glGenTextures(1, &id);
+        glBindTexture(GL_TEXTURE_2D, id);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RED, width, height, 0, GL_RED, GL_UNSIGNED_BYTE, bitmap);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    }
+    else
+    {
+        logger.error("Failed to create a packing context.");
+    }
+
+    file_free_contents(ttf_buffer);
+}
+
+AsciiFontAtlas::~AsciiFontAtlas()
+{
+    delete[] bitmap;
+}
+
+AsciiFontAtlas::AsciiFontAtlas(AsciiFontAtlas &&atlas)
+{
+    width = atlas.width;
+    height = atlas.height;
+    bitmap = atlas.bitmap;
+    atlas.bitmap = nullptr;
+}
+
+std::vector<Vertex_PU>
+AsciiFontAtlas::render_text_to_buffer(const std::string &text, f32 start_xpos, f32 start_ypos)
+{
+    // TODO: Eventually use a custom allocator.
+    std::vector<Vertex_PU> vertexes;
+
+    float xpos = start_xpos;
+    float ypos = start_ypos;
+    for (u32 i = 0; i < text.size(); i++)
+    {
+        stbtt_aligned_quad quad;
+        stbtt_GetPackedQuad(char_data, width, height, text[i], &xpos, &ypos, &quad, true);
+
+        Vertex_PU top_left(Vec3f(quad.x0, quad.y0, 0), Vec2f(quad.s0, quad.t1));
+        Vertex_PU bottom_right(Vec3f(quad.x1, quad.y1, 0), Vec2f(quad.s1, quad.t0));
+        Vertex_PU top_right(Vec3f(quad.x1, quad.y0, 0), Vec2f(quad.s1, quad.t1));
+        Vertex_PU bottom_left(Vec3f(quad.x0, quad.y1, 0), Vec2f(quad.s0, quad.t0));
+
+        vertexes.push_back(top_left);
+        vertexes.push_back(bottom_left);
+        vertexes.push_back(bottom_right);
+        vertexes.push_back(bottom_right);
+        vertexes.push_back(top_right);
+        vertexes.push_back(top_left);
+    }
+
+    return vertexes;
+}
