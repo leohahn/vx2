@@ -8,6 +8,7 @@
 #include "lt_utils.hpp"
 #include "skybox.hpp"
 #include "mesh.hpp"
+#include "font.hpp"
 
 lt_global_variable lt::Logger logger("renderer");
 
@@ -319,9 +320,34 @@ render_setup_mesh_buffers_p(Mesh *m)
 }
 
 void
-render_text(const std::string &text, Shader &shader, const std::vector<Vertex_PU> &vertexes)
+render_text(AsciiFontAtlas *atlas, const std::string &text, f32 posx, f32 posy, Shader *shader)
 {
+    std::vector<Vertex_PU> text_buf = atlas->render_text_to_buffer(text, posx, posy);
 
+    glBindVertexArray(atlas->vao);
+    glBindBuffer(GL_ARRAY_BUFFER, atlas->vbo);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(Vertex_PU)*text_buf.size(), &text_buf[0], GL_STATIC_DRAW);
+
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex_PU), (void*)offsetof(Vertex_PU, position));
+    glEnableVertexAttribArray(0);
+
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex_PU), (void*)offsetof(Vertex_PU, tex_coords));
+    glEnableVertexAttribArray(1);
+
+    shader->use();
+
+    glActiveTexture(GL_TEXTURE0 + shader->texture_unit("font_atlas"));
+    glBindTexture(GL_TEXTURE_2D, atlas->id);
+
+    glDisable(GL_DEPTH_TEST);
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+    glDrawArrays(GL_TRIANGLES, 0, text_buf.size());
+
+    glDisable(GL_BLEND);
+    glEnable(GL_DEPTH_TEST);
+    glBindVertexArray(0);
 }
 
 void

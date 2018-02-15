@@ -7,6 +7,7 @@
 #include "io_task.hpp"
 #include "io_task_manager.hpp"
 #include "application.hpp"
+#include "font.hpp"
 
 lt_global_variable lt::Logger logger("resource_manager");
 
@@ -99,12 +100,18 @@ ResourceManager::ResourceManager(IOTaskManager *io_task_manager)
     m_shaders_path = ltfs::absolute_path("../resources/shaders", &error);
     if (error)
         logger.error("Cannot resolve relative path '../resources/shaders'");
+
     m_textures_path = ltfs::absolute_path("../resources/textures", &error);
     if (error)
         logger.error("Cannot resolve relative path '../resources/textures'");
 
+    m_fonts_path = ltfs::absolute_path("../resources/fonts", &error);
+    if (error)
+        logger.error("Cannot resolve relative path '../resources/fonts'");
+
     logger.log("Textures path: ", m_textures_path);
     logger.log("Shaders path: ", m_shaders_path);
+    logger.log("Fonts path: ", m_fonts_path);
 }
 
 bool
@@ -171,6 +178,30 @@ ResourceManager::load_from_shader_file(const std::string &filename)
     return true;
 }
 
+bool
+ResourceManager::load_from_font_file(const std::string &filename)
+{
+    std::string filepath = ltfs::join(m_fonts_path, filename);
+
+    if (!ltfs::file_exists(filepath))
+    {
+        logger.error("File ", filepath, " does not exist");
+        return false;
+    }
+
+    bool error;
+    std::string abs_filepath = ltfs::absolute_path(filepath, &error);
+    LT_Assert(!error);
+
+    auto new_font = std::make_unique<AsciiFontAtlas>(abs_filepath, 512, 512);
+
+    LT_Assert(m_shaders.find(filename) == m_shaders.end());
+
+    m_fonts.insert(std::make_pair(filename, std::move(new_font)));
+
+    return true;
+}
+
 Shader *
 ResourceManager::get_shader(const std::string &filename) const
 {
@@ -185,6 +216,15 @@ ResourceManager::get_texture(const std::string &filename) const
 {
     if (m_textures.find(filename) != m_textures.end())
         return m_textures.at(filename).get();
+    else
+        return nullptr;
+}
+
+AsciiFontAtlas *
+ResourceManager::get_font(const std::string &filename) const
+{
+    if (m_fonts.find(filename) != m_fonts.end())
+        return m_fonts.at(filename).get();
     else
         return nullptr;
 }

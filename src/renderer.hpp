@@ -10,6 +10,7 @@ struct Shader;
 struct Application;
 struct Skybox;
 struct Mesh;
+struct AsciiFontAtlas;
 
 struct Vertex_PU
 {
@@ -23,7 +24,7 @@ struct Vertex_PU
 void render_world(const World &world);
 void render_final_quad(const Application &app, const Camera &camera, Shader *shader);
 void render_skybox(const Skybox &skybox);
-void render_text(const std::string &text, Shader &shader, const std::vector<Vertex_PU> &vertexes);
+void render_text(AsciiFontAtlas *atlas, const std::string &text, f32 posx, f32 posy, Shader *shader);
 void render_loading_screen();
 
 // Mesh layouts
