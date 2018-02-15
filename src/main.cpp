@@ -14,11 +14,16 @@
 #include "skybox.hpp"
 #include "font.hpp"
 
+struct DebugContext
+{
+    i32 num_frames;
+};
+
 lt_global_variable lt::Logger logger("main");
 lt_global_variable Key g_keyboard[NUM_KEYBOARD_KEYS] = {};
 
-// TODO: Remove this, since it is only for debugging.
-lt_global_variable std::vector<Vertex_PU> g_text_buf;
+lt_global_variable DebugContext g_debug_context = {};
+
 
 lt_internal void
 main_render(const Application &app, const World &world, const Camera &camera, ResourceManager &resource_manager)
@@ -83,15 +88,12 @@ main_render(const Application &app, const World &world, const Camera &camera, Re
         world.skybox.shader->set_matrix("view", camera.view_matrix());
         render_skybox(world.skybox);
         dump_opengl_errors("After render_skybox", __FILE__);
-    }
 
-    {
         lt_local_persist i32 i = 0;
-
         render_text(font_atlas, std::to_string(i++), 30.5f, 30.5f, font_shader);
-
         dump_opengl_errors("After font", __FILE__);
     }
+
 
     glfwPollEvents();
     glfwSwapBuffers(app.window);
@@ -102,8 +104,8 @@ main()
 {
     // --------------------------------------------------------------
     // TODO:
-    //   - Create landscape with random noise.
     //   - Add decent main loop with interpolation.
+    //   - Create landscape with random noise.
     //   - Reduce number of polygons needed to render the world.
     // --------------------------------------------------------------
 

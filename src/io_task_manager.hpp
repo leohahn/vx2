@@ -8,10 +8,9 @@
 #include <atomic>
 #include <queue>
 #include <unordered_map>
+#include <condition_variable>
 #include "lt_core.hpp"
 #include "io_task.hpp"
-
-typedef i32 IOTaskHandle;
 
 struct IOTaskManager
 {
@@ -23,7 +22,9 @@ struct IOTaskManager
     void join_thread() { m_task_thread.join(); }
 
 private:
-    std::atomic<bool> m_running;
+    std::atomic<bool> m_thread_running;
+    std::condition_variable m_task_added;
+    bool m_wake_up_thread;
 
     std::queue<IOTask*> m_task_queue;
     std::mutex m_task_queue_mutex;

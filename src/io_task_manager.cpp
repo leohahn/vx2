@@ -5,7 +5,8 @@
 lt_global_variable lt::Logger logger("io_task_manager");
 
 IOTaskManager::IOTaskManager()
-    : m_running(false)
+    : m_thread_running(false)
+    , m_wake_up_thread(false)
     , m_task_thread(&IOTaskManager::run, this)
 {
 }
@@ -14,38 +15,41 @@ void
 IOTaskManager::run()
 {
     logger.log("Started task manager in thread ", std::this_thread::get_id());
-    m_running = true;
-    while (m_running)
+    m_thread_running = true;
+    while (m_thread_running)
     {
-        IOTask *task = nullptr;
+        std::unique_lock<std::mutex> locker(m_task_queue_mutex);
 
-        m_task_queue_mutex.lock();
-        if (m_task_queue.size() > 0)
+        m_task_added.wait(locker, [&]{ return m_wake_up_thread; });
+
+        while (!m_task_queue.empty())
         {
-            task = m_task_queue.front();
+            m_task_queue.front()->run();
             m_task_queue.pop();
             logger.log("Running task.");
         }
-        m_task_queue_mutex.unlock();
 
-        if (task) task->run();
-
-        // Sleep for a little bit to avoid overusing the CPU.
-        std::this_thread::sleep_for(std::chrono::milliseconds(500));
+        m_wake_up_thread = false;
     }
 }
 
 void
 IOTaskManager::add_to_queue(IOTask *task)
 {
-    m_task_queue_mutex.lock();
+    std::unique_lock<std::mutex> locker(m_task_queue_mutex);
     m_task_queue.push(task);
-    m_task_queue_mutex.unlock();
+    m_task_added.notify_one();
+    m_wake_up_thread = true;
 }
 
 void
 IOTaskManager::stop()
 {
     logger.log("Stopping task manager thread.");
-    m_running = false;
+    m_thread_running = false;
+    // NOTE: A "work" signal is sent to the thread, however there is no work to do.
+    // This is only done to wake up the thread so it can check that the variable 'm_thread_running'
+    // is false so it can exit.
+    m_wake_up_thread = true;
+    m_task_added.notify_one();
 }
