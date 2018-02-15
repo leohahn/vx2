@@ -89,8 +89,7 @@ main_render(const Application &app, const World &world, const Camera &camera, Re
         render_skybox(world.skybox);
         dump_opengl_errors("After render_skybox", __FILE__);
 
-        lt_local_persist i32 i = 0;
-        render_text(font_atlas, std::to_string(i++), 30.5f, 30.5f, font_shader);
+        render_text(font_atlas, "FPS: ", 30.5f, 30.5f, font_shader);
         dump_opengl_errors("After font", __FILE__);
     }
 
@@ -140,9 +139,13 @@ main()
     Application app("Deferred renderer", 1024, 768);
 
     World world(resource_manager, app.aspect_ratio());
-    // world.chunks[0][0][0].blocks[0][0][0] = BlockType_Terrain;
-    world.chunks[0][0][0].blocks[2][0][0] = BlockType_Terrain;
-    world.chunks[0][0][0].blocks[3][0][0] = BlockType_Terrain;
+
+    const f64 frequency = 0.01;
+    const f64 amplitude = 0.60;
+    const f64 lacunarity = 2.0f;
+    const f64 gain = 0.5f;
+    const i32 num_octaves = 5;
+    world.generate_landscape(amplitude, frequency, num_octaves, lacunarity, gain);
 
     Shader *basic_shader = resource_manager.get_shader("basic.glsl");
     basic_shader->load();

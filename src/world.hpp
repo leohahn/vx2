@@ -7,6 +7,7 @@
 #include "camera.hpp"
 
 struct Key;
+struct osn_context;
 
 struct Sun
 {
@@ -43,6 +44,7 @@ enum WorldState
 struct World
 {
     constexpr static i32 NUM_CHUNKS_PER_AXIS = 1;
+    constexpr static i32 TOTAL_BLOCKS_PER_AXIS = NUM_CHUNKS_PER_AXIS * Chunk::NUM_BLOCKS_PER_AXIS;
 
     World(const ResourceManager &manager, f32 aspect_ratio);
     ~World();
@@ -54,11 +56,13 @@ struct World
     Vec3f origin;
 
     void update(Key *kb);
+    void generate_landscape(f64 amplitude, f64 frequency, i32 num_octaves, f64 lacunarity, f64 gain);
 
     WorldState state = WorldState_InitialLoad;
     bool render_wireframe = false;
 
 private:
+    osn_context *m_simplex_ctx;
     void initialize_buffers();
     Camera create_camera(f32 aspect_ratio);
 };

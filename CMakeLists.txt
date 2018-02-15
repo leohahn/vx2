@@ -32,6 +32,7 @@ add_executable(dr
   lt/src/lt_math.cpp
   lt/src/lt_fs.cpp
   thirdparty/glad/glad.cpp
+  thirdparty/open-simplex-noise.cpp
   )
 
 target_link_libraries(dr -ldl -lm)
