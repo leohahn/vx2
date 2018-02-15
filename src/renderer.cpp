@@ -351,8 +351,9 @@ render_text(AsciiFontAtlas *atlas, const std::string &text, f32 posx, f32 posy, 
 }
 
 void
-render_loading_screen()
+render_loading_screen(const Application &app, AsciiFontAtlas *atlas, Shader *font_shader)
 {
-    glClearColor(1.0f, 0.0f, 0.0f, 1.0f);
+    glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    render_text(atlas, "Loading...", app.screen_width/2.3, app.screen_height/2, font_shader);
 }

@@ -36,7 +36,7 @@ main_render(const Application &app, const World &world, const Camera &camera, Re
 
     if (world.state == WorldState_InitialLoad)
     {
-        render_loading_screen();
+        render_loading_screen(app, font_atlas, font_shader);
         dump_opengl_errors("After loading screen", __FILE__);
     }
     else
