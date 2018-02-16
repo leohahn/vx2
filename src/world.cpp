@@ -30,7 +30,7 @@ World::create_camera(f32 aspect_ratio)
     const f32 FIELD_OF_VIEW = 60.0f;
     const f32 MOVE_SPEED = 0.13f;
     const f32 ROTATION_SPEED = 0.033f;
-    const Vec3f CAMERA_POSITION(0, 0, 15);
+    const Vec3f CAMERA_POSITION(15, 20, 45);
     const Vec3f CAMERA_FRONT(0, 0, -1);
     const Vec3f UP_WORLD(0.0f, 1.0f, 0.0f);
     return Camera(CAMERA_POSITION, CAMERA_FRONT, UP_WORLD,

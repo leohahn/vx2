@@ -46,7 +46,6 @@ ResourceManager::load_from_texture_file(const std::string &filename)
 
     std::string filepath = ltfs::join(m_textures_path, filename);
     ResourceFile texture_file(filepath);
-    texture_file.parse();
 
     if (!texture_file.is_file_correct)
     {
@@ -139,7 +138,6 @@ ResourceManager::load_from_shader_file(const std::string &filename)
     }
 
     ResourceFile shader_file(filepath);
-    shader_file.parse();
     if (!shader_file.is_file_correct)
     {
         logger.error("File ", filename, " is incorrect.");
@@ -159,10 +157,23 @@ ResourceManager::load_from_shader_file(const std::string &filename)
     }
 
     logger.log("Creating shader with source ", shader_filepath);
-
     auto new_shader = std::make_unique<Shader>(shader_filepath);
-    m_shaders.insert(std::make_pair(filename, std::move(new_shader)));
 
+    if (shader_file.has("textures"))
+    {
+        logger.log("Shader ", filename, " has textures entr, adding them.");
+        auto array_val = shader_file.cast_get<ResourceFile::ArrayVal>("textures");
+
+        new_shader->load();
+        for (const auto &v : array_val->vals)
+        {
+            // FIXME: Assume for the moment that all values inside the array are strings.
+            auto string_val = dynamic_cast<ResourceFile::StringVal*>(v.get());
+            new_shader->add_texture(string_val->str.c_str());
+        }
+    }
+
+    m_shaders.insert(std::make_pair(filename, std::move(new_shader)));
     return true;
 }
 

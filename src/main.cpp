@@ -121,6 +121,8 @@ main()
     // --------------------------------------------------------------
 
     IOTaskManager io_task_manager;
+    GLResources gl;
+    Application app("Deferred renderer", 1680, 1050);
 
     ResourceManager resource_manager(&io_task_manager);
     {
@@ -148,10 +150,6 @@ main()
             resource_manager.load_from_font_file(name);
     }
 
-    Application app("Deferred renderer", 1680, 1050);
-
-    GLResources gl;
-
     const i32 seed = 1024;
     World world(seed, resource_manager, &gl, app.aspect_ratio());
 
@@ -171,20 +169,12 @@ main()
     wireframe_shader->setup_perspective_matrix(app.aspect_ratio());
 
     Shader *font_shader = resource_manager.get_shader("font.shader");
-    font_shader->load();
     font_shader->setup_orthographic_matrix(0, app.screen_width, app.screen_height, 0);
-    font_shader->add_texture("font_atlas");
 
     Shader *skybox_shader = resource_manager.get_shader("skybox.shader");
-    skybox_shader->load();
     skybox_shader->setup_perspective_matrix(app.aspect_ratio());
-    skybox_shader->add_texture("texture_cubemap");
 
     Shader *deferred_shading_shader = resource_manager.get_shader("deferred_shading.shader");
-    deferred_shading_shader->load();
-    deferred_shading_shader->add_texture("texture_position");
-    deferred_shading_shader->add_texture("texture_normal");
-    deferred_shading_shader->add_texture("texture_albedo_specular");
     deferred_shading_shader->use();
     deferred_shading_shader->set3f("sun.direction", world.sun.direction);
     deferred_shading_shader->set3f("sun.ambient", world.sun.ambient);

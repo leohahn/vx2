@@ -13,77 +13,44 @@
 
 lt_global_variable lt::Logger logger("resource_file");
 
-lt_global_variable const std::vector<std::string> entry_keys = {
-    // texture entries
-    "texture_type",
-    "texture_format",
-    "pixel_format",
-    "face_x_pos",
-    "face_x_neg",
-    "face_y_pos",
-    "face_y_neg",
-    "face_z_pos",
-    "face_z_neg",
-    // shader entries
-    "shader_source"
-};
+// lt_global_variable const std::vector<std::string> entry_keys = {
+//     // texture entries
+//     "texture_type",
+//     "texture_format",
+//     "pixel_format",
+//     "face_x_pos",
+//     "face_x_neg",
+//     "face_y_pos",
+//     "face_y_neg",
+//     "face_z_pos",
+//     "face_z_neg",
+//     // shader entries
+//     "shader_source"
+// };
 
 ResourceFile::ResourceFile(const std::string &filepath)
     : filepath(filepath)
 {
-    // std::ifstream infile(filepath);
-    // std::string line;
-    // while (std::getline(infile, line))
-    // {
-    //     std::istringstream iss(line);
-    //     std::string key, val;
-    //     char eq;
-
-    //     bool success_read = (bool)(iss >> key >> eq >> val);
-
-    //     // Skip comments
-    //     if (key.size() > 0 && key[0] == '#')
-    //         continue;
-
-    //     if (!success_read && eq == '=')
-    //     {
-    //         logger.error("Loading file ", filepath, ": incorrect syntax");
-    //         is_file_correct = false;
-    //         break;
-    //     }
-
-    //     if (std::find(entry_keys.begin(), entry_keys.end(), key) == entry_keys.end())
-    //     {
-    //         logger.error("On file ", filepath);
-    //         logger.error("Invalid key ", key);
-    //         is_file_correct = false;
-    //         break;
-    //     }
-
-    //     m_entries.insert(std::make_pair(key, val));
-    // }
+    parse();
 }
 
 lt_internal inline u8 *
-eat_whitespaces(u8 *it, i32 *jumps_to_do)
+eat_whitespaces(u8 *it, const u8 *end_it)
 {
     u8 *new_it = it;
-    while (std::isspace(*new_it) && *jumps_to_do > 0)
+    while (std::isspace(*new_it) && it <= end_it)
     {
-        (*jumps_to_do)--;
         new_it++;
     }
-
     return new_it;
 }
 
 lt_internal inline u8 *
-eat_until(char c, u8 *it, i32 *jumps_to_do)
+eat_until(char c, u8 *it, const u8 *end_it)
 {
     u8 *new_it = it;
-    while (*new_it != c && *jumps_to_do > 0)
+    while (*new_it != c && it <= end_it)
     {
-        (*jumps_to_do)--;
         new_it++;
     }
     return new_it;
@@ -92,16 +59,14 @@ eat_until(char c, u8 *it, i32 *jumps_to_do)
 
 template<typename T>
 lt_internal inline u8 *
-eat_until(const T &chars, u8 *it, i32 *jumps_to_do)
+eat_until(const T &chars, u8 *it, const u8 *end_it)
 {
     u8 *new_it = it;
     while (std::find(std::begin(chars), std::end(chars), *new_it) == std::end(chars) &&
-           *jumps_to_do > 0)
+           it <= end_it)
     {
-        (*jumps_to_do)--;
         new_it++;
     }
-
     return new_it;
 }
 
@@ -117,46 +82,56 @@ ResourceFile::tokenize()
         return tokens;
     }
 
+    const u8 *end_it = (u8*)contents->data + contents->size - 1;
     u8 *it = (u8*)contents->data;
-    i32 jumps_to_do = contents->size;
 
-    while (jumps_to_do > 0)
+    while (it <= end_it)
     {
-        it = eat_whitespaces(it, &jumps_to_do);
+        it = eat_whitespaces(it, end_it);
 
         if (*it == '#')
         {
-            it = eat_until('\n', it, &jumps_to_do);
+            it = eat_until('\n', it, end_it);
         }
         else if (std::isalpha(*it))
         {
-            std::array<char, 3> chars{{' ', '=', ';'}};
-            u8 *last_it = eat_until(chars, it, &jumps_to_do);
+            std::array<char, 6> chars{{' ', '=', ';', ',', ']', '\n'}};
+            u8 *last_it = eat_until(chars, it, end_it);
 
-            Token tk(TokenType_Identifier, std::make_unique<StringVal>(std::string(it, last_it)));
-            tokens.push_back(std::move(tk));
+            Token tk(TokenType_Identifier, std::string(it, last_it));
+            tokens.push_back(tk);
 
             it = last_it;
         }
         else if (*it == '=')
         {
             Token tk(TokenType_Equals);
-            tokens.push_back(std::move(tk));
-            if (jumps_to_do)
-            {
-                it++;
-                jumps_to_do--;
-            }
+            tokens.push_back(tk);
+            it++;
+        }
+        else if (*it == '[')
+        {
+            Token tk(TokenType_OpenBracket);
+            tokens.push_back(tk);
+            it++;
+        }
+        else if (*it == ']')
+        {
+            Token tk(TokenType_CloseBracket);
+            tokens.push_back(tk);
+            it++;
+        }
+        else if (*it == ',')
+        {
+            Token tk(TokenType_Comma);
+            tokens.push_back(tk);
+            it++;
         }
         else if (*it == ';')
         {
             Token tk(TokenType_Semicolon);
-            tokens.push_back(std::move(tk));
-            if (jumps_to_do)
-            {
-                it++;
-                jumps_to_do--;
-            }
+            tokens.push_back(tk);
+            it++;
         }
     }
 
@@ -169,13 +144,10 @@ ResourceFile::parse()
 {
     std::vector<Token> tokens = tokenize();
 
-    i32 tokens_left = tokens.size();
-    i32 t = 0;
-
-    if (tokens_left < 4)
+    if (tokens.size() < 4)
     {
         logger.error("For file ", filepath);
-        logger.error("Rule must have at least 4 tokens. ", tokens_left);
+        logger.error("Rule must have at least 4 tokens.");
         return;
     }
 
@@ -184,36 +156,75 @@ ResourceFile::parse()
     // for (auto &token : tokens)
     //     logger.log(ResourceFileTokenNames[token.type]);
 
-    while (tokens_left >= 4)
+    auto loops_left = [](i32 t, const std::vector<Token> &tokens) {
+        return tokens.size() - 1 - t;
+    };
+
+    for (u32 t = 0; t < tokens.size();)
     {
         if (tokens[t].type == TokenType_Identifier &&
             tokens[t+1].type == TokenType_Equals)
         {
-            LT_Assert(tokens[t].val->type == ValType_String);
-            auto key = dynamic_cast<StringVal*>(tokens[t].val.get());
-
-            if (has(key->str))
+            auto key = tokens[t].str;
+            if (has(key))
             {
-                logger.error("File already has the key ", key->str);
+                logger.error("File already has the key ", key);
                 return;
             }
 
             if (tokens[t+2].type == TokenType_Identifier && tokens[t+3].type == TokenType_Semicolon)
             {
-                LT_Assert(tokens[t+2].val->type == ValType_String);
-                auto val = dynamic_cast<StringVal*>(tokens[t+2].val.get());
+                auto val = tokens[t+2].str;
 
-                logger.log("adding entry ", key->str);
-                logger.log("value ", val->str);
+                logger.log("adding entry ", key);
+                logger.log("value ", val);
 
-                m_entries.insert(std::make_pair(key->str, std::move(tokens[t+2].val)));
-                tokens_left -= 4;
-                t += 4;
+                auto string_val = std::make_unique<StringVal>(val);
+                m_entries.insert(std::make_pair(key, std::move(string_val)));
+
+                t += 4; // two tokens were recognized
             }
-            else if (tokens[t+2].type == TokenType_Identifier && tokens[t+3].type == TokenType_OpenBracket)
+            else if (tokens[t+2].type == TokenType_OpenBracket)
             {
-                // Must recognize array
-                LT_Assert(false);
+                t += 3;
+
+                auto array_val = std::make_unique<ArrayVal>();
+
+                while (t < tokens.size())
+                {
+                    if (tokens[t].type == TokenType_Identifier)
+                    {
+                        auto new_val = std::make_unique<StringVal>(tokens[t].str);
+                        array_val->vals.push_back(std::move(new_val));
+
+                        if (loops_left(t, tokens) >= 2 &&
+                            tokens[t+1].type == TokenType_CloseBracket &&
+                            tokens[t+2].type == TokenType_Semicolon)
+                        {
+                            t += 3;
+                            break;
+                        }
+                        else if (loops_left(t, tokens) >= 1 && tokens[t+1].type == TokenType_Comma)
+                        {
+                            t += 2;
+                        }
+                        else
+                        {
+                            logger.error("Invalid array.");
+                            return;
+                        }
+                    }
+                    else
+                    {
+                        logger.error("Invalid array.");
+                        return;
+                    }
+                }
+
+                logger.log("adding array entry ", key);
+                m_entries.insert(std::make_pair(key, std::move(array_val)));
+
+                t += 4; // two tokens were recognized
             }
             else
             {
@@ -224,6 +235,7 @@ ResourceFile::parse()
         else
         {
             logger.error("Wrong syntax on file.");
+            return;
         }
     }
 }

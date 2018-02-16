@@ -66,26 +66,20 @@ struct ResourceFile
     struct Token
     {
         TokenType type;
-        std::unique_ptr<Val> val;
+        std::string str;
 
-        Token(TokenType type, std::unique_ptr<Val> val)
+        Token(TokenType type, const std::string &str)
             : type(type)
-            , val(std::move(val))
-        {}
-
-        Token(Token &&token)
-            : type(token.type)
-            , val(std::move(token.val))
+            , str(str)
         {}
 
         Token(TokenType type)
             : type(type)
-            , val(nullptr)
+            , str()
         {}
     };
 
     ResourceFile(const std::string &filepath);
-    void parse();
 
     inline bool
     has(const std::string &key)
@@ -109,6 +103,7 @@ struct ResourceFile
 private:
     std::unordered_map<std::string, std::unique_ptr<Val>> m_entries;
 
+    void parse();
     std::vector<Token> tokenize();
 };
 
