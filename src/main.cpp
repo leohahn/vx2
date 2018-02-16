@@ -1,5 +1,6 @@
 #include "glad/glad.h"
 #include <GLFW/glfw3.h>
+#include <chrono>
 
 #include "lt_core.hpp"
 #include "lt_utils.hpp"
@@ -13,20 +14,26 @@
 #include "resource_manager.hpp"
 #include "skybox.hpp"
 #include "font.hpp"
+#include "gl_resources.hpp"
 
 struct DebugContext
 {
-    i32 num_frames;
+    i32 fps;
+    i32 ups;
+    i32 max_frame_time;
+    i32 min_frame_time;
 };
+
+using namespace std::chrono_literals;
+constexpr std::chrono::nanoseconds TIMESTEP(16ms);
 
 lt_global_variable lt::Logger logger("main");
 lt_global_variable Key g_keyboard[NUM_KEYBOARD_KEYS] = {};
 
 lt_global_variable DebugContext g_debug_context = {};
 
-
 lt_internal void
-main_render(const Application &app, const World &world, const Camera &camera, ResourceManager &resource_manager)
+main_render(const Application &app, const World &world, ResourceManager &resource_manager)
 {
     Shader *basic_shader = resource_manager.get_shader("basic.glsl");
     Shader *wireframe_shader = resource_manager.get_shader("wireframe.glsl");
@@ -39,7 +46,7 @@ main_render(const Application &app, const World &world, const Camera &camera, Re
     app.bind_default_framebuffer();
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-    if (world.state == WorldState_InitialLoad)
+    if (world.state == WorldStatus_InitialLoad)
     {
         render_loading_screen(app, font_atlas, font_shader);
         dump_opengl_errors("After loading screen", __FILE__);
@@ -55,7 +62,7 @@ main_render(const Application &app, const World &world, const Camera &camera, Re
             glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 
             wireframe_shader->use();
-            wireframe_shader->set_matrix("view", camera.view_matrix());
+            wireframe_shader->set_matrix("view", world.camera.view_matrix());
             render_world(world);
 
             glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
@@ -63,17 +70,17 @@ main_render(const Application &app, const World &world, const Camera &camera, Re
         else
         {
             basic_shader->use();
-            basic_shader->set_matrix("view", camera.view_matrix());
+            basic_shader->set_matrix("view", world.camera.view_matrix());
             render_world(world); // render world to the gbuffer
         }
 
         app.bind_default_framebuffer(); // render gbuffer back to the screen
 
         glUseProgram(deferred_shading_shader->program);
-        deferred_shading_shader->set3f("view_position", camera.frustum.position);
+        deferred_shading_shader->set3f("view_position", world.camera.frustum.position);
         deferred_shading_shader->set1i("render_only_albedo", world.render_wireframe);
 
-        render_final_quad(app, camera, deferred_shading_shader);
+        render_final_quad(app, world.camera, deferred_shading_shader);
 
         // Draw the skybox
 
@@ -85,14 +92,20 @@ main_render(const Application &app, const World &world, const Camera &camera, Re
                           GL_DEPTH_BUFFER_BIT, GL_NEAREST);
 
         world.skybox.shader->use();
-        world.skybox.shader->set_matrix("view", camera.view_matrix());
+        world.skybox.shader->set_matrix("view", world.camera.view_matrix());
         render_skybox(world.skybox);
         dump_opengl_errors("After render_skybox", __FILE__);
 
-        render_text(font_atlas, "FPS: ", 30.5f, 30.5f, font_shader);
+        lt_local_persist char text_buffer[256] = {};
+        snprintf(text_buffer, sizeof(text_buffer),
+                 "FPS: %d -- Frame time: %.2f min | %.2f max",
+                 g_debug_context.fps,
+                 (f32)g_debug_context.min_frame_time,
+                 (f32)g_debug_context.max_frame_time);
+
+        render_text(font_atlas, text_buffer, 30.5f, 30.5f, font_shader);
         dump_opengl_errors("After font", __FILE__);
     }
-
 
     glfwPollEvents();
     glfwSwapBuffers(app.window);
@@ -138,7 +151,10 @@ main()
 
     Application app("Deferred renderer", 1024, 768);
 
-    World world(resource_manager, app.aspect_ratio());
+    GLResources gl;
+
+    const i32 seed = 1024;
+    World world(seed, resource_manager, &gl, app.aspect_ratio());
 
     const f64 frequency = 0.01;
     const f64 amplitude = 0.60;
@@ -178,17 +194,42 @@ main()
 
     AsciiFontAtlas *font_atlas = resource_manager.get_font("dejavu/ttf/DejaVuSansMono.ttf");
     LT_Assert(font_atlas);
-    font_atlas->load(26.0f);
+    font_atlas->load(18.0f);
 
     bool running = true;
 
     dump_opengl_errors("Before loop", __FILE__);
 
+    // Define variables to control time
+    using clock = std::chrono::high_resolution_clock;
+    std::chrono::nanoseconds lag(0ns);
+    auto previous_time = clock::now();
+
+    // Debug variables
+    i32 num_updates = 0;
+    i32 num_frames = 0;
+    auto start_second = clock::now();
+    std::chrono::milliseconds min_frame_time(10000ms);
+    std::chrono::milliseconds max_frame_time(0ms);
+
+    World current_world = world;
+    World previous_world = world;
+
     while (running)
     {
-        process_input(app.window, g_keyboard);
+        // Update frame information.
+        auto current_time = clock::now();
+        auto frame_time = current_time - previous_time;
 
-        world.update(g_keyboard);
+        previous_time = current_time;
+        lag += std::chrono::duration_cast<std::chrono::nanoseconds>(frame_time);
+
+        if (frame_time > max_frame_time)
+            max_frame_time = std::chrono::duration_cast<std::chrono::milliseconds>(frame_time);
+        if (frame_time < min_frame_time)
+            min_frame_time = std::chrono::duration_cast<std::chrono::milliseconds>(frame_time);
+
+        process_input(app.window, g_keyboard);
 
         // Check if the window should close.
         if (glfwWindowShouldClose(app.window))
@@ -197,7 +238,34 @@ main()
             continue;
         }
 
-        main_render(app, world, world.camera, resource_manager);
+        while (lag >= TIMESTEP)
+        {
+            previous_world = current_world;
+            current_world.update(g_keyboard);
+
+            num_updates++;
+            lag -= TIMESTEP;
+        }
+
+        const f32 lag_offset = (f32)lag.count() / TIMESTEP.count();
+        World interpolated_world = World::interpolate(previous_world, current_world, lag_offset);
+
+        main_render(app, interpolated_world, resource_manager);
+        num_frames++;
+
+        if (clock::now() - start_second >= 1s)
+        {
+            g_debug_context.fps = num_frames;
+            g_debug_context.ups = num_updates;
+            g_debug_context.max_frame_time = max_frame_time.count();
+            g_debug_context.min_frame_time = min_frame_time.count();
+
+            max_frame_time = 0ms;
+            min_frame_time = 10000ms;
+            num_frames = 0;
+            num_updates = 0;
+            start_second = clock::now();
+        }
     }
 
     io_task_manager.stop();

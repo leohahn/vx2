@@ -20,6 +20,7 @@ struct Skybox
 
     bool load();
 
+    Skybox();
     Skybox(const char *texture_filepath, const char *shader_filepath, const ResourceManager &manager);
 
 private:

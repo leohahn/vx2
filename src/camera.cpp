@@ -15,6 +15,13 @@ update_frustum_right_and_up(Frustum& frustum, Vec3f up_world)
     frustum.up = Quatf(0, up_vec);
 }
 
+Camera::Camera()
+    : up_world(Vec3f(0))
+    , move_speed(0)
+    , rotation_speed(0)
+{
+}
+
 Camera::Camera(Vec3f position, Vec3f front_vec, Vec3f up_world,
                f32 fovy, f32 ratio, f32 move_speed, f32 rotation_speed)
     : up_world(up_world)
@@ -31,8 +38,6 @@ Camera::Camera(Vec3f position, Vec3f front_vec, Vec3f up_world,
     frustum.projection = lt::perspective(lt::radians(fovy), ratio, ZNEAR, ZFAR);
 
     update_frustum_right_and_up(frustum, up_world);
-
-    previous_frustum = frustum;
 }
 
 void
@@ -72,7 +77,6 @@ Camera::add_frame_rotation(RotationAxis axis)
 void
 Camera::update(Key *kb)
 {
-    previous_frustum = frustum;
     reset();
 
     // Register the camera movements from buttons.
@@ -114,27 +118,26 @@ Camera::rotate()
     update_frustum_right_and_up(frustum, up_world);
 }
 
-void
-Camera::interpolate_frustum(f64 lag_offset)
+Frustum
+Frustum::interpolate(const Frustum &previous, const Frustum &current, f32 alpha, Vec3f up_world)
 {
-	interpolated_frustum = previous_frustum;
+    Frustum interpolated = previous;
 
-  interpolated_frustum.position = previous_frustum.position*(1.0-lag_offset) + frustum.position*lag_offset;
+    interpolated.position = previous.position*(1.0-alpha) + current.position*alpha;
 
-  if (previous_frustum.front == frustum.front)
-			interpolated_frustum.front = previous_frustum.front;
-  else
-			interpolated_frustum.front = lt::slerp(previous_frustum.front, frustum.front, (f32)lag_offset);
+    if (previous.front == current.front)
+        interpolated.front = previous.front;
+    else
+        interpolated.front = lt::slerp(previous.front, current.front, alpha);
 
-  update_frustum_right_and_up(interpolated_frustum, up_world);
+    update_frustum_right_and_up(interpolated, up_world);
+
+    return interpolated;
 }
 
 Mat4f
 Camera::view_matrix() const
 {
-    // return lt::look_at(interpolated_frustum.position,
-    //                    interpolated_frustum.position + interpolated_frustum.front.v,
-    //                    interpolated_frustum.up.v);
     return lt::look_at(frustum.position,
                        frustum.position + frustum.front.v,
                        frustum.up.v);

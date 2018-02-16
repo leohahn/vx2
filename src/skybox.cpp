@@ -8,6 +8,12 @@
 
 lt_global_variable lt::Logger logger("skybox");
 
+Skybox::Skybox()
+    : quad(Mesh())
+    , shader(nullptr)
+    , cubemap(nullptr)
+{}
+
 Skybox::Skybox(const char *texture_file, const char *shader_file, const ResourceManager &manager)
     : quad(Mesh())
     , shader(manager.get_shader(shader_file))

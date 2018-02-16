@@ -5,18 +5,20 @@
 #include "lt_utils.hpp"
 #include "input.hpp"
 #include "open-simplex-noise.h"
+#include "gl_resources.hpp"
 
 lt_global_variable lt::Logger logger("world");
 
 void
 World::initialize_buffers()
 {
+    logger.log("Initialize buffers called.");
     for (i32 x = 0; x < NUM_CHUNKS_PER_AXIS; x++)
         for (i32 y = 0; y < NUM_CHUNKS_PER_AXIS; y++)
             for (i32 z = 0; z < NUM_CHUNKS_PER_AXIS; z++)
             {
-                glGenVertexArrays(1, &chunks[x][y][z].vao);
-                glGenBuffers(1, &chunks[x][y][z].vbo);
+                chunks[x][y][z].vao = m_gl->create_vertex_array();
+                chunks[x][y][z].vbo = m_gl->create_buffer();
             }
 }
 
@@ -33,11 +35,13 @@ World::create_camera(f32 aspect_ratio)
                   FIELD_OF_VIEW, aspect_ratio, MOVE_SPEED, ROTATION_SPEED);
 }
 
-World::World(const ResourceManager &manager, f32 aspect_ratio)
+World::World(i32 seed, const ResourceManager &manager, GLResources *gl, f32 aspect_ratio)
     : camera(create_camera(aspect_ratio))
     , chunks()
     , skybox("skybox.texture", "skybox.glsl", manager)
     , sun()
+    , m_seed(seed)
+    , m_gl(gl)
 {
     initialize_buffers();
 
@@ -46,7 +50,6 @@ World::World(const ResourceManager &manager, f32 aspect_ratio)
     sun.diffuse = Vec3f(.7f);
     sun.specular = Vec3f(1.0f);
 
-    const i32 seed = 1024;
     if (open_simplex_noise(seed, &m_simplex_ctx))
     {
         logger.error("Failed to initialize context for noise generation.");
@@ -54,12 +57,58 @@ World::World(const ResourceManager &manager, f32 aspect_ratio)
     }
 }
 
+World::World(const World &world)
+    : m_seed(world.m_seed)
+    , m_gl(world.m_gl)
+{
+    *this = world;
+
+    if (open_simplex_noise(world.m_seed, &m_simplex_ctx))
+        logger.error("Failed to initialize context for noise generation.");
+
+    for (i32 x = 0; x < NUM_CHUNKS_PER_AXIS; x++)
+        for (i32 y = 0; y < NUM_CHUNKS_PER_AXIS; y++)
+            for (i32 z = 0; z < NUM_CHUNKS_PER_AXIS; z++)
+            {
+                chunks[x][y][z].vao = world.chunks[x][y][z].vao;
+                chunks[x][y][z].vbo = world.chunks[x][y][z].vbo;
+                m_gl->add_reference_to_vertex_array(chunks[x][y][z].vao);
+                m_gl->add_reference_to_buffer(chunks[x][y][z].vbo);
+            }
+}
+
+World &
+World::operator=(const World &world)
+{
+    camera = world.camera;
+    skybox = world.skybox;
+    sun = world.sun;
+    origin = world.origin;
+    state = world.state;
+    render_wireframe = world.render_wireframe;
+    m_seed = world.m_seed;
+    m_gl = world.m_gl;
+
+    for (i32 x = 0; x < NUM_CHUNKS_PER_AXIS; x++)
+        for (i32 y = 0; y < NUM_CHUNKS_PER_AXIS; y++)
+            for (i32 z = 0; z < NUM_CHUNKS_PER_AXIS; z++)
+            {
+                std::memcpy(chunks[x][y][z].blocks, world.chunks[x][y][z].blocks,
+                            sizeof(BlockType)*pow(Chunk::NUM_BLOCKS_PER_AXIS, 3));
+            }
+
+    return *this;
+}
+
 World::~World()
 {
     for (i32 x = 0; x < NUM_CHUNKS_PER_AXIS; x++)
         for (i32 y = 0; y < NUM_CHUNKS_PER_AXIS; y++)
             for (i32 z = 0; z < NUM_CHUNKS_PER_AXIS; z++)
-                glDeleteBuffers(1, &chunks[x][y][z].vbo);
+            {
+                m_gl->delete_vertex_array(chunks[x][y][z].vao);
+                m_gl->delete_buffer(chunks[x][y][z].vbo);
+            }
 
     open_simplex_noise_free(m_simplex_ctx);
 }
@@ -87,7 +136,6 @@ World::generate_landscape(f64 amplitude, f64 frequency, i32 num_octaves, f64 lac
     f64 noise_map[TOTAL_BLOCKS_PER_AXIS*TOTAL_BLOCKS_PER_AXIS] = {};
 
     // Fill out noise_map
-    logger.log("Generating noise map");
     for (i32 z = 0; z < TOTAL_BLOCKS_PER_AXIS; z++)
         for (i32 x = 0; x < TOTAL_BLOCKS_PER_AXIS; x++)
         {
@@ -98,8 +146,6 @@ World::generate_landscape(f64 amplitude, f64 frequency, i32 num_octaves, f64 lac
             noise_map[x + z*TOTAL_BLOCKS_PER_AXIS] = noise;
         }
 
-
-    logger.log("Rescaling noise map");
     //
     // Rescale noise values into 0 -> 1 range
     //
@@ -129,7 +175,6 @@ World::generate_landscape(f64 amplitude, f64 frequency, i32 num_octaves, f64 lac
             LT_Assert(noise_map[i] <= (1.0 + EPSILON) && noise_map[i] >= -EPSILON);
         }
 
-    logger.log("Filling out blocks with noise map");
     for (i32 abs_block_x = 0; abs_block_x < TOTAL_BLOCKS_PER_AXIS; abs_block_x++)
         for (i32 abs_block_z = 0; abs_block_z < TOTAL_BLOCKS_PER_AXIS; abs_block_z++)
         {
@@ -143,12 +188,6 @@ World::generate_landscape(f64 amplitude, f64 frequency, i32 num_octaves, f64 lac
             const f64 height = noise_map[noise_index];
 
             const i32 abs_block_y = std::round((f64)(TOTAL_BLOCKS_PER_AXIS-1) * height);
-
-            logger.log("for chunk_xi = ", chunk_xi);
-            logger.log("for chunk_zi = ", chunk_zi);
-            logger.log("for block_xi = ", block_xi);
-            logger.log("for block_zi = ", block_zi);
-            logger.log("height = ", height);
 
             for (i32 y = 0; y <= abs_block_y; y++)
             {
@@ -166,11 +205,24 @@ World::update(Key *kb)
 {
     if (skybox.load())
     {
-        state = WorldState_Running;
+        state = WorldStatus_Running;
     }
 
     camera.update(kb);
 
     if (kb[GLFW_KEY_T].last_transition == Key::Transition_Down)
         render_wireframe = !render_wireframe;
+}
+
+World
+World::interpolate(const World &previous, const World &current, f32 alpha)
+{
+    LT_Assert(previous.camera.up_world == current.camera.up_world);
+
+    World interpolated = current;
+    interpolated.camera.frustum = Frustum::interpolate(previous.camera.frustum,
+                                                       current.camera.frustum,
+                                                       alpha,
+                                                       current.camera.up_world);
+    return interpolated;
 }

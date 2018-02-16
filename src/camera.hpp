@@ -18,6 +18,8 @@ struct Frustum
     Quatf  front;
     Quatf  right;
     Quatf  up;
+
+    static Frustum interpolate(const Frustum &previous, const Frustum &current, f32 alpha, Vec3f up_world);
 };
 
 struct Camera
@@ -33,12 +35,10 @@ struct Camera
     f32     move_speed;
     f32     rotation_speed;
 
-    Frustum previous_frustum;
-    Frustum interpolated_frustum;
-
     Vec3f curr_direction;
     Vec3f curr_rotation_axis;
 
+    Camera();
     Camera(Vec3f position, Vec3f front_vec, Vec3f up_world,
            f32 fovy, f32 ratio, f32 move_speed, f32 rotation_speed);
 
