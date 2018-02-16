@@ -34,10 +34,10 @@ lt_global_variable DebugContext g_debug_context = {};
 lt_internal void
 main_render(const Application &app, const World &world, ResourceManager &resource_manager)
 {
-    Shader *basic_shader = resource_manager.get_shader("basic.glsl");
-    Shader *wireframe_shader = resource_manager.get_shader("wireframe.glsl");
-    Shader *font_shader = resource_manager.get_shader("font.glsl");
-    Shader *deferred_shading_shader = resource_manager.get_shader("deferred_shading.glsl");
+    Shader *basic_shader = resource_manager.get_shader("basic.shader");
+    Shader *wireframe_shader = resource_manager.get_shader("wireframe.shader");
+    Shader *font_shader = resource_manager.get_shader("font.shader");
+    Shader *deferred_shading_shader = resource_manager.get_shader("deferred_shading.shader");
     AsciiFontAtlas *font_atlas = resource_manager.get_font("dejavu/ttf/DejaVuSansMono.ttf");
 
     glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
@@ -125,11 +125,11 @@ main()
     ResourceManager resource_manager(&io_task_manager);
     {
         const char *shaders_to_load[] = {
-            "basic.glsl",
-            "deferred_shading.glsl",
-            "wireframe.glsl",
-            "skybox.glsl",
-            "font.glsl",
+            "basic.shader",
+            "deferred_shading.shader",
+            "wireframe.shader",
+            "skybox.shader",
+            "font.shader",
         };
         const char *textures_to_load[] = {
             "skybox.texture",
@@ -162,25 +162,25 @@ main()
     const i32 num_octaves = 5;
     world.generate_landscape(amplitude, frequency, num_octaves, lacunarity, gain);
 
-    Shader *basic_shader = resource_manager.get_shader("basic.glsl");
+    Shader *basic_shader = resource_manager.get_shader("basic.shader");
     basic_shader->load();
     basic_shader->setup_perspective_matrix(app.aspect_ratio());
 
-    Shader *wireframe_shader = resource_manager.get_shader("wireframe.glsl");
+    Shader *wireframe_shader = resource_manager.get_shader("wireframe.shader");
     wireframe_shader->load();
     wireframe_shader->setup_perspective_matrix(app.aspect_ratio());
 
-    Shader *font_shader = resource_manager.get_shader("font.glsl");
+    Shader *font_shader = resource_manager.get_shader("font.shader");
     font_shader->load();
     font_shader->setup_orthographic_matrix(0, app.screen_width, app.screen_height, 0);
     font_shader->add_texture("font_atlas");
 
-    Shader *skybox_shader = resource_manager.get_shader("skybox.glsl");
+    Shader *skybox_shader = resource_manager.get_shader("skybox.shader");
     skybox_shader->load();
     skybox_shader->setup_perspective_matrix(app.aspect_ratio());
     skybox_shader->add_texture("texture_cubemap");
 
-    Shader *deferred_shading_shader = resource_manager.get_shader("deferred_shading.glsl");
+    Shader *deferred_shading_shader = resource_manager.get_shader("deferred_shading.shader");
     deferred_shading_shader->load();
     deferred_shading_shader->add_texture("texture_position");
     deferred_shading_shader->add_texture("texture_normal");

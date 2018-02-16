@@ -56,29 +56,29 @@ ResourceManager::load_from_texture_file(const std::string &filename)
     TextureFormat texture_format = TextureFormat_RGB;
     PixelFormat pixel_format = PixelFormat_RGB;
 
-    if (texture_file.entries["texture_format"] == "rgb")
+    if (texture_file["texture_format"] == "rgb")
         texture_format = TextureFormat_RGB;
-    else if (texture_file.entries["texture_format"] == "rgba")
+    else if (texture_file["texture_format"] == "rgba")
         texture_format = TextureFormat_RGBA;
-    else if (texture_file.entries["texture_format"] == "srgba")
+    else if (texture_file["texture_format"] == "srgba")
         texture_format = TextureFormat_SRGBA;
-    else if (texture_file.entries["texture_format"] == "srgb")
+    else if (texture_file["texture_format"] == "srgb")
         texture_format = TextureFormat_SRGB;
 
-    if (texture_file.entries["pixel_format"] == "rgb")
+    if (texture_file["pixel_format"] == "rgb")
         pixel_format = PixelFormat_RGB;
-    else if (texture_file.entries["pixel_format"] == "rgba")
+    else if (texture_file["pixel_format"] == "rgba")
         pixel_format = PixelFormat_RGBA;
 
-    if (texture_file.entries["texture_type"] == "cubemap")
+    if (texture_file["texture_type"] == "cubemap")
     {
         type = TextureType_Cubemap;
-        filepaths.push_back(ltfs::join(m_textures_path, texture_file.entries.at("face_x_pos")));
-        filepaths.push_back(ltfs::join(m_textures_path, texture_file.entries.at("face_x_neg")));
-        filepaths.push_back(ltfs::join(m_textures_path, texture_file.entries.at("face_y_pos")));
-        filepaths.push_back(ltfs::join(m_textures_path, texture_file.entries.at("face_y_neg")));
-        filepaths.push_back(ltfs::join(m_textures_path, texture_file.entries.at("face_z_pos")));
-        filepaths.push_back(ltfs::join(m_textures_path, texture_file.entries.at("face_z_neg")));
+        filepaths.push_back(ltfs::join(m_textures_path, texture_file["face_x_pos"]));
+        filepaths.push_back(ltfs::join(m_textures_path, texture_file["face_x_neg"]));
+        filepaths.push_back(ltfs::join(m_textures_path, texture_file["face_y_pos"]));
+        filepaths.push_back(ltfs::join(m_textures_path, texture_file["face_y_neg"]));
+        filepaths.push_back(ltfs::join(m_textures_path, texture_file["face_z_pos"]));
+        filepaths.push_back(ltfs::join(m_textures_path, texture_file["face_z_neg"]));
     }
     else
     {
@@ -93,21 +93,40 @@ ResourceManager::load_from_texture_file(const std::string &filename)
 bool
 ResourceManager::load_from_shader_file(const std::string &filename)
 {
-    // NOTE: Currently just create the resource without reading the file.
-    // this is probably changing in the future.
+    if (m_shaders.find(filename) != m_shaders.end())
+    {
+        logger.error("File ", filename, " was already loaded.");
+        return false;
+    }
 
     std::string filepath = ltfs::join(m_shaders_path, filename);
-
     if (!ltfs::file_exists(filepath))
     {
         logger.error("File ", filepath, " does not exist");
         return false;
     }
 
-    auto new_shader = std::make_unique<Shader>(filepath);
+    ResourceFile shader_file(filepath);
+    if (!shader_file.is_file_correct)
+    {
+        logger.error("File ", filename, " is incorrect.");
+        return false;
+    }
 
-    LT_Assert(m_shaders.find(filename) == m_shaders.end());
+    std::string shader_filepath;
+    if (shader_file.has("shader_source"))
+    {
+        shader_filepath = ltfs::join(m_shaders_path, shader_file["shader_source"]);
+    }
+    else
+    {
+        logger.log("Shader file ", filename, " needs a 'shader_source' key");
+        return false;
+    }
 
+    logger.log("Creating shader with source ", shader_filepath);
+
+    auto new_shader = std::make_unique<Shader>(shader_filepath);
     m_shaders.insert(std::make_pair(filename, std::move(new_shader)));
 
     return true;
@@ -143,7 +162,10 @@ ResourceManager::get_shader(const std::string &filename) const
     if (m_shaders.find(filename) != m_shaders.end())
         return m_shaders.at(filename).get();
     else
+    {
+        logger.error("Could not get shader ", filename);
         return nullptr;
+    }
 }
 
 Texture *
@@ -152,7 +174,10 @@ ResourceManager::get_texture(const std::string &filename) const
     if (m_textures.find(filename) != m_textures.end())
         return m_textures.at(filename).get();
     else
+    {
+        logger.error("Could not get texture ", filename);
         return nullptr;
+    }
 }
 
 AsciiFontAtlas *
@@ -161,7 +186,10 @@ ResourceManager::get_font(const std::string &filename) const
     if (m_fonts.find(filename) != m_fonts.end())
         return m_fonts.at(filename).get();
     else
+    {
+        logger.error("Could not get font ", filename);
         return nullptr;
+    }
 }
 
 Texture::Texture(TextureType type, TextureFormat tf, PixelFormat pf,

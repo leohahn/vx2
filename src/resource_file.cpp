@@ -22,6 +22,7 @@ lt_global_variable const std::vector<std::string> entry_keys = {
     "face_z_pos",
     "face_z_neg",
     // shader entries
+    "shader_source"
 };
 
 ResourceFile::ResourceFile(const std::string &filepath)

@@ -18,7 +18,6 @@ World::initialize_buffers()
             for (i32 z = 0; z < NUM_CHUNKS_Z; z++)
             {
                 f32 offset = Chunk::BLOCK_SIZE * Chunk::NUM_BLOCKS_PER_AXIS;
-                logger.log("offset = ", offset);
                 chunks[x][y][z].origin = origin + Vec3f(x*offset, y*offset, z*offset);
                 chunks[x][y][z].vao = m_gl->create_vertex_array();
                 chunks[x][y][z].vbo = m_gl->create_buffer();
@@ -41,7 +40,7 @@ World::create_camera(f32 aspect_ratio)
 World::World(i32 seed, const ResourceManager &manager, GLResources *gl, f32 aspect_ratio)
     : camera(create_camera(aspect_ratio))
     , chunks()
-    , skybox("skybox.texture", "skybox.glsl", manager)
+    , skybox("skybox.texture", "skybox.shader", manager)
     , sun()
     , m_seed(seed)
     , m_gl(gl)
