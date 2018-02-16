@@ -58,7 +58,7 @@ render_final_quad(const Application &app, const Camera &camera, Shader *shader)
 }
 
 lt_internal void
-render_chunk(const World &world, Chunk &chunk)
+render_chunk(const World &world, i32 cx, i32 cy, i32 cz)
 {
     const Vec3f pos_x_offset(Chunk::BLOCK_SIZE, 0, 0);
     const Vec3f pos_y_offset(0, Chunk::BLOCK_SIZE, 0);
@@ -71,26 +71,22 @@ render_chunk(const World &world, Chunk &chunk)
     std::memset(chunk_vertices, 0, sizeof(chunk_vertices));
 
     i32 num_vertices_used = 0; // number of vertices used in the array.
+    const Chunk chunk = world.chunks[cx][cy][cz];
 
-    for (i32 abs_block_xi = 0; abs_block_xi < World::TOTAL_BLOCKS_PER_AXIS; abs_block_xi++)
-        for (i32 abs_block_yi = 0; abs_block_yi < World::TOTAL_BLOCKS_PER_AXIS; abs_block_yi++)
-            for (i32 abs_block_zi = 0; abs_block_zi < World::TOTAL_BLOCKS_PER_AXIS; abs_block_zi++)
+    for (i32 bx = 0; bx < Chunk::NUM_BLOCKS_PER_AXIS; bx++)
+        for (i32 by = 0; by < Chunk::NUM_BLOCKS_PER_AXIS; by++)
+            for (i32 bz = 0; bz < Chunk::NUM_BLOCKS_PER_AXIS; bz++)
             {
-                const i32 block_xi = abs_block_xi % Chunk::NUM_BLOCKS_PER_AXIS;
-                const i32 block_yi = abs_block_yi % Chunk::NUM_BLOCKS_PER_AXIS;
-                const i32 block_zi = abs_block_zi % Chunk::NUM_BLOCKS_PER_AXIS;
+                const i32 abx = cx*Chunk::NUM_BLOCKS_PER_AXIS + bx;
+                const i32 aby = cy*Chunk::NUM_BLOCKS_PER_AXIS + by;
+                const i32 abz = cz*Chunk::NUM_BLOCKS_PER_AXIS + bz;
 
-                const i32 chunk_xi = abs_block_xi / Chunk::NUM_BLOCKS_PER_AXIS;
-                const i32 chunk_yi = abs_block_yi / Chunk::NUM_BLOCKS_PER_AXIS;
-                const i32 chunk_zi = abs_block_zi / Chunk::NUM_BLOCKS_PER_AXIS;
-
-                const BlockType block_type = chunk.blocks[block_xi][block_yi][block_zi];
-
+                const BlockType block_type = chunk.blocks[bx][by][bz];
                 if (block_type == BlockType_Air)
                     continue;
 
                 // Where the block is located in world space.
-                const Vec3f block_origin = get_world_coords(chunk, block_xi, block_yi, block_zi);
+                const Vec3f block_origin = get_world_coords(chunk, bx, by, bz);
 
                 // All possible vertices of the block.
                 const Vec3f left_bottom_back = block_origin;
@@ -104,10 +100,11 @@ render_chunk(const World &world, Chunk &chunk)
 
                 // Left face ------------------------------------------------------
                 const bool should_render_left_face =
-                    (abs_block_xi == 0) ||
-                    !world.block_exists(abs_block_xi-1, abs_block_yi, abs_block_zi);
+                    (abx == 0) ||
+                    !world.block_exists(abx-1, aby, abz);
 
                 if (should_render_left_face)
+                // if (true)
                 {
                     chunk_vertices[num_vertices_used].position   = left_bottom_back;
                     chunk_vertices[num_vertices_used].tex_coords = Vec2f(0, 0);
@@ -135,10 +132,11 @@ render_chunk(const World &world, Chunk &chunk)
                 }
                 // Right face -----------------------------------------------------
                 const bool should_render_right_face =
-                    (abs_block_xi == World::TOTAL_BLOCKS_PER_AXIS-1) ||
-                    !world.block_exists(abs_block_xi+1, abs_block_yi, abs_block_zi);
+                    (abx == World::TOTAL_BLOCKS_X-1) ||
+                    !world.block_exists(abx+1, aby, abz);
 
                 if (should_render_right_face)
+                // if (true)
                 {
                     chunk_vertices[num_vertices_used].position   = right_bottom_back;
                     chunk_vertices[num_vertices_used].tex_coords = Vec2f(0, 0);
@@ -166,10 +164,11 @@ render_chunk(const World &world, Chunk &chunk)
                 }
                 // Top face --------------------------------------------------------
                 const bool should_render_top_face =
-                    (abs_block_yi == World::TOTAL_BLOCKS_PER_AXIS-1) ||
-                    !world.block_exists(abs_block_xi, abs_block_yi+1, abs_block_zi);
+                    (aby == World::TOTAL_BLOCKS_Y-1) ||
+                    !world.block_exists(abx, aby+1, abz);
 
                 if (should_render_top_face)
+                // if (true)
                 {
                     chunk_vertices[num_vertices_used].position   = left_top_front;
                     chunk_vertices[num_vertices_used].tex_coords = Vec2f(0, 0);
@@ -197,10 +196,11 @@ render_chunk(const World &world, Chunk &chunk)
                 }
                 // Bottom face -----------------------------------------------------
                 const bool should_render_bottom_face =
-                    (abs_block_yi == 0) ||
-                    !world.block_exists(abs_block_xi, abs_block_yi-1, abs_block_zi);
+                    (aby == 0) ||
+                    !world.block_exists(abx, aby-1, abz);
 
                 if (should_render_bottom_face)
+                // if (true)
                 {
                     chunk_vertices[num_vertices_used].position   = left_bottom_back;
                     chunk_vertices[num_vertices_used].tex_coords = Vec2f(0, 0);
@@ -228,10 +228,11 @@ render_chunk(const World &world, Chunk &chunk)
                 }
                 // Front face -------------------------------------------------------
                 const bool should_render_front_face =
-                    (abs_block_zi == World::TOTAL_BLOCKS_PER_AXIS-1) ||
-                    !world.block_exists(abs_block_xi, abs_block_yi, abs_block_zi+1);
+                    (abz == World::TOTAL_BLOCKS_Z-1) ||
+                    !world.block_exists(abx, aby, abz+1);
 
                 if (should_render_front_face)
+                // if (true)
                 {
                     chunk_vertices[num_vertices_used].position   = left_bottom_front;
                     chunk_vertices[num_vertices_used].tex_coords = Vec2f(0, 0);
@@ -259,10 +260,11 @@ render_chunk(const World &world, Chunk &chunk)
                 }
                 // Back face --------------------------------------------------------
                 const bool should_render_back_face =
-                    (abs_block_zi == 0) ||
-                    !world.block_exists(abs_block_xi, abs_block_yi, abs_block_zi-1);
+                    (abz == 0) ||
+                    !world.block_exists(abx, aby, abz-1);
 
                 if (should_render_back_face)
+                // if (true)
                 {
                     chunk_vertices[num_vertices_used].position   = right_bottom_back;
                     chunk_vertices[num_vertices_used].tex_coords = Vec2f(0, 0);
@@ -326,17 +328,10 @@ void
 render_world(const World &world)
 {
     // Assuming that every chunk uses the same shader program.
-    for (i32 chunk_xi = 0; chunk_xi < World::NUM_CHUNKS_PER_AXIS; chunk_xi++)
-    {
-        for (i32 chunk_yi = 0; chunk_yi < World::NUM_CHUNKS_PER_AXIS; chunk_yi++)
-        {
-            for (i32 chunk_zi = 0; chunk_zi < World::NUM_CHUNKS_PER_AXIS; chunk_zi++)
-            {
-                Chunk chunk = world.chunks[chunk_xi][chunk_yi][chunk_zi];
-                render_chunk(world, chunk);
-            }
-        }
-    }
+    for (i32 cx = 0; cx < World::NUM_CHUNKS_X; cx++)
+        for (i32 cy = 0; cy < World::NUM_CHUNKS_Y; cy++)
+            for (i32 cz = 0; cz < World::NUM_CHUNKS_Z; cz++)
+                render_chunk(world, cx, cy, cz);
 }
 
 void

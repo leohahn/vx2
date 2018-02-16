@@ -49,8 +49,12 @@ struct WorldState
 
 struct World
 {
-    constexpr static i32 NUM_CHUNKS_PER_AXIS = 1;
-    constexpr static i32 TOTAL_BLOCKS_PER_AXIS = NUM_CHUNKS_PER_AXIS * Chunk::NUM_BLOCKS_PER_AXIS;
+    constexpr static i32 NUM_CHUNKS_X = 4;
+    constexpr static i32 NUM_CHUNKS_Y = 2;
+    constexpr static i32 NUM_CHUNKS_Z = 4;
+    constexpr static i32 TOTAL_BLOCKS_X = NUM_CHUNKS_X * Chunk::NUM_BLOCKS_PER_AXIS;
+    constexpr static i32 TOTAL_BLOCKS_Y = NUM_CHUNKS_Y * Chunk::NUM_BLOCKS_PER_AXIS;
+    constexpr static i32 TOTAL_BLOCKS_Z = NUM_CHUNKS_Z * Chunk::NUM_BLOCKS_PER_AXIS;
 
     static World interpolate(const World &pevious, const World &current, f32 alpha);
 
@@ -67,7 +71,7 @@ struct World
 
 public:
     Camera      camera;
-    Chunk       chunks[NUM_CHUNKS_PER_AXIS][NUM_CHUNKS_PER_AXIS][NUM_CHUNKS_PER_AXIS];
+    Chunk       chunks[NUM_CHUNKS_X][NUM_CHUNKS_Y][NUM_CHUNKS_Z];
     Skybox      skybox;
     Sun         sun;
     Vec3f       origin;
