@@ -42,8 +42,11 @@ ResourceManager::load_from_texture_file(const std::string &filename)
         return false;
     }
 
+    logger.log("Loading from texture ", filename);
+
     std::string filepath = ltfs::join(m_textures_path, filename);
     ResourceFile texture_file(filepath);
+    texture_file.parse();
 
     if (!texture_file.is_file_correct)
     {
@@ -56,29 +59,58 @@ ResourceManager::load_from_texture_file(const std::string &filename)
     TextureFormat texture_format = TextureFormat_RGB;
     PixelFormat pixel_format = PixelFormat_RGB;
 
-    if (texture_file["texture_format"] == "rgb")
+    if (!texture_file.has("texture_format"))
+    {
+        logger.error("File needs a texture_format entry.");
+        return false;
+    }
+
+    if (!texture_file.has("pixel_format"))
+    {
+        logger.error("File needs a pixel_format entry.");
+        return false;
+    }
+
+    if (!texture_file.has("texture_type"))
+    {
+        logger.error("File needs a pixel_format entry.");
+        return false;
+    }
+
+    auto texture_format_entry = texture_file.cast_get<ResourceFile::StringVal>("texture_format");
+    auto pixel_format_entry = texture_file.cast_get<ResourceFile::StringVal>("pixel_format");
+    auto texture_type_entry = texture_file.cast_get<ResourceFile::StringVal>("texture_type");
+
+    if (texture_format_entry->str == "rgb")
         texture_format = TextureFormat_RGB;
-    else if (texture_file["texture_format"] == "rgba")
+    else if (texture_format_entry->str == "rgba")
         texture_format = TextureFormat_RGBA;
-    else if (texture_file["texture_format"] == "srgba")
+    else if (texture_format_entry->str == "srgba")
         texture_format = TextureFormat_SRGBA;
-    else if (texture_file["texture_format"] == "srgb")
+    else if (texture_format_entry->str == "srgb")
         texture_format = TextureFormat_SRGB;
 
-    if (texture_file["pixel_format"] == "rgb")
+    if (pixel_format_entry->str == "rgb")
         pixel_format = PixelFormat_RGB;
-    else if (texture_file["pixel_format"] == "rgba")
+    else if (pixel_format_entry->str == "rgba")
         pixel_format = PixelFormat_RGBA;
 
-    if (texture_file["texture_type"] == "cubemap")
+    if (texture_type_entry->str == "cubemap")
     {
+        auto face_x_pos_entry = texture_file.cast_get<ResourceFile::StringVal>("face_x_pos");
+        auto face_x_neg_entry = texture_file.cast_get<ResourceFile::StringVal>("face_x_neg");
+        auto face_y_pos_entry = texture_file.cast_get<ResourceFile::StringVal>("face_y_pos");
+        auto face_y_neg_entry = texture_file.cast_get<ResourceFile::StringVal>("face_y_neg");
+        auto face_z_pos_entry = texture_file.cast_get<ResourceFile::StringVal>("face_z_pos");
+        auto face_z_neg_entry = texture_file.cast_get<ResourceFile::StringVal>("face_z_neg");
+
         type = TextureType_Cubemap;
-        filepaths.push_back(ltfs::join(m_textures_path, texture_file["face_x_pos"]));
-        filepaths.push_back(ltfs::join(m_textures_path, texture_file["face_x_neg"]));
-        filepaths.push_back(ltfs::join(m_textures_path, texture_file["face_y_pos"]));
-        filepaths.push_back(ltfs::join(m_textures_path, texture_file["face_y_neg"]));
-        filepaths.push_back(ltfs::join(m_textures_path, texture_file["face_z_pos"]));
-        filepaths.push_back(ltfs::join(m_textures_path, texture_file["face_z_neg"]));
+        filepaths.push_back(ltfs::join(m_textures_path, face_x_pos_entry->str));
+        filepaths.push_back(ltfs::join(m_textures_path, face_x_neg_entry->str));
+        filepaths.push_back(ltfs::join(m_textures_path, face_y_pos_entry->str));
+        filepaths.push_back(ltfs::join(m_textures_path, face_y_neg_entry->str));
+        filepaths.push_back(ltfs::join(m_textures_path, face_z_pos_entry->str));
+        filepaths.push_back(ltfs::join(m_textures_path, face_z_neg_entry->str));
     }
     else
     {
@@ -107,6 +139,7 @@ ResourceManager::load_from_shader_file(const std::string &filename)
     }
 
     ResourceFile shader_file(filepath);
+    shader_file.parse();
     if (!shader_file.is_file_correct)
     {
         logger.error("File ", filename, " is incorrect.");
@@ -116,7 +149,8 @@ ResourceManager::load_from_shader_file(const std::string &filename)
     std::string shader_filepath;
     if (shader_file.has("shader_source"))
     {
-        shader_filepath = ltfs::join(m_shaders_path, shader_file["shader_source"]);
+        auto *val = shader_file.cast_get<ResourceFile::StringVal>("shader_source");
+        shader_filepath = ltfs::join(m_shaders_path, val->str);
     }
     else
     {
@@ -203,6 +237,7 @@ Texture::Texture(TextureType type, TextureFormat tf, PixelFormat pf,
     , m_io_task_manager(manager)
     , m_task(nullptr)
 {
+    logger.log("Creating texture file");
 }
 
 lt_internal u32

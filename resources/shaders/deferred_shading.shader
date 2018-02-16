@@ -1,1 +1,1 @@
-shader_source = deferred_shading.glsl
+shader_source = deferred_shading.glsl;

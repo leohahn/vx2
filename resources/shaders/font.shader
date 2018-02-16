@@ -1,1 +1,1 @@
-shader_source = font.glsl
+shader_source = font.glsl;

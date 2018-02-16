@@ -1,1 +1,1 @@
-shader_source = skybox.glsl
+shader_source = skybox.glsl;

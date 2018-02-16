@@ -1,1 +1,1 @@
-shader_source = wireframe.glsl
+shader_source = wireframe.glsl;
