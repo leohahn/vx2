@@ -8,90 +8,9 @@
 #include "io_task_manager.hpp"
 #include "application.hpp"
 #include "font.hpp"
+#include "resource_file.hpp"
 
 lt_global_variable lt::Logger logger("resource_manager");
-
-lt_global_variable const std::vector<std::string> entry_keys = {
-    "texture_type",
-    "texture_format",
-    "pixel_format",
-    "face_x_pos",
-    "face_x_neg",
-    "face_y_pos",
-    "face_y_neg",
-    "face_z_pos",
-    "face_z_neg",
-};
-
-struct TextureFile
-{
-    TextureType type;
-    TextureFormat texture_format;
-    PixelFormat pixel_format;
-
-    std::unordered_map<std::string, std::string> entries;
-    std::string filepath;
-    bool is_file_correct = true;
-
-    TextureFile(std::string filepath)
-        : type(TextureType_Unknown)
-        , filepath(filepath)
-    {
-        std::ifstream infile(filepath);
-        std::string line;
-        while (std::getline(infile, line))
-        {
-            std::istringstream iss(line);
-            std::string key, val;
-            char eq;
-
-            bool success_read = (bool)(iss >> key >> eq >> val);
-
-            // Skip comments
-            if (key.size() > 0 && key[0] == '#')
-                continue;
-
-            if (!success_read && eq == '=')
-            {
-                logger.error("Loading file ", filepath, ": incorrect syntax");
-                is_file_correct = false;
-                break;
-            }
-
-            if (std::find(entry_keys.begin(), entry_keys.end(), key) == entry_keys.end())
-            {
-                logger.error("On file ", filepath);
-                logger.error("Invalid key ", key);
-                is_file_correct = false;
-                break;
-            }
-
-            if (key == "texture_type")
-            {
-                if (val == "cubemap") type = TextureType_Cubemap;
-                if (val == "2D") type = TextureType_2D;
-            }
-
-            if (key == "texture_format")
-            {
-                if (val == "rgb") texture_format = TextureFormat_RGB;
-                else if (val == "rgba") texture_format = TextureFormat_RGBA;
-                else if (val == "srgb") texture_format = TextureFormat_SRGB;
-                else if (val == "srgba") texture_format = TextureFormat_SRGBA;
-                else logger.error("Wrong texture format specified: ", val);
-            }
-
-            if (key == "pixel_format")
-            {
-                if (val == "rgb") pixel_format = PixelFormat_RGB;
-                else if (val == "rgba") pixel_format = PixelFormat_RGBA;
-                else logger.error("Wrong pixel format specified: ", val);
-            }
-
-            entries.insert(std::make_pair(key, val));
-        }
-    }
-};
 
 ResourceManager::ResourceManager(IOTaskManager *io_task_manager)
     : m_io_task_manager(io_task_manager)
@@ -124,7 +43,7 @@ ResourceManager::load_from_texture_file(const std::string &filename)
     }
 
     std::string filepath = ltfs::join(m_textures_path, filename);
-    TextureFile texture_file(filepath);
+    ResourceFile texture_file(filepath);
 
     if (!texture_file.is_file_correct)
     {
@@ -133,8 +52,27 @@ ResourceManager::load_from_texture_file(const std::string &filename)
     }
 
     std::vector<std::string> filepaths;
-    if (texture_file.type == TextureType_Cubemap)
+    TextureType type = TextureType_Unknown;
+    TextureFormat texture_format = TextureFormat_RGB;
+    PixelFormat pixel_format = PixelFormat_RGB;
+
+    if (texture_file.entries["texture_format"] == "rgb")
+        texture_format = TextureFormat_RGB;
+    else if (texture_file.entries["texture_format"] == "rgba")
+        texture_format = TextureFormat_RGBA;
+    else if (texture_file.entries["texture_format"] == "srgba")
+        texture_format = TextureFormat_SRGBA;
+    else if (texture_file.entries["texture_format"] == "srgb")
+        texture_format = TextureFormat_SRGB;
+
+    if (texture_file.entries["pixel_format"] == "rgb")
+        pixel_format = PixelFormat_RGB;
+    else if (texture_file.entries["pixel_format"] == "rgba")
+        pixel_format = PixelFormat_RGBA;
+
+    if (texture_file.entries["texture_type"] == "cubemap")
     {
+        type = TextureType_Cubemap;
         filepaths.push_back(ltfs::join(m_textures_path, texture_file.entries.at("face_x_pos")));
         filepaths.push_back(ltfs::join(m_textures_path, texture_file.entries.at("face_x_neg")));
         filepaths.push_back(ltfs::join(m_textures_path, texture_file.entries.at("face_y_pos")));
@@ -147,11 +85,8 @@ ResourceManager::load_from_texture_file(const std::string &filename)
         LT_Assert(false);
     }
 
-    m_textures[filename] = std::make_unique<Texture>(texture_file.type,
-                                                     texture_file.texture_format,
-                                                     texture_file.pixel_format,
-                                                     filepaths,
-                                                     m_io_task_manager);
+    m_textures[filename] = std::make_unique<Texture>(type, texture_format, pixel_format,
+                                                     filepaths, m_io_task_manager);
     return true;
 }
 

@@ -25,6 +25,7 @@ add_executable(dr
   src/world.cpp
   src/font.cpp
   src/gl_resources.cpp
+  src/resource_file.cpp
   src/skybox.cpp
   src/input.cpp
   src/stb_rect_pack.cpp

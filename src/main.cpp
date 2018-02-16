@@ -116,9 +116,8 @@ main()
 {
     // --------------------------------------------------------------
     // TODO:
-    //   - Add decent main loop with interpolation.
-    //   - Create landscape with random noise.
-    //   - Reduce number of polygons needed to render the world.
+    //   - Render blocks with texture.
+    //   - Reduce number of polygons needed to render the world!!
     // --------------------------------------------------------------
 
     IOTaskManager io_task_manager;
