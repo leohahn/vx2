@@ -118,19 +118,19 @@ Camera::rotate()
     update_frustum_right_and_up(frustum, up_world);
 }
 
-Frustum
-Frustum::interpolate(const Frustum &previous, const Frustum &current, f32 alpha, Vec3f up_world)
+Camera
+Camera::interpolate(const Camera &previous, const Camera &current, f32 alpha)
 {
-    Frustum interpolated = previous;
+    Camera interpolated = previous;
+    interpolated.frustum.position = previous.frustum.position +
+        alpha*(current.frustum.position - previous.frustum.position);
 
-    interpolated.position = previous.position*(1.0-alpha) + current.position*alpha;
-
-    if (previous.front == current.front)
-        interpolated.front = previous.front;
+    if (previous.frustum.front == current.frustum.front)
+        interpolated.frustum.front = previous.frustum.front;
     else
-        interpolated.front = lt::slerp(previous.front, current.front, alpha);
+        interpolated.frustum.front = lt::slerp(previous.frustum.front, current.frustum.front, alpha);
 
-    update_frustum_right_and_up(interpolated, up_world);
+    update_frustum_right_and_up(interpolated.frustum, previous.up_world);
 
     return interpolated;
 }

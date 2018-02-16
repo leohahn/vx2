@@ -218,6 +218,8 @@ Application::Application(const char *title, i32 width, i32 height)
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
     glfwWindowHint(GLFW_RESIZABLE, false);
     glfwWindowHint(GLFW_SAMPLES, 4);
+    // This does not work however for me.
+    glfwSwapInterval(0); // Set vsync off
 
     window = glfwCreateWindow(width, height, title, nullptr, nullptr);
     if (!window)

@@ -200,6 +200,20 @@ World::generate_landscape(f64 amplitude, f64 frequency, i32 num_octaves, f64 lac
         }
 }
 
+bool
+World::block_exists(i32 abs_block_xi, i32 abs_block_yi, i32 abs_block_zi) const
+{
+    const i32 bx = abs_block_xi % Chunk::NUM_BLOCKS_PER_AXIS;
+    const i32 by = abs_block_yi % Chunk::NUM_BLOCKS_PER_AXIS;
+    const i32 bz = abs_block_zi % Chunk::NUM_BLOCKS_PER_AXIS;
+
+    const i32 cx = abs_block_xi / Chunk::NUM_BLOCKS_PER_AXIS;
+    const i32 cy = abs_block_yi / Chunk::NUM_BLOCKS_PER_AXIS;
+    const i32 cz = abs_block_zi / Chunk::NUM_BLOCKS_PER_AXIS;
+
+    return chunks[cx][cy][cz].blocks[bx][by][bz] == BlockType_Terrain;
+}
+
 void
 World::update(Key *kb)
 {
@@ -220,9 +234,7 @@ World::interpolate(const World &previous, const World &current, f32 alpha)
     LT_Assert(previous.camera.up_world == current.camera.up_world);
 
     World interpolated = current;
-    interpolated.camera.frustum = Frustum::interpolate(previous.camera.frustum,
-                                                       current.camera.frustum,
-                                                       alpha,
-                                                       current.camera.up_world);
+    interpolated.camera = Camera::interpolate(previous.camera, current.camera, alpha);
+
     return interpolated;
 }

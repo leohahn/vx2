@@ -63,7 +63,7 @@ struct World
 
     void update(Key *kb);
     void generate_landscape(f64 amplitude, f64 frequency, i32 num_octaves, f64 lacunarity, f64 gain);
-
+    bool block_exists(i32 abs_block_xi, i32 abs_block_yi, i32 abs_block_zi) const;
 
 public:
     Camera      camera;

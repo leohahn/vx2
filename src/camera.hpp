@@ -18,14 +18,13 @@ struct Frustum
     Quatf  front;
     Quatf  right;
     Quatf  up;
-
-    static Frustum interpolate(const Frustum &previous, const Frustum &current, f32 alpha, Vec3f up_world);
 };
 
 struct Camera
 {
     static constexpr f32 ZNEAR = 0.1f;
     static constexpr f32 ZFAR = 1000.0f;
+    static Camera interpolate(const Camera &previous, const Camera &current, f32 alpha);
 
     enum class Direction { Left, Right, Forwards, Backwards };
     enum class RotationAxis { Up, Down, Right, Left };

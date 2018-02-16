@@ -25,7 +25,6 @@ struct DebugContext
 };
 
 using namespace std::chrono_literals;
-constexpr std::chrono::nanoseconds TIMESTEP(16ms);
 
 lt_global_variable lt::Logger logger("main");
 lt_global_variable Key g_keyboard[NUM_KEYBOARD_KEYS] = {};
@@ -94,17 +93,18 @@ main_render(const Application &app, const World &world, ResourceManager &resourc
         world.skybox.shader->use();
         world.skybox.shader->set_matrix("view", world.camera.view_matrix());
         render_skybox(world.skybox);
-        dump_opengl_errors("After render_skybox", __FILE__);
+        // dump_opengl_errors("After render_skybox", __FILE__);
 
         lt_local_persist char text_buffer[256] = {};
         snprintf(text_buffer, sizeof(text_buffer),
-                 "FPS: %d -- Frame time: %.2f min | %.2f max",
+                 "FPS: %d, UPS: %d -- Frame time: %.2f min | %.2f max",
                  g_debug_context.fps,
+                 g_debug_context.ups,
                  (f32)g_debug_context.min_frame_time,
                  (f32)g_debug_context.max_frame_time);
 
         render_text(font_atlas, text_buffer, 30.5f, 30.5f, font_shader);
-        dump_opengl_errors("After font", __FILE__);
+        // dump_opengl_errors("After font", __FILE__);
     }
 
     glfwPollEvents();
@@ -149,7 +149,7 @@ main()
             resource_manager.load_from_font_file(name);
     }
 
-    Application app("Deferred renderer", 1024, 768);
+    Application app("Deferred renderer", 1680, 1050);
 
     GLResources gl;
 
@@ -202,13 +202,15 @@ main()
 
     // Define variables to control time
     using clock = std::chrono::high_resolution_clock;
+
+    constexpr std::chrono::nanoseconds TIMESTEP(16ms); // Fixed timestep used for the updates
     std::chrono::nanoseconds lag(0ns);
     auto previous_time = clock::now();
 
     // Debug variables
-    i32 num_updates = 0;
-    i32 num_frames = 0;
-    auto start_second = clock::now();
+    i32 num_updates = 0; // used for counting frames per second
+    i32 num_frames = 0;  // used for counting updates per second
+    auto start_second = clock::now(); // count seconds
     std::chrono::milliseconds min_frame_time(10000ms);
     std::chrono::milliseconds max_frame_time(0ms);
 
@@ -229,8 +231,6 @@ main()
         if (frame_time < min_frame_time)
             min_frame_time = std::chrono::duration_cast<std::chrono::milliseconds>(frame_time);
 
-        process_input(app.window, g_keyboard);
-
         // Check if the window should close.
         if (glfwWindowShouldClose(app.window))
         {
@@ -240,6 +240,8 @@ main()
 
         while (lag >= TIMESTEP)
         {
+            process_input(app.window, g_keyboard);
+
             previous_world = current_world;
             current_world.update(g_keyboard);
 
@@ -248,12 +250,12 @@ main()
         }
 
         const f32 lag_offset = (f32)lag.count() / TIMESTEP.count();
-        World interpolated_world = World::interpolate(previous_world, current_world, lag_offset);
+        const World interpolated_world = World::interpolate(previous_world, current_world, lag_offset);
 
         main_render(app, interpolated_world, resource_manager);
         num_frames++;
 
-        if (clock::now() - start_second >= 1s)
+        if (clock::now() - start_second >= 1000ms)
         {
             g_debug_context.fps = num_frames;
             g_debug_context.ups = num_updates;
