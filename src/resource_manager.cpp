@@ -9,6 +9,7 @@
 #include "application.hpp"
 #include "font.hpp"
 #include "resource_file.hpp"
+#include "texture.hpp"
 
 lt_global_variable lt::Logger logger("resource_manager");
 
@@ -53,11 +54,6 @@ ResourceManager::load_from_texture_file(const std::string &filename)
         return false;
     }
 
-    std::vector<std::string> filepaths;
-    TextureType type = TextureType_Unknown;
-    TextureFormat texture_format = TextureFormat_RGB;
-    PixelFormat pixel_format = PixelFormat_RGB;
-
     if (!texture_file.has("texture_format"))
     {
         logger.error("File needs a texture_format entry.");
@@ -75,6 +71,10 @@ ResourceManager::load_from_texture_file(const std::string &filename)
         logger.error("File needs a pixel_format entry.");
         return false;
     }
+
+    std::vector<std::string> filepaths;
+    TextureFormat texture_format = TextureFormat_RGB;
+    PixelFormat pixel_format = PixelFormat_RGB;
 
     auto texture_format_entry = texture_file.cast_get<ResourceFile::StringVal>("texture_format");
     auto pixel_format_entry = texture_file.cast_get<ResourceFile::StringVal>("pixel_format");
@@ -103,21 +103,37 @@ ResourceManager::load_from_texture_file(const std::string &filename)
         auto face_z_pos_entry = texture_file.cast_get<ResourceFile::StringVal>("face_z_pos");
         auto face_z_neg_entry = texture_file.cast_get<ResourceFile::StringVal>("face_z_neg");
 
-        type = TextureType_Cubemap;
-        filepaths.push_back(ltfs::join(m_textures_path, face_x_pos_entry->str));
-        filepaths.push_back(ltfs::join(m_textures_path, face_x_neg_entry->str));
-        filepaths.push_back(ltfs::join(m_textures_path, face_y_pos_entry->str));
-        filepaths.push_back(ltfs::join(m_textures_path, face_y_neg_entry->str));
-        filepaths.push_back(ltfs::join(m_textures_path, face_z_pos_entry->str));
-        filepaths.push_back(ltfs::join(m_textures_path, face_z_neg_entry->str));
-    }
-    else
-    {
-        LT_Assert(false);
-    }
+        std::string filepaths[] = {
+            ltfs::join(m_textures_path, face_x_pos_entry->str),
+            ltfs::join(m_textures_path, face_x_neg_entry->str),
+            ltfs::join(m_textures_path, face_y_pos_entry->str),
+            ltfs::join(m_textures_path, face_y_neg_entry->str),
+            ltfs::join(m_textures_path, face_z_pos_entry->str),
+            ltfs::join(m_textures_path, face_z_neg_entry->str)
+        };
+        LT_Assert(LT_Count(filepaths) == 6);
 
-    m_textures[filename] = std::make_unique<Texture>(type, texture_format, pixel_format,
-                                                     filepaths, m_io_task_manager);
+        auto new_texture = std::make_unique<TextureCubemap>(texture_format, pixel_format,
+                                                            filepaths, m_io_task_manager);
+
+        m_textures[filename] = std::move(new_texture);
+    }
+    else if (texture_type_entry->str == "atlas")
+    {
+        auto num_rows_entry = texture_file.cast_get<ResourceFile::IntVal>("num_tile_rows");
+        auto num_cols_entry = texture_file.cast_get<ResourceFile::IntVal>("num_tile_cols");
+        auto tile_width_entry = texture_file.cast_get<ResourceFile::IntVal>("tile_width");
+        auto tile_height_entry = texture_file.cast_get<ResourceFile::IntVal>("tile_height");
+        auto location_entry = texture_file.cast_get<ResourceFile::StringVal>("texture_location");
+
+        auto new_texture = std::make_unique<TextureAtlas>(texture_format, pixel_format, location_entry->str,
+                                                          num_rows_entry->number, num_cols_entry->number,
+                                                          tile_width_entry->number, tile_height_entry->number,
+                                                          m_io_task_manager);
+        m_textures[filename] = std::move(new_texture);
+    }
+    else LT_Assert(false);
+
     return true;
 }
 
@@ -161,7 +177,7 @@ ResourceManager::load_from_shader_file(const std::string &filename)
 
     if (shader_file.has("textures"))
     {
-        logger.log("Shader ", filename, " has textures entr, adding them.");
+        // logger.log("Shader ", filename, " has textures entr, adding them.");
         auto array_val = shader_file.cast_get<ResourceFile::ArrayVal>("textures");
 
         new_shader->load();
@@ -213,18 +229,6 @@ ResourceManager::get_shader(const std::string &filename) const
     }
 }
 
-Texture *
-ResourceManager::get_texture(const std::string &filename) const
-{
-    if (m_textures.find(filename) != m_textures.end())
-        return m_textures.at(filename).get();
-    else
-    {
-        logger.error("Could not get texture ", filename);
-        return nullptr;
-    }
-}
-
 AsciiFontAtlas *
 ResourceManager::get_font(const std::string &filename) const
 {
@@ -235,86 +239,4 @@ ResourceManager::get_font(const std::string &filename) const
         logger.error("Could not get font ", filename);
         return nullptr;
     }
-}
-
-Texture::Texture(TextureType type, TextureFormat tf, PixelFormat pf,
-        const std::vector<std::string> &filepaths, IOTaskManager *manager)
-    : type(type)
-    , texture_format(tf)
-    , pixel_format(pf)
-    , filepaths(filepaths)
-    , id(0)
-    , m_is_loaded(false)
-    , m_io_task_manager(manager)
-    , m_task(nullptr)
-{
-    logger.log("Creating texture file");
-}
-
-lt_internal u32
-create_texture_id(TextureType type, TextureFormat texture_format, PixelFormat pixel_format,
-                  const std::vector<std::unique_ptr<LoadedImage>> &loaded_images)
-{
-    u32 texture_id = 0;
-
-    switch (type)
-    {
-    case TextureType_Unknown:
-    case TextureType_2D:
-        LT_Assert(false);
-        break;
-    case TextureType_Cubemap: {
-        LT_Assert(loaded_images.size() == 6);
-
-        glGenTextures(1, &texture_id);
-        glBindTexture(GL_TEXTURE_CUBE_MAP, texture_id);
-
-        for (u32 i = 0; i < loaded_images.size(); i++)
-        {
-            const auto &li = loaded_images[i];
-
-            const i32 mipmap_level = 0;
-            glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, mipmap_level, texture_format, li->width, li->height,
-                         0, pixel_format, GL_UNSIGNED_BYTE, li->data);
-        }
-
-        glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-        glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-        glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-        glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-        glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
-
-        dump_opengl_errors("After cubemap creation", __FILE__);
-        break;
-    }
-    default: LT_Assert(false);
-    }
-
-    LT_Assert(texture_id != 0);
-
-    return texture_id;
-}
-
-bool
-Texture::load()
-{
-    if (!m_task && id == 0)
-    {
-        logger.log("Adding task to queue.");
-        m_task = std::make_unique<LoadImagesTask>(filepaths);
-        m_io_task_manager->add_to_queue(m_task.get());
-    }
-
-    if (m_task)
-        m_is_loaded = (m_task->status() == TaskStatus_Complete);
-
-    if (m_is_loaded && id == 0)
-    {
-        logger.log("Creating texture");
-        id = create_texture_id(type, texture_format, pixel_format, m_task->view_loaded_images());
-        logger.log("id ", id);
-        m_task.reset(); // destroy task object and free its resources.
-    }
-
-    return m_is_loaded;
 }

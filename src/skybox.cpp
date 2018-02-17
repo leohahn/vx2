@@ -5,6 +5,7 @@
 #include "unit_cube_data.hpp"
 #include "renderer.hpp"
 #include "application.hpp"
+#include "texture.hpp"
 
 lt_global_variable lt::Logger logger("skybox");
 
@@ -17,7 +18,7 @@ Skybox::Skybox()
 Skybox::Skybox(const char *texture_file, const char *shader_file, const ResourceManager &manager)
     : quad(Mesh())
     , shader(manager.get_shader(shader_file))
-    , cubemap(manager.get_texture(texture_file))
+    , cubemap(manager.get_texture<TextureCubemap>(texture_file))
 {
     if (!shader)
         logger.error("Failed getting shader ", shader_file);

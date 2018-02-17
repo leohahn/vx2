@@ -6,6 +6,7 @@
 #include "input.hpp"
 #include "open-simplex-noise.h"
 #include "gl_resources.hpp"
+#include "texture.hpp"
 
 lt_global_variable lt::Logger logger("world");
 
@@ -37,15 +38,19 @@ World::create_camera(f32 aspect_ratio)
                   FIELD_OF_VIEW, aspect_ratio, MOVE_SPEED, ROTATION_SPEED);
 }
 
-World::World(i32 seed, const ResourceManager &manager, GLResources *gl, f32 aspect_ratio)
+World::World(i32 seed, const char *blocks_texture, const ResourceManager &manager,
+             GLResources *gl, f32 aspect_ratio)
     : camera(create_camera(aspect_ratio))
     , chunks()
     , skybox("skybox.texture", "skybox.shader", manager)
     , sun()
+    , m_blocks_texture(manager.get_texture<TextureAtlas>(blocks_texture))
     , m_seed(seed)
     , m_gl(gl)
 {
     initialize_buffers();
+
+    if (!m_blocks_texture) logger.error("Failed to get the texture for the blocks.");
 
     sun.direction = Vec3f(0, -1, 0);
     sun.ambient = Vec3f(.1f);

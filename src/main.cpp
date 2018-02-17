@@ -135,6 +135,7 @@ main()
         };
         const char *textures_to_load[] = {
             "skybox.texture",
+            "blocks.texture",
         };
         const char *fonts_to_load[] = {
             "dejavu/ttf/DejaVuSansMono.ttf",
@@ -151,7 +152,7 @@ main()
     }
 
     const i32 seed = 1024;
-    World world(seed, resource_manager, &gl, app.aspect_ratio());
+    World world(seed, "blocks.texture", resource_manager, &gl, app.aspect_ratio());
 
     const f64 frequency = 0.01;
     const f64 amplitude = 0.60;
@@ -209,16 +210,17 @@ main()
     while (running)
     {
         // Update frame information.
-        auto current_time = clock::now();
-        auto frame_time = current_time - previous_time;
+        {
+            auto current_time = clock::now();
+            auto frame_time = current_time - previous_time;
+            previous_time = current_time;
+            lag += std::chrono::duration_cast<std::chrono::nanoseconds>(frame_time);
 
-        previous_time = current_time;
-        lag += std::chrono::duration_cast<std::chrono::nanoseconds>(frame_time);
-
-        if (frame_time > max_frame_time)
-            max_frame_time = std::chrono::duration_cast<std::chrono::milliseconds>(frame_time);
-        if (frame_time < min_frame_time)
-            min_frame_time = std::chrono::duration_cast<std::chrono::milliseconds>(frame_time);
+            if (frame_time > max_frame_time)
+                max_frame_time = std::chrono::duration_cast<std::chrono::milliseconds>(frame_time);
+            if (frame_time < min_frame_time)
+                min_frame_time = std::chrono::duration_cast<std::chrono::milliseconds>(frame_time);
+        }
 
         // Check if the window should close.
         if (glfwWindowShouldClose(app.window))
@@ -244,6 +246,7 @@ main()
         main_render(app, interpolated_world, resource_manager);
         num_frames++;
 
+        // Update debug information after one second.
         if (clock::now() - start_second >= 1000ms)
         {
             g_debug_context.fps = num_frames;

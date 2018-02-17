@@ -9,6 +9,7 @@
 #define RESOURCE_TOKENS \
         RT(TokenType_Invalid = 0, "Invalid"),                                  \
         RT(TokenType_Identifier, "Identifier"),                         \
+        RT(TokenType_Integer, "Integer"),                     \
         RT(TokenType_OpenBracket, "Open Bracket ([)"),                                 \
         RT(TokenType_CloseBracket, "Close Bracket (])"),                                \
         RT(TokenType_Comma, "Comma (,)"),                                       \
@@ -35,6 +36,7 @@ struct ResourceFile
     {
         ValType_String,
         ValType_Array,
+        ValType_Int,
     };
 
     struct Val
@@ -61,6 +63,16 @@ struct ResourceFile
         {}
 
         std::vector<std::unique_ptr<Val>> vals;
+    };
+
+    struct IntVal : public Val
+    {
+        IntVal(i32 number)
+            : Val(ValType_Int)
+            , number(number)
+        {}
+
+        int number;
     };
 
     struct Token

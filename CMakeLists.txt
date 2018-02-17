@@ -24,6 +24,7 @@ add_executable(dr
   src/shader.cpp
   src/world.cpp
   src/font.cpp
+  src/texture.cpp
   src/gl_resources.cpp
   src/resource_file.cpp
   src/skybox.cpp

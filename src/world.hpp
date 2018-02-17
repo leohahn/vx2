@@ -9,6 +9,7 @@
 struct Key;
 struct osn_context;
 struct GLResources;
+struct TextureAtlas;
 
 struct Sun
 {
@@ -62,7 +63,7 @@ struct World
     // World(World &&world);
     World &operator=(const World &world);
 
-    World(i32 seed, const ResourceManager &manager, GLResources *gl_resources, f32 aspect_ratio);
+    World(i32 seed, const char *blocks_texture, const ResourceManager &manager, GLResources *gl_resources, f32 aspect_ratio);
     ~World();
 
     void update(Key *kb);
@@ -79,9 +80,10 @@ public:
     bool        render_wireframe = false;
 
 private:
-    i32         m_seed;
-    osn_context *m_simplex_ctx;
-    GLResources *m_gl;
+    TextureAtlas *m_blocks_texture;
+    i32           m_seed;
+    osn_context  *m_simplex_ctx;
+    GLResources  *m_gl;
 
     void initialize_buffers();
     Camera create_camera(f32 aspect_ratio);

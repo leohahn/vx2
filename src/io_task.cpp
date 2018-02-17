@@ -20,6 +20,10 @@ LoadImagesTask::LoadImagesTask(const std::vector<std::string> &filepaths)
     : filepaths(filepaths)
 {}
 
+LoadImagesTask::LoadImagesTask(std::string *filepaths, i32 num_files)
+    : filepaths(filepaths, filepaths+num_files)
+{}
+
 LoadImagesTask::~LoadImagesTask()
 {
 }

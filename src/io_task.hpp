@@ -60,6 +60,7 @@ struct LoadImagesTask : IOTask
     using LoadedImagePtr = std::unique_ptr<LoadedImage>;
 
     LoadImagesTask(const std::vector<std::string> &filepaths);
+    LoadImagesTask(std::string *filepaths, i32 num_files);
     ~LoadImagesTask();
 
     void run() override;

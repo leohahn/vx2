@@ -1,0 +1,8 @@
+texture_type = atlas;
+texture_format = srgb;
+pixel_format = rgb;
+texture_location = blocks.tga;
+num_tile_rows = 1;
+num_tile_cols = 3;
+tile_width = 16;
+tile_height = 16;

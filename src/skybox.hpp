@@ -6,7 +6,7 @@
 
 struct Shader;
 struct ResourceManager;
-struct Texture;
+struct TextureCubemap;
 
 struct Skybox
 {
@@ -16,7 +16,7 @@ struct Skybox
 
     Mesh quad;
     Shader *shader;
-    Texture *cubemap;
+    TextureCubemap *cubemap;
 
     bool load();
 

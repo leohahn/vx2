@@ -6,27 +6,13 @@
 #include <algorithm>
 #include <cctype>
 #include <array>
+#include <functional>
 
 #include "lt_core.hpp"
 #include "lt_utils.hpp"
 #include "lt_fs.hpp"
 
 lt_global_variable lt::Logger logger("resource_file");
-
-// lt_global_variable const std::vector<std::string> entry_keys = {
-//     // texture entries
-//     "texture_type",
-//     "texture_format",
-//     "pixel_format",
-//     "face_x_pos",
-//     "face_x_neg",
-//     "face_y_pos",
-//     "face_y_neg",
-//     "face_z_pos",
-//     "face_z_neg",
-//     // shader entries
-//     "shader_source"
-// };
 
 ResourceFile::ResourceFile(const std::string &filepath)
     : filepath(filepath)
@@ -38,7 +24,7 @@ lt_internal inline u8 *
 eat_whitespaces(u8 *it, const u8 *end_it)
 {
     u8 *new_it = it;
-    while (std::isspace(*new_it) && it <= end_it)
+    while (std::isspace(*new_it) && new_it <= end_it)
     {
         new_it++;
     }
@@ -49,7 +35,7 @@ lt_internal inline u8 *
 eat_until(char c, u8 *it, const u8 *end_it)
 {
     u8 *new_it = it;
-    while (*new_it != c && it <= end_it)
+    while (*new_it != c && new_it <= end_it)
     {
         new_it++;
     }
@@ -63,7 +49,18 @@ eat_until(const T &chars, u8 *it, const u8 *end_it)
 {
     u8 *new_it = it;
     while (std::find(std::begin(chars), std::end(chars), *new_it) == std::end(chars) &&
-           it <= end_it)
+           new_it <= end_it)
+    {
+        new_it++;
+    }
+    return new_it;
+}
+
+lt_internal inline u8 *
+eat_while(const std::function<bool(u8)> &predicate, u8 *it, const u8 *end_it)
+{
+    u8 *new_it = it;
+    while (predicate(*new_it) && new_it <= end_it)
     {
         new_it++;
     }
@@ -75,15 +72,15 @@ ResourceFile::tokenize()
 {
     std::vector<Token> tokens;
 
-    FileContents *contents = file_read_contents(filepath.c_str());
+    FileContents *contents = file_read_contents(filepath.c_str(), true);
     if (contents->error != FileError_None)
     {
         logger.error("Failed to open file ", filepath);
         return tokens;
     }
 
-    const u8 *end_it = (u8*)contents->data + contents->size - 1;
     u8 *it = (u8*)contents->data;
+    const u8 *end_it = (u8*)contents->data + contents->size - 1;
 
     while (it <= end_it)
     {
@@ -102,6 +99,23 @@ ResourceFile::tokenize()
             tokens.push_back(tk);
 
             it = last_it;
+        }
+        else if (std::isdigit(*it))
+        {
+            // parse until the last number
+            u8 *last_it = eat_while(static_cast<int(*)(int)>(std::isdigit), it, end_it);
+
+            if (*last_it == '.')
+            {
+                // TODO: parse float.
+                LT_Assert(false);
+            }
+            else
+            {
+                Token tk(TokenType_Integer, std::string(it, last_it));
+                tokens.push_back(tk);
+                it = last_it;
+            }
         }
         else if (*it == '=')
         {
@@ -134,6 +148,9 @@ ResourceFile::tokenize()
             it++;
         }
     }
+
+    LT_Assert(it == end_it+1);
+    LT_Assert(*it == '\0');
 
     file_free_contents(contents);
     return tokens;
@@ -176,13 +193,13 @@ ResourceFile::parse()
             {
                 auto val = tokens[t+2].str;
 
-                logger.log("adding entry ", key);
-                logger.log("value ", val);
+                // logger.log("adding entry ", key);
+                // logger.log("value ", val);
 
                 auto string_val = std::make_unique<StringVal>(val);
                 m_entries.insert(std::make_pair(key, std::move(string_val)));
 
-                t += 4; // two tokens were recognized
+                t += 4; // four tokens were recognized
             }
             else if (tokens[t+2].type == TokenType_OpenBracket)
             {
@@ -221,10 +238,18 @@ ResourceFile::parse()
                     }
                 }
 
-                logger.log("adding array entry ", key);
+                // logger.log("adding array entry ", key);
                 m_entries.insert(std::make_pair(key, std::move(array_val)));
+            }
+            else if (tokens[t+2].type == TokenType_Integer && tokens[t+3].type == TokenType_Semicolon)
+            {
+                auto int_str = tokens[t+2].str;
+                i32 number = std::stoi(int_str);
 
-                t += 4; // two tokens were recognized
+                auto int_val = std::make_unique<IntVal>(number);
+                m_entries.insert(std::make_pair(key, std::move(int_val)));
+
+                t += 4; // four tokens were recognized
             }
             else
             {
@@ -235,6 +260,7 @@ ResourceFile::parse()
         else
         {
             logger.error("Wrong syntax on file.");
+            logger.error("Expected IDENTIFIER =");
             return;
         }
     }
