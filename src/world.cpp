@@ -43,14 +43,12 @@ World::World(i32 seed, const char *blocks_texture, const ResourceManager &manage
     : camera(create_camera(aspect_ratio))
     , chunks()
     , skybox("skybox.texture", "skybox.shader", manager)
+    , blocks_texture_info(blocks_texture, manager)
     , sun()
-    , m_blocks_texture(manager.get_texture<TextureAtlas>(blocks_texture))
     , m_seed(seed)
     , m_gl(gl)
 {
     initialize_buffers();
-
-    if (!m_blocks_texture) logger.error("Failed to get the texture for the blocks.");
 
     sun.direction = Vec3f(0, -1, 0);
     sun.ambient = Vec3f(.1f);
@@ -65,8 +63,7 @@ World::World(i32 seed, const char *blocks_texture, const ResourceManager &manage
 }
 
 World::World(const World &world)
-    : m_seed(world.m_seed)
-    , m_gl(world.m_gl)
+    : blocks_texture_info(world.blocks_texture_info)
 {
     *this = world;
 
@@ -90,13 +87,13 @@ World::operator=(const World &world)
 {
     camera = world.camera;
     skybox = world.skybox;
+    blocks_texture_info = world.blocks_texture_info;
     sun = world.sun;
     origin = world.origin;
     state = world.state;
     render_wireframe = world.render_wireframe;
     m_seed = world.m_seed;
     m_gl = world.m_gl;
-    m_blocks_texture = world.m_blocks_texture;
 
     for (i32 x = 0; x < NUM_CHUNKS_X; x++)
         for (i32 y = 0; y < NUM_CHUNKS_Y; y++)
@@ -227,7 +224,7 @@ World::block_exists(i32 abs_block_xi, i32 abs_block_yi, i32 abs_block_zi) const
 void
 World::update(Key *kb)
 {
-    if (skybox.load() && m_blocks_texture->load())
+    if (skybox.load() && blocks_texture_info.load())
     {
         state = WorldStatus_Running;
     }
@@ -248,3 +245,26 @@ World::interpolate(const World &previous, const World &current, f32 alpha)
 
     return interpolated;
 }
+
+BlocksTextureInfo::BlocksTextureInfo(const char *texture_name, const ResourceManager &manager)
+    : m_texture(manager.get_texture<TextureAtlas>(texture_name))
+{
+    if (!m_texture)
+        logger.error("Failed to get texture ", texture_name);
+
+    // TODO: There will probably be rounding errors and therefore the textures will have
+    // artefacts, consider solving this another way.
+    tile_uv_size = 1.0f / (f32)m_texture->num_tile_cols;
+
+    for (i32 type = 0; type < BlockType_Count; type++)
+    {
+        tile_offset[type][Sides_Uncovered] = Vec2f(0.5f, 0.5f);
+        tile_offset[type][Sides_Covered]   = Vec2f(0.0f, 0.5f);
+        tile_offset[type][Up]              = Vec2f(0.0f, 0.0f);
+        tile_offset[type][Down]            = Vec2f(0.5f, 0.0f);
+    }
+}
+
+bool BlocksTextureInfo::load() { return m_texture->load(); }
+
+u32 BlocksTextureInfo::texture_id() const { return m_texture->id; }

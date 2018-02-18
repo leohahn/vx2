@@ -85,6 +85,8 @@ render_chunk(const World &world, i32 cx, i32 cy, i32 cz)
                 if (block_type == BlockType_Air)
                     continue;
 
+                LT_Assert(block_type >= 0 && block_type < BlockType_Count);
+
                 // Where the block is located in world space.
                 const Vec3f block_origin = get_world_coords(chunk, bx, by, bz);
 
@@ -98,196 +100,205 @@ render_chunk(const World &world, i32 cx, i32 cy, i32 cz)
                 const Vec3f right_top_front = right_top_back + pos_z_offset;
                 const Vec3f right_bottom_front = right_top_front - pos_y_offset;
 
-                // Left face ------------------------------------------------------
+                // Check faces to render
                 const bool should_render_left_face =
                     (abx == 0) ||
                     !world.block_exists(abx-1, aby, abz);
 
-                if (should_render_left_face)
-                // if (true)
-                {
-                    chunk_vertices[num_vertices_used].position   = left_bottom_back;
-                    chunk_vertices[num_vertices_used].tex_coords = Vec2f(0, 0);
-                    chunk_vertices[num_vertices_used++].normal   = Vec3f(-1, 0, 0);
-
-                    chunk_vertices[num_vertices_used].position   = left_bottom_front;
-                    chunk_vertices[num_vertices_used].tex_coords = Vec2f(1, 0);
-                    chunk_vertices[num_vertices_used++].normal   = Vec3f(-1, 0, 0);
-
-                    chunk_vertices[num_vertices_used].position   = left_top_front;
-                    chunk_vertices[num_vertices_used].tex_coords = Vec2f(1, 1);
-                    chunk_vertices[num_vertices_used++].normal   = Vec3f(-1, 0, 0);
-
-                    chunk_vertices[num_vertices_used].position   = left_top_front;
-                    chunk_vertices[num_vertices_used].tex_coords = Vec2f(1, 1);
-                    chunk_vertices[num_vertices_used++].normal   = Vec3f(-1, 0, 0);
-
-                    chunk_vertices[num_vertices_used].position   = left_top_back;
-                    chunk_vertices[num_vertices_used].tex_coords = Vec2f(0, 1);
-                    chunk_vertices[num_vertices_used++].normal   = Vec3f(-1, 0, 0);
-
-                    chunk_vertices[num_vertices_used].position   = left_bottom_back;
-                    chunk_vertices[num_vertices_used].tex_coords = Vec2f(0, 0);
-                    chunk_vertices[num_vertices_used++].normal   = Vec3f(-1, 0, 0);
-                }
-                // Right face -----------------------------------------------------
                 const bool should_render_right_face =
                     (abx == World::TOTAL_BLOCKS_X-1) ||
                     !world.block_exists(abx+1, aby, abz);
 
-                if (should_render_right_face)
-                // if (true)
-                {
-                    chunk_vertices[num_vertices_used].position   = right_bottom_back;
-                    chunk_vertices[num_vertices_used].tex_coords = Vec2f(0, 0);
-                    chunk_vertices[num_vertices_used++].normal   = Vec3f(1, 0, 0);
-
-                    chunk_vertices[num_vertices_used].position   = right_top_back;
-                    chunk_vertices[num_vertices_used].tex_coords = Vec2f(0, 1);
-                    chunk_vertices[num_vertices_used++].normal   = Vec3f(1, 0, 0);
-
-                    chunk_vertices[num_vertices_used].position   = right_top_front;
-                    chunk_vertices[num_vertices_used].tex_coords = Vec2f(1, 1);
-                    chunk_vertices[num_vertices_used++].normal     = Vec3f(1, 0, 0);
-
-                    chunk_vertices[num_vertices_used].position   = right_top_front;
-                    chunk_vertices[num_vertices_used].tex_coords = Vec2f(1, 1);
-                    chunk_vertices[num_vertices_used++].normal     = Vec3f(1, 0, 0);
-
-                    chunk_vertices[num_vertices_used].position   = right_bottom_front;
-                    chunk_vertices[num_vertices_used].tex_coords = Vec2f(1, 0);
-                    chunk_vertices[num_vertices_used++].normal   = Vec3f(1, 0, 0);
-
-                    chunk_vertices[num_vertices_used].position   = right_bottom_back;
-                    chunk_vertices[num_vertices_used].tex_coords = Vec2f(0, 0);
-                    chunk_vertices[num_vertices_used++].normal   = Vec3f(1, 0, 0);
-                }
-                // Top face --------------------------------------------------------
                 const bool should_render_top_face =
                     (aby == World::TOTAL_BLOCKS_Y-1) ||
                     !world.block_exists(abx, aby+1, abz);
 
-                if (should_render_top_face)
-                // if (true)
-                {
-                    chunk_vertices[num_vertices_used].position   = left_top_front;
-                    chunk_vertices[num_vertices_used].tex_coords = Vec2f(0, 0);
-                    chunk_vertices[num_vertices_used++].normal   = Vec3f(0, 1, 0);
-
-                    chunk_vertices[num_vertices_used].position   = right_top_front;
-                    chunk_vertices[num_vertices_used].tex_coords = Vec2f(1, 0);
-                    chunk_vertices[num_vertices_used++].normal   = Vec3f(0, 1, 0);
-
-                    chunk_vertices[num_vertices_used].position   = right_top_back;
-                    chunk_vertices[num_vertices_used].tex_coords = Vec2f(1, 1);
-                    chunk_vertices[num_vertices_used++].normal   = Vec3f(0, 1, 0);
-
-                    chunk_vertices[num_vertices_used].position   = right_top_back;
-                    chunk_vertices[num_vertices_used].tex_coords = Vec2f(1, 1);
-                    chunk_vertices[num_vertices_used++].normal   = Vec3f(0, 1, 0);
-
-                    chunk_vertices[num_vertices_used].position   = left_top_back;
-                    chunk_vertices[num_vertices_used].tex_coords = Vec2f(0, 1);
-                    chunk_vertices[num_vertices_used++].normal   = Vec3f(0, 1, 0);
-
-                    chunk_vertices[num_vertices_used].position   = left_top_front;
-                    chunk_vertices[num_vertices_used].tex_coords = Vec2f(0, 0);
-                    chunk_vertices[num_vertices_used++].normal   = Vec3f(0, 1, 0);
-                }
-                // Bottom face -----------------------------------------------------
-                const bool should_render_bottom_face =
-                    (aby == 0) ||
-                    !world.block_exists(abx, aby-1, abz);
-
-                if (should_render_bottom_face)
-                // if (true)
-                {
-                    chunk_vertices[num_vertices_used].position   = left_bottom_back;
-                    chunk_vertices[num_vertices_used].tex_coords = Vec2f(0, 0);
-                    chunk_vertices[num_vertices_used++].normal   = Vec3f(0, -1, 0);
-
-                    chunk_vertices[num_vertices_used].position   = right_bottom_back;
-                    chunk_vertices[num_vertices_used].tex_coords = Vec2f(1, 0);
-                    chunk_vertices[num_vertices_used++].normal   = Vec3f(0, -1, 0);
-
-                    chunk_vertices[num_vertices_used].position   = right_bottom_front;
-                    chunk_vertices[num_vertices_used].tex_coords = Vec2f(1, 1);
-                    chunk_vertices[num_vertices_used++].normal   = Vec3f(0, -1, 0);
-
-                    chunk_vertices[num_vertices_used].position   = right_bottom_front;
-                    chunk_vertices[num_vertices_used].tex_coords = Vec2f(1, 1);
-                    chunk_vertices[num_vertices_used++].normal   = Vec3f(0, -1, 0);
-
-                    chunk_vertices[num_vertices_used].position   = left_bottom_front;
-                    chunk_vertices[num_vertices_used].tex_coords = Vec2f(0, 1);
-                    chunk_vertices[num_vertices_used++].normal   = Vec3f(0, -1, 0);
-
-                    chunk_vertices[num_vertices_used].position   = left_bottom_back;
-                    chunk_vertices[num_vertices_used].tex_coords = Vec2f(0, 0);
-                    chunk_vertices[num_vertices_used++].normal   = Vec3f(0, -1, 0);
-                }
-                // Front face -------------------------------------------------------
                 const bool should_render_front_face =
                     (abz == World::TOTAL_BLOCKS_Z-1) ||
                     !world.block_exists(abx, aby, abz+1);
 
-                if (should_render_front_face)
-                // if (true)
-                {
-                    chunk_vertices[num_vertices_used].position   = left_bottom_front;
-                    chunk_vertices[num_vertices_used].tex_coords = Vec2f(0, 0);
-                    chunk_vertices[num_vertices_used++].normal   = Vec3f(0, 0, 1);
+                const bool should_render_bottom_face =
+                    (aby == 0) ||
+                    !world.block_exists(abx, aby-1, abz);
 
-                    chunk_vertices[num_vertices_used].position   = right_bottom_front;
-                    chunk_vertices[num_vertices_used].tex_coords = Vec2f(1, 0);
-                    chunk_vertices[num_vertices_used++].normal   = Vec3f(0, 0, 1);
-
-                    chunk_vertices[num_vertices_used].position   = right_top_front;
-                    chunk_vertices[num_vertices_used].tex_coords = Vec2f(1, 1);
-                    chunk_vertices[num_vertices_used++].normal   = Vec3f(0, 0, 1);
-
-                    chunk_vertices[num_vertices_used].position   = right_top_front;
-                    chunk_vertices[num_vertices_used].tex_coords = Vec2f(1, 1);
-                    chunk_vertices[num_vertices_used++].normal   = Vec3f(0, 0, 1);
-
-                    chunk_vertices[num_vertices_used].position   = left_top_front;
-                    chunk_vertices[num_vertices_used].tex_coords = Vec2f(0, 1);
-                    chunk_vertices[num_vertices_used++].normal   = Vec3f(0, 0, 1);
-
-                    chunk_vertices[num_vertices_used].position   = left_bottom_front;
-                    chunk_vertices[num_vertices_used].tex_coords = Vec2f(0, 0);
-                    chunk_vertices[num_vertices_used++].normal   = Vec3f(0, 0, 1);
-                }
-                // Back face --------------------------------------------------------
                 const bool should_render_back_face =
                     (abz == 0) ||
                     !world.block_exists(abx, aby, abz-1);
 
-                if (should_render_back_face)
-                // if (true)
+                const f32 tile_uv_size = world.blocks_texture_info.tile_uv_size;
+
+                const Vec2f sides_uv_offset = (should_render_top_face)
+                    ? world.blocks_texture_info.tile_offset[block_type][BlocksTextureInfo::Sides_Uncovered]
+                    : world.blocks_texture_info.tile_offset[block_type][BlocksTextureInfo::Sides_Covered];
+
+                const Vec2f up_uv_offset =
+                    world.blocks_texture_info.tile_offset[block_type][BlocksTextureInfo::Up];
+
+                const Vec2f down_uv_offset =
+                    world.blocks_texture_info.tile_offset[block_type][BlocksTextureInfo::Down];
+
+                // Vec2f sides_uv_offset(0.5f, 0.0f);
+
+                // Left face ------------------------------------------------------
+                if (should_render_left_face)
+                {
+                    chunk_vertices[num_vertices_used].position   = left_bottom_back;
+                    chunk_vertices[num_vertices_used].tex_coords = sides_uv_offset;
+                    chunk_vertices[num_vertices_used++].normal   = Vec3f(-1, 0, 0);
+
+                    chunk_vertices[num_vertices_used].position   = left_bottom_front;
+                    chunk_vertices[num_vertices_used].tex_coords = sides_uv_offset + Vec2f(tile_uv_size, 0);
+                    chunk_vertices[num_vertices_used++].normal   = Vec3f(-1, 0, 0);
+
+                    chunk_vertices[num_vertices_used].position   = left_top_front;
+                    chunk_vertices[num_vertices_used].tex_coords = sides_uv_offset + Vec2f(tile_uv_size);
+                    chunk_vertices[num_vertices_used++].normal   = Vec3f(-1, 0, 0);
+
+                    chunk_vertices[num_vertices_used].position   = left_top_front;
+                    chunk_vertices[num_vertices_used].tex_coords = sides_uv_offset + Vec2f(tile_uv_size);
+                    chunk_vertices[num_vertices_used++].normal   = Vec3f(-1, 0, 0);
+
+                    chunk_vertices[num_vertices_used].position   = left_top_back;
+                    chunk_vertices[num_vertices_used].tex_coords = sides_uv_offset + Vec2f(0, tile_uv_size);
+                    chunk_vertices[num_vertices_used++].normal   = Vec3f(-1, 0, 0);
+
+                    chunk_vertices[num_vertices_used].position   = left_bottom_back;
+                    chunk_vertices[num_vertices_used].tex_coords = sides_uv_offset;
+                    chunk_vertices[num_vertices_used++].normal   = Vec3f(-1, 0, 0);
+                }
+                // Right face -----------------------------------------------------
+                if (should_render_right_face)
                 {
                     chunk_vertices[num_vertices_used].position   = right_bottom_back;
-                    chunk_vertices[num_vertices_used].tex_coords = Vec2f(0, 0);
+                    chunk_vertices[num_vertices_used].tex_coords = sides_uv_offset;
+                    chunk_vertices[num_vertices_used++].normal   = Vec3f(1, 0, 0);
+
+                    chunk_vertices[num_vertices_used].position   = right_top_back;
+                    chunk_vertices[num_vertices_used].tex_coords = sides_uv_offset + Vec2f(0, tile_uv_size);
+                    chunk_vertices[num_vertices_used++].normal   = Vec3f(1, 0, 0);
+
+                    chunk_vertices[num_vertices_used].position   = right_top_front;
+                    chunk_vertices[num_vertices_used].tex_coords = sides_uv_offset + Vec2f(tile_uv_size);
+                    chunk_vertices[num_vertices_used++].normal     = Vec3f(1, 0, 0);
+
+                    chunk_vertices[num_vertices_used].position   = right_top_front;
+                    chunk_vertices[num_vertices_used].tex_coords = sides_uv_offset + Vec2f(tile_uv_size);
+                    chunk_vertices[num_vertices_used++].normal     = Vec3f(1, 0, 0);
+
+                    chunk_vertices[num_vertices_used].position   = right_bottom_front;
+                    chunk_vertices[num_vertices_used].tex_coords = sides_uv_offset + Vec2f(tile_uv_size, 0);
+                    chunk_vertices[num_vertices_used++].normal   = Vec3f(1, 0, 0);
+
+                    chunk_vertices[num_vertices_used].position   = right_bottom_back;
+                    chunk_vertices[num_vertices_used].tex_coords = sides_uv_offset;
+                    chunk_vertices[num_vertices_used++].normal   = Vec3f(1, 0, 0);
+                }
+                // Top face --------------------------------------------------------
+                if (should_render_top_face)
+                {
+                    chunk_vertices[num_vertices_used].position   = left_top_front;
+                    chunk_vertices[num_vertices_used].tex_coords = up_uv_offset;
+                    chunk_vertices[num_vertices_used++].normal   = Vec3f(0, 1, 0);
+
+                    chunk_vertices[num_vertices_used].position   = right_top_front;
+                    chunk_vertices[num_vertices_used].tex_coords = up_uv_offset + Vec2f(tile_uv_size, 0);
+                    chunk_vertices[num_vertices_used++].normal   = Vec3f(0, 1, 0);
+
+                    chunk_vertices[num_vertices_used].position   = right_top_back;
+                    chunk_vertices[num_vertices_used].tex_coords = up_uv_offset + Vec2f(tile_uv_size);
+                    chunk_vertices[num_vertices_used++].normal   = Vec3f(0, 1, 0);
+
+                    chunk_vertices[num_vertices_used].position   = right_top_back;
+                    chunk_vertices[num_vertices_used].tex_coords = up_uv_offset + Vec2f(tile_uv_size);
+                    chunk_vertices[num_vertices_used++].normal   = Vec3f(0, 1, 0);
+
+                    chunk_vertices[num_vertices_used].position   = left_top_back;
+                    chunk_vertices[num_vertices_used].tex_coords = up_uv_offset + Vec2f(0, tile_uv_size);
+                    chunk_vertices[num_vertices_used++].normal   = Vec3f(0, 1, 0);
+
+                    chunk_vertices[num_vertices_used].position   = left_top_front;
+                    chunk_vertices[num_vertices_used].tex_coords = up_uv_offset;
+                    chunk_vertices[num_vertices_used++].normal   = Vec3f(0, 1, 0);
+                }
+                // Bottom face -----------------------------------------------------
+                if (should_render_bottom_face)
+                {
+                    chunk_vertices[num_vertices_used].position   = left_bottom_back;
+                    chunk_vertices[num_vertices_used].tex_coords = down_uv_offset;
+                    chunk_vertices[num_vertices_used++].normal   = Vec3f(0, -1, 0);
+
+                    chunk_vertices[num_vertices_used].position   = right_bottom_back;
+                    chunk_vertices[num_vertices_used].tex_coords = down_uv_offset + Vec2f(tile_uv_size, 0);
+                    chunk_vertices[num_vertices_used++].normal   = Vec3f(0, -1, 0);
+
+                    chunk_vertices[num_vertices_used].position   = right_bottom_front;
+                    chunk_vertices[num_vertices_used].tex_coords = down_uv_offset + Vec2f(tile_uv_size);
+                    chunk_vertices[num_vertices_used++].normal   = Vec3f(0, -1, 0);
+
+                    chunk_vertices[num_vertices_used].position   = right_bottom_front;
+                    chunk_vertices[num_vertices_used].tex_coords = down_uv_offset + Vec2f(tile_uv_size);
+                    chunk_vertices[num_vertices_used++].normal   = Vec3f(0, -1, 0);
+
+                    chunk_vertices[num_vertices_used].position   = left_bottom_front;
+                    chunk_vertices[num_vertices_used].tex_coords = down_uv_offset + Vec2f(0, tile_uv_size);
+                    chunk_vertices[num_vertices_used++].normal   = Vec3f(0, -1, 0);
+
+                    chunk_vertices[num_vertices_used].position   = left_bottom_back;
+                    chunk_vertices[num_vertices_used].tex_coords = down_uv_offset;
+                    chunk_vertices[num_vertices_used++].normal   = Vec3f(0, -1, 0);
+                }
+                // Front face -------------------------------------------------------
+                if (should_render_front_face)
+                {
+                    chunk_vertices[num_vertices_used].position   = left_bottom_front;
+                    chunk_vertices[num_vertices_used].tex_coords = sides_uv_offset;
+                    chunk_vertices[num_vertices_used++].normal   = Vec3f(0, 0, 1);
+
+                    chunk_vertices[num_vertices_used].position   = right_bottom_front;
+                    chunk_vertices[num_vertices_used].tex_coords = sides_uv_offset + Vec2f(tile_uv_size, 0);
+                    chunk_vertices[num_vertices_used++].normal   = Vec3f(0, 0, 1);
+
+                    chunk_vertices[num_vertices_used].position   = right_top_front;
+                    chunk_vertices[num_vertices_used].tex_coords = sides_uv_offset + Vec2f(tile_uv_size);
+                    chunk_vertices[num_vertices_used++].normal   = Vec3f(0, 0, 1);
+
+                    chunk_vertices[num_vertices_used].position   = right_top_front;
+                    chunk_vertices[num_vertices_used].tex_coords = sides_uv_offset + Vec2f(tile_uv_size);
+                    chunk_vertices[num_vertices_used++].normal   = Vec3f(0, 0, 1);
+
+                    chunk_vertices[num_vertices_used].position   = left_top_front;
+                    chunk_vertices[num_vertices_used].tex_coords = sides_uv_offset + Vec2f(0, tile_uv_size);
+                    chunk_vertices[num_vertices_used++].normal   = Vec3f(0, 0, 1);
+
+                    chunk_vertices[num_vertices_used].position   = left_bottom_front;
+                    chunk_vertices[num_vertices_used].tex_coords = sides_uv_offset;
+                    chunk_vertices[num_vertices_used++].normal   = Vec3f(0, 0, 1);
+                }
+                // Back face --------------------------------------------------------
+                if (should_render_back_face)
+                {
+                    chunk_vertices[num_vertices_used].position   = right_bottom_back;
+                    chunk_vertices[num_vertices_used].tex_coords = sides_uv_offset;
                     chunk_vertices[num_vertices_used++].normal   = Vec3f(0, 0, -1);
 
                     chunk_vertices[num_vertices_used].position   = left_bottom_back;
-                    chunk_vertices[num_vertices_used].tex_coords = Vec2f(1, 0);
+                    chunk_vertices[num_vertices_used].tex_coords = sides_uv_offset + Vec2f(tile_uv_size, 0);
                     chunk_vertices[num_vertices_used++].normal   = Vec3f(0, 0, -1);
 
                     chunk_vertices[num_vertices_used].position   = left_top_back;
-                    chunk_vertices[num_vertices_used].tex_coords = Vec2f(1, 1);
+                    chunk_vertices[num_vertices_used].tex_coords = sides_uv_offset + Vec2f(tile_uv_size);
                     chunk_vertices[num_vertices_used++].normal   = Vec3f(0, 0, -1);
 
                     chunk_vertices[num_vertices_used].position   = left_top_back;
-                    chunk_vertices[num_vertices_used].tex_coords = Vec2f(1, 1);
+                    chunk_vertices[num_vertices_used].tex_coords = sides_uv_offset + Vec2f(tile_uv_size);
                     chunk_vertices[num_vertices_used++].normal   = Vec3f(0, 0, -1);
 
                     chunk_vertices[num_vertices_used].position   = right_top_back;
-                    chunk_vertices[num_vertices_used].tex_coords = Vec2f(0, 1);
+                    chunk_vertices[num_vertices_used].tex_coords = sides_uv_offset + Vec2f(0, tile_uv_size);
                     chunk_vertices[num_vertices_used++].normal   = Vec3f(0, 0, -1);
 
                     chunk_vertices[num_vertices_used].position   = right_bottom_back;
-                    chunk_vertices[num_vertices_used].tex_coords = Vec2f(0, 0);
+                    chunk_vertices[num_vertices_used].tex_coords = sides_uv_offset;
                     chunk_vertices[num_vertices_used++].normal   = Vec3f(0, 0, -1);
                 }
             }

@@ -10,7 +10,8 @@ load_image(const std::string &filepath)
     logger.log("Loading image ", filepath);
 
     i32 width, height, num_channels;
-    uchar *image_data = stbi_load(filepath.c_str(), &width, &height, &num_channels, 0);
+    stbi_set_flip_vertically_on_load(true); // Load textures OpenGL-style.
+    u8 *image_data = stbi_load(filepath.c_str(), &width, &height, &num_channels, 0);
     auto loaded_image = std::make_unique<LoadedImage>(width, height, num_channels, image_data);
 
     return loaded_image;

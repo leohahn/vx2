@@ -70,6 +70,9 @@ main_render(const Application &app, const World &world, ResourceManager &resourc
         {
             basic_shader->use();
             basic_shader->set_matrix("view", world.camera.view_matrix());
+
+            glActiveTexture(GL_TEXTURE0 + basic_shader->texture_unit("blocks_atlas"));
+            glBindTexture(GL_TEXTURE_2D, world.blocks_texture_info.texture_id());
             render_world(world); // render world to the gbuffer
         }
 

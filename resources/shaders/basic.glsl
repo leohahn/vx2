@@ -49,10 +49,12 @@ layout (location = 0) out vec3 gbuffer_position;
 layout (location = 1) out vec3 gbuffer_normal;
 layout (location = 2) out vec4 gbuffer_albedo_specular;
 
+uniform sampler2D blocks_atlas;
+
 void
 main()
 {
-    vec3 color = vec3(0.0, 1.0, 0.0); // TODO: take this color from a texture
+    vec3 color = texture(blocks_atlas, vs_out.frag_tex_coords).rgb;
 
     gbuffer_position = vs_out.frag_world_pos;
     gbuffer_normal = normalize(vs_out.frag_normal);

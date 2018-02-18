@@ -73,23 +73,23 @@ private:
 struct TextureAtlas : Texture
 {
     TextureAtlas(TextureFormat tf, PixelFormat pf, const std::string &filepath,
-                 i32 num_tile_rows, i32 num_tile_cols, i32 tile_width, i32 tile_height,
-                 IOTaskManager *manager);
+                 i32 num_tile_rows, i32 num_tile_cols, IOTaskManager *manager);
     ~TextureAtlas() {}
 
     bool load() override;
 
 public:
     std::string filepath;
+    i32 width;
+    i32 height;
+    i32 num_tile_rows;
+    i32 num_tile_cols;
+    i32 tile_width;
+    i32 tile_height;
 
 private:
     std::unique_ptr<LoadImagesTask> m_task;
     IOTaskManager *m_io_task_manager;
-
-    i32 m_num_tile_rows;
-    i32 m_num_tile_cols;
-    i32 m_tile_width;
-    i32 m_tile_height;
 };
 
 #endif // __TEXTURE_HPP__

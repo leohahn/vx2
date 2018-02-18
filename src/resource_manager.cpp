@@ -76,9 +76,9 @@ ResourceManager::load_from_texture_file(const std::string &filename)
     TextureFormat texture_format = TextureFormat_RGB;
     PixelFormat pixel_format = PixelFormat_RGB;
 
-    auto texture_format_entry = texture_file.cast_get<ResourceFile::StringVal>("texture_format");
-    auto pixel_format_entry = texture_file.cast_get<ResourceFile::StringVal>("pixel_format");
-    auto texture_type_entry = texture_file.cast_get<ResourceFile::StringVal>("texture_type");
+    const auto texture_format_entry = texture_file.cast_get<ResourceFile::StringVal>("texture_format");
+    const auto pixel_format_entry = texture_file.cast_get<ResourceFile::StringVal>("pixel_format");
+    const auto texture_type_entry = texture_file.cast_get<ResourceFile::StringVal>("texture_type");
 
     if (texture_format_entry->str == "rgb")
         texture_format = TextureFormat_RGB;
@@ -96,12 +96,12 @@ ResourceManager::load_from_texture_file(const std::string &filename)
 
     if (texture_type_entry->str == "cubemap")
     {
-        auto face_x_pos_entry = texture_file.cast_get<ResourceFile::StringVal>("face_x_pos");
-        auto face_x_neg_entry = texture_file.cast_get<ResourceFile::StringVal>("face_x_neg");
-        auto face_y_pos_entry = texture_file.cast_get<ResourceFile::StringVal>("face_y_pos");
-        auto face_y_neg_entry = texture_file.cast_get<ResourceFile::StringVal>("face_y_neg");
-        auto face_z_pos_entry = texture_file.cast_get<ResourceFile::StringVal>("face_z_pos");
-        auto face_z_neg_entry = texture_file.cast_get<ResourceFile::StringVal>("face_z_neg");
+        const auto face_x_pos_entry = texture_file.cast_get<ResourceFile::StringVal>("face_x_pos");
+        const auto face_x_neg_entry = texture_file.cast_get<ResourceFile::StringVal>("face_x_neg");
+        const auto face_y_pos_entry = texture_file.cast_get<ResourceFile::StringVal>("face_y_pos");
+        const auto face_y_neg_entry = texture_file.cast_get<ResourceFile::StringVal>("face_y_neg");
+        const auto face_z_pos_entry = texture_file.cast_get<ResourceFile::StringVal>("face_z_pos");
+        const auto face_z_neg_entry = texture_file.cast_get<ResourceFile::StringVal>("face_z_neg");
 
         std::string filepaths[] = {
             ltfs::join(m_textures_path, face_x_pos_entry->str),
@@ -120,15 +120,13 @@ ResourceManager::load_from_texture_file(const std::string &filename)
     }
     else if (texture_type_entry->str == "atlas")
     {
-        auto num_rows_entry = texture_file.cast_get<ResourceFile::IntVal>("num_tile_rows");
-        auto num_cols_entry = texture_file.cast_get<ResourceFile::IntVal>("num_tile_cols");
-        auto tile_width_entry = texture_file.cast_get<ResourceFile::IntVal>("tile_width");
-        auto tile_height_entry = texture_file.cast_get<ResourceFile::IntVal>("tile_height");
-        auto location_entry = texture_file.cast_get<ResourceFile::StringVal>("texture_location");
+        const auto num_rows_entry = texture_file.cast_get<ResourceFile::IntVal>("num_tile_rows");
+        const auto num_cols_entry = texture_file.cast_get<ResourceFile::IntVal>("num_tile_cols");
+        const auto location_entry = texture_file.cast_get<ResourceFile::StringVal>("texture_location");
+        const auto location = ltfs::join(m_textures_path, location_entry->str);
 
-        auto new_texture = std::make_unique<TextureAtlas>(texture_format, pixel_format, location_entry->str,
+        auto new_texture = std::make_unique<TextureAtlas>(texture_format, pixel_format, location,
                                                           num_rows_entry->number, num_cols_entry->number,
-                                                          tile_width_entry->number, tile_height_entry->number,
                                                           m_io_task_manager);
         m_textures[filename] = std::move(new_texture);
     }
