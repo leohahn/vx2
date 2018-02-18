@@ -240,9 +240,11 @@ main()
             lag -= TIMESTEP;
         }
 
+        // Interpolate world state based on the current frame lag.
         const f32 lag_offset = (f32)lag.count() / TIMESTEP.count();
         World interpolated_world = World::interpolate(previous_world, current_world, lag_offset);
 
+        // Render the interpolated state.
         main_render(app, interpolated_world, resource_manager);
         num_frames++;
 

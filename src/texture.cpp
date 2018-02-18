@@ -19,7 +19,23 @@ create_texture_id(TextureType type, TextureFormat texture_format, PixelFormat pi
     {
     case TextureType_2D: {
         LT_Assert(loaded_images.size() == 1);
-        LT_Assert(false);
+
+        glGenTextures(1, &texture_id);
+        glBindTexture(GL_TEXTURE_2D, texture_id);
+
+        const auto &li = loaded_images[0];
+        const i32 mipmap_level = 0;
+        glTexImage2D(GL_TEXTURE_2D, mipmap_level, texture_format, li->width, li->height,
+                     0, pixel_format, GL_UNSIGNED_BYTE, li->data);
+
+        // TODO: Should these be parameters?
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+
+        dump_opengl_errors("After texture 2D creation", __FILE__);
         break;
     }
     case TextureType_Cubemap: {
@@ -116,7 +132,6 @@ TextureAtlas::TextureAtlas(TextureFormat tf, PixelFormat pf, const std::string &
 bool
 TextureAtlas::load()
 {
-    logger.log("Calling TEXTURE ATLAS LOAD.");
     if (!m_task && id == 0)
     {
         logger.log("Adding task to queue.");

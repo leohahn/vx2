@@ -96,6 +96,7 @@ World::operator=(const World &world)
     render_wireframe = world.render_wireframe;
     m_seed = world.m_seed;
     m_gl = world.m_gl;
+    m_blocks_texture = world.m_blocks_texture;
 
     for (i32 x = 0; x < NUM_CHUNKS_X; x++)
         for (i32 y = 0; y < NUM_CHUNKS_Y; y++)
@@ -226,7 +227,7 @@ World::block_exists(i32 abs_block_xi, i32 abs_block_yi, i32 abs_block_zi) const
 void
 World::update(Key *kb)
 {
-    if (skybox.load())
+    if (skybox.load() && m_blocks_texture->load())
     {
         state = WorldStatus_Running;
     }
