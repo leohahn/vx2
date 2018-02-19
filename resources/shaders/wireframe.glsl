@@ -25,14 +25,12 @@ main()
  * ==================================== */
 #ifdef COMPILING_FRAGMENT
 
-layout (location = 0) out vec3 gbuffer_position;
-layout (location = 1) out vec3 gbuffer_normal;
-layout (location = 2) out vec4 gbuffer_albedo_specular;
+out vec4 frag_color;
 
 void
 main()
 {
-    gbuffer_albedo_specular.rgb = vec3(1.0);
+    frag_color = vec4(1.0);
 }
 
 #endif

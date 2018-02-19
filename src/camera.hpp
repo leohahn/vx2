@@ -29,22 +29,23 @@ struct Camera
     enum class Direction { Left, Right, Forwards, Backwards };
     enum class RotationAxis { Up, Down, Right, Left };
 
-    Frustum frustum;
-    Vec3f   up_world;
-    f32     move_speed;
-    f32     rotation_speed;
-
-    Vec3f curr_direction;
-    Vec3f curr_rotation_axis;
-
     Camera();
     Camera(Vec3f position, Vec3f front_vec, Vec3f up_world,
            f32 fovy, f32 ratio, f32 move_speed, f32 rotation_speed);
 
     void update(Key *kb);
     void interpolate_frustum(f64 lag_offset);
+    inline Vec3f position() const { return frustum.position; }
 
     Mat4f view_matrix() const;
+
+public:
+    Frustum frustum;
+    Vec3f   up_world;
+    f32     move_speed;
+    f32     rotation_speed;
+    Vec3f   curr_direction;
+    Vec3f   curr_rotation_axis;
 
 private:
     void add_frame_movement(Direction dir);

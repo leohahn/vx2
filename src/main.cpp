@@ -37,7 +37,6 @@ main_render(const Application &app, const World &world, ResourceManager &resourc
     Shader *basic_shader = resource_manager.get_shader("basic.shader");
     Shader *wireframe_shader = resource_manager.get_shader("wireframe.shader");
     Shader *font_shader = resource_manager.get_shader("font.shader");
-    Shader *deferred_shading_shader = resource_manager.get_shader("deferred_shading.shader");
     AsciiFontAtlas *font_atlas = resource_manager.get_font("dejavu/ttf/DejaVuSansMono.ttf");
 
     glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
@@ -52,9 +51,6 @@ main_render(const Application &app, const World &world, ResourceManager &resourc
     }
     else
     {
-        app.bind_gbuffer();
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
         if (world.render_wireframe)
         {
             // Wireframe rendering
@@ -70,29 +66,14 @@ main_render(const Application &app, const World &world, ResourceManager &resourc
         {
             basic_shader->use();
             basic_shader->set_matrix("view", world.camera.view_matrix());
+            basic_shader->set3f("view_position", world.camera.frustum.position);
 
             glActiveTexture(GL_TEXTURE0 + basic_shader->texture_unit("blocks_atlas"));
             glBindTexture(GL_TEXTURE_2D, world.blocks_texture_info.texture_id());
             render_world(world); // render world to the gbuffer
         }
 
-        app.bind_default_framebuffer(); // render gbuffer back to the screen
-
-        glUseProgram(deferred_shading_shader->program);
-        deferred_shading_shader->set3f("view_position", world.camera.frustum.position);
-        deferred_shading_shader->set1i("render_only_albedo", world.render_wireframe);
-
-        render_final_quad(app, world.camera, deferred_shading_shader);
-
         // Draw the skybox
-
-        // Copy the depth buffer from the gbuffer to the default framebuffer.
-        glBindFramebuffer(GL_READ_FRAMEBUFFER, app.gbuffer.fbo);
-        glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
-        glBlitFramebuffer(0, 0, app.screen_width, app.screen_height,
-                          0, 0, app.screen_width, app.screen_height,
-                          GL_DEPTH_BUFFER_BIT, GL_NEAREST);
-
         world.skybox.shader->use();
         world.skybox.shader->set_matrix("view", world.camera.view_matrix());
         render_skybox(world.skybox);
@@ -100,13 +81,21 @@ main_render(const Application &app, const World &world, ResourceManager &resourc
 
         lt_local_persist char text_buffer[256] = {};
         snprintf(text_buffer, sizeof(text_buffer),
-                 "FPS: %d, UPS: %d -- Frame time: %.2f min | %.2f max",
+                 "FPS: %d, UPS: %d -- Frame time: %.2f min | %.2f max\n"
+                 "Camera: (%.2f, %.2f, %.2f) -- Front: (%.2f, %.2f, %.2f)",
                  g_debug_context.fps,
                  g_debug_context.ups,
                  (f32)g_debug_context.min_frame_time,
-                 (f32)g_debug_context.max_frame_time);
+                 (f32)g_debug_context.max_frame_time,
+                 world.camera.position().x,
+                 world.camera.position().y,
+                 world.camera.position().z,
+                 world.camera.frustum.front.v.x,
+                 world.camera.frustum.front.v.y,
+                 world.camera.frustum.front.v.z);
 
         render_text(font_atlas, text_buffer, 30.5f, 30.5f, font_shader);
+
         // dump_opengl_errors("After font", __FILE__);
     }
 
@@ -119,7 +108,7 @@ main()
 {
     // --------------------------------------------------------------
     // TODO:
-    //   - Render blocks with texture.
+    //   - Use forward rendering, since BlitFramebuffer is too slow.
     //   - Reduce number of polygons needed to render the world!!
     // --------------------------------------------------------------
 
@@ -131,7 +120,6 @@ main()
     {
         const char *shaders_to_load[] = {
             "basic.shader",
-            "deferred_shading.shader",
             "wireframe.shader",
             "skybox.shader",
             "font.shader",
@@ -167,6 +155,11 @@ main()
     Shader *basic_shader = resource_manager.get_shader("basic.shader");
     basic_shader->load();
     basic_shader->setup_perspective_matrix(app.aspect_ratio());
+    basic_shader->use();
+    basic_shader->set3f("sun.direction", world.sun.direction);
+    basic_shader->set3f("sun.ambient", world.sun.ambient);
+    basic_shader->set3f("sun.diffuse", world.sun.diffuse);
+    basic_shader->set3f("sun.specular", world.sun.specular);
 
     Shader *wireframe_shader = resource_manager.get_shader("wireframe.shader");
     wireframe_shader->load();
@@ -177,13 +170,6 @@ main()
 
     Shader *skybox_shader = resource_manager.get_shader("skybox.shader");
     skybox_shader->setup_perspective_matrix(app.aspect_ratio());
-
-    Shader *deferred_shading_shader = resource_manager.get_shader("deferred_shading.shader");
-    deferred_shading_shader->use();
-    deferred_shading_shader->set3f("sun.direction", world.sun.direction);
-    deferred_shading_shader->set3f("sun.ambient", world.sun.ambient);
-    deferred_shading_shader->set3f("sun.diffuse", world.sun.diffuse);
-    deferred_shading_shader->set3f("sun.specular", world.sun.specular);
 
     AsciiFontAtlas *font_atlas = resource_manager.get_font("dejavu/ttf/DejaVuSansMono.ttf");
     LT_Assert(font_atlas);

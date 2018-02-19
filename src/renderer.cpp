@@ -77,6 +77,7 @@ render_chunk(const World &world, i32 cx, i32 cy, i32 cz)
         for (i32 by = 0; by < Chunk::NUM_BLOCKS_PER_AXIS; by++)
             for (i32 bz = 0; bz < Chunk::NUM_BLOCKS_PER_AXIS; bz++)
             {
+                // Absolute indexes for the block.
                 const i32 abx = cx*Chunk::NUM_BLOCKS_PER_AXIS + bx;
                 const i32 aby = cy*Chunk::NUM_BLOCKS_PER_AXIS + by;
                 const i32 abz = cz*Chunk::NUM_BLOCKS_PER_AXIS + bz;
@@ -307,26 +308,20 @@ render_chunk(const World &world, i32 cx, i32 cy, i32 cz)
     LT_Assert(chunk.vbo != 0); // The vbo should already be created.
 
     glBindVertexArray(chunk.vao);
-    dump_opengl_errors("glBindVertexArray", __FILE__);
     glBindBuffer(GL_ARRAY_BUFFER, chunk.vbo);
-    dump_opengl_errors("glBindBuffer", __FILE__);
     // TODO: Figure out if GL_DYNAMIC_DRAW is the best enum to use or there's something better.
     glBufferData(GL_ARRAY_BUFFER, sizeof(Vertex_PUN) * num_vertices_used, chunk_vertices, GL_DYNAMIC_DRAW);
-    dump_opengl_errors("glBufferData", __FILE__);
 
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex_PUN),
                           (const void*)offsetof(Vertex_PUN, position));
-    dump_opengl_errors("glVertexAttribPointer", __FILE__);
     glEnableVertexAttribArray(0);
 
     glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex_PUN),
                           (const void*)offsetof(Vertex_PUN, tex_coords));
-    dump_opengl_errors("glVertexAttribPointer", __FILE__);
     glEnableVertexAttribArray(1);
 
     glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex_PUN),
                           (const void*)offsetof(Vertex_PUN, normal));
-    dump_opengl_errors("glVertexAttribPointer", __FILE__);
     glEnableVertexAttribArray(2);
 
     glDrawArrays(GL_TRIANGLES, 0, num_vertices_used);
@@ -378,6 +373,7 @@ render_setup_mesh_buffers_p(Mesh *m)
 void
 render_text(AsciiFontAtlas *atlas, const std::string &text, f32 posx, f32 posy, Shader *shader)
 {
+    // TODO, SPEED: Add a static array here, instead of allocating a new vector each frame.
     std::vector<Vertex_PU> text_buf = atlas->render_text_to_buffer(text, posx, posy);
 
     glBindVertexArray(atlas->vao);

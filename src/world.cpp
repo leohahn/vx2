@@ -50,7 +50,7 @@ World::World(i32 seed, const char *blocks_texture, const ResourceManager &manage
 {
     initialize_buffers();
 
-    sun.direction = Vec3f(0, -1, 0);
+    sun.direction = lt::normalize(Vec3f(0.49f, -0.35f, 0.80f));
     sun.ambient = Vec3f(.1f);
     sun.diffuse = Vec3f(.7f);
     sun.specular = Vec3f(1.0f);
@@ -252,8 +252,8 @@ BlocksTextureInfo::BlocksTextureInfo(const char *texture_name, const ResourceMan
     if (!m_texture)
         logger.error("Failed to get texture ", texture_name);
 
-    // TODO: There will probably be rounding errors and therefore the textures will have
-    // artefacts, consider solving this another way.
+    // NOTE: There will probably be rounding errors and therefore the textures will have
+    // artefacts, consider solving this another way. (am I right?)
     tile_uv_size = 1.0f / (f32)m_texture->num_tile_cols;
 
     for (i32 type = 0; type < BlockType_Count; type++)

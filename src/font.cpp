@@ -94,6 +94,13 @@ AsciiFontAtlas::render_text_to_buffer(const std::string &text, f32 start_xpos, f
     float ypos = start_ypos;
     for (u32 i = 0; i < text.size(); i++)
     {
+        if (text[i] == '\n')
+        {
+            xpos = start_xpos;
+            ypos += 20.0f;
+            continue;
+        }
+
         stbtt_aligned_quad quad;
         stbtt_GetPackedQuad(char_data, width, height, text[i], &xpos, &ypos, &quad, true);
 

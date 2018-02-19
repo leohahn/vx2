@@ -82,9 +82,9 @@ struct WorldState
 
 struct World
 {
-    constexpr static i32 NUM_CHUNKS_X = 4;
-    constexpr static i32 NUM_CHUNKS_Y = 2;
-    constexpr static i32 NUM_CHUNKS_Z = 4;
+    constexpr static i32 NUM_CHUNKS_X = 6;
+    constexpr static i32 NUM_CHUNKS_Y = 3;
+    constexpr static i32 NUM_CHUNKS_Z = 6;
     constexpr static i32 TOTAL_BLOCKS_X = NUM_CHUNKS_X * Chunk::NUM_BLOCKS_PER_AXIS;
     constexpr static i32 TOTAL_BLOCKS_Y = NUM_CHUNKS_Y * Chunk::NUM_BLOCKS_PER_AXIS;
     constexpr static i32 TOTAL_BLOCKS_Z = NUM_CHUNKS_Z * Chunk::NUM_BLOCKS_PER_AXIS;
