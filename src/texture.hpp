@@ -31,6 +31,7 @@ enum TextureType
 {
     TextureType_Unknown,
     TextureType_2D,
+    TextureType_2D_Array,
     TextureType_Cubemap,
 };
 
@@ -73,7 +74,7 @@ private:
 struct TextureAtlas : Texture
 {
     TextureAtlas(TextureFormat tf, PixelFormat pf, const std::string &filepath,
-                 i32 num_tile_rows, i32 num_tile_cols, IOTaskManager *manager);
+                 i32 num_layers, i32 layer_width, i32 layer_height, IOTaskManager *manager);
     ~TextureAtlas() {}
 
     bool load() override;
@@ -82,10 +83,9 @@ public:
     std::string filepath;
     i32 width;
     i32 height;
-    i32 num_tile_rows;
-    i32 num_tile_cols;
-    i32 tile_width;
-    i32 tile_height;
+    i32 num_layers;
+    i32 layer_width;
+    i32 layer_height;
 
 private:
     std::unique_ptr<LoadImagesTask> m_task;

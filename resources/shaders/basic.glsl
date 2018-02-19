@@ -6,7 +6,7 @@
 #ifdef COMPILING_VERTEX
 
 layout (location = 0) in vec3 att_position;
-layout (location = 1) in vec2 att_tex_coords;
+layout (location = 1) in vec3 att_tex_coords_layer;
 layout (location = 2) in vec3 att_normal;
 
 uniform mat4 projection;
@@ -15,7 +15,7 @@ uniform mat4 view;
 out VS_OUT
 {
     vec3 frag_world_pos;
-    vec2 frag_tex_coords;
+    vec3 frag_tex_coords_layer;
     vec3 frag_normal;
 } vs_out;
 
@@ -23,7 +23,7 @@ void
 main()
 {
     vs_out.frag_world_pos = att_position;
-    vs_out.frag_tex_coords = att_tex_coords;
+    vs_out.frag_tex_coords_layer = att_tex_coords_layer;
     vs_out.frag_normal = att_normal;
 
     gl_Position = projection * view * vec4(att_position, 1.0f);
@@ -41,7 +41,7 @@ main()
 in VS_OUT
 {
     vec3 frag_world_pos;
-    vec2 frag_tex_coords;
+    vec3 frag_tex_coords_layer;
     vec3 frag_normal;
 } vs_out;
 
@@ -55,9 +55,12 @@ struct Sun
     vec3 specular;
 };
 
-uniform sampler2D blocks_atlas;
+uniform sampler2DArray texture_array_blocks;
+
 uniform vec3 view_position;
 uniform Sun sun;
+
+#define NUM_LAYERS 4
 
 vec3
 apply_gamma_correction(vec3 color)
@@ -82,7 +85,6 @@ calc_directional_light(Sun sun, vec3 frag_albedo, float frag_specular, vec3 frag
 
     // float specular_strength = pow(max(0.0f, dot(halfway_dir, frag_normal)), shininess);
     // vec3 specular_component = sun.specular * (specular_strength * frag_specular);
-
     // return (ambient_component + diffuse_component + specular_component);
     return (ambient_component + diffuse_component);
 }
@@ -90,7 +92,9 @@ calc_directional_light(Sun sun, vec3 frag_albedo, float frag_specular, vec3 frag
 void
 main()
 {
-    vec3 albedo = texture(blocks_atlas, vs_out.frag_tex_coords).rgb;
+    float layer = max(0, min(NUM_LAYERS-1, floor(vs_out.frag_tex_coords_layer.z + 0.5)));
+
+    vec3 albedo = texture(texture_array_blocks, vec3(vs_out.frag_tex_coords_layer.xy, layer)).rgb;
     vec3 sun_contribution = calc_directional_light(sun, albedo, 0.3, vs_out.frag_normal);
 
     vec3 color = sun_contribution;

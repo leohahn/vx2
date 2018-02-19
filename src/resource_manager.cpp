@@ -120,14 +120,15 @@ ResourceManager::load_from_texture_file(const std::string &filename)
     }
     else if (texture_type_entry->str == "atlas")
     {
-        const auto num_rows_entry = texture_file.cast_get<ResourceFile::IntVal>("num_tile_rows");
-        const auto num_cols_entry = texture_file.cast_get<ResourceFile::IntVal>("num_tile_cols");
+        const auto num_layers_entry = texture_file.cast_get<ResourceFile::IntVal>("num_layers");
+        const auto layer_width_entry = texture_file.cast_get<ResourceFile::IntVal>("layer_width");
+        const auto layer_height_entry = texture_file.cast_get<ResourceFile::IntVal>("layer_height");
         const auto location_entry = texture_file.cast_get<ResourceFile::StringVal>("texture_location");
         const auto location = ltfs::join(m_textures_path, location_entry->str);
 
         auto new_texture = std::make_unique<TextureAtlas>(texture_format, pixel_format, location,
-                                                          num_rows_entry->number, num_cols_entry->number,
-                                                          m_io_task_manager);
+                                                          num_layers_entry->number, layer_width_entry->number,
+                                                          layer_height_entry->number, m_io_task_manager);
         m_textures[filename] = std::move(new_texture);
     }
     else LT_Assert(false);

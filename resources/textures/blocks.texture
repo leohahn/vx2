@@ -1,6 +1,7 @@
 texture_type = atlas;
 texture_format = srgba;
 pixel_format = rgba;
-texture_location = blocks.png;
-num_tile_rows = 2;
-num_tile_cols = 2;
+texture_location = blocks.tga;
+num_layers = 4;
+layer_width = 16;
+layer_height = 16;

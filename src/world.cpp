@@ -18,10 +18,20 @@ World::initialize_buffers()
         for (i32 y = 0; y < NUM_CHUNKS_Y; y++)
             for (i32 z = 0; z < NUM_CHUNKS_Z; z++)
             {
-                f32 offset = Chunk::BLOCK_SIZE * Chunk::NUM_BLOCKS_PER_AXIS;
-                chunks[x][y][z].origin = origin + Vec3f(x*offset, y*offset, z*offset);
+                const f32 offset = Chunk::BLOCK_SIZE * Chunk::NUM_BLOCKS_PER_AXIS;
+                const Vec3f chunk_origin = origin + Vec3f(x*offset, y*offset, z*offset);
+                chunks[x][y][z].origin = chunk_origin;
                 chunks[x][y][z].vao = m_gl->create_vertex_array();
                 chunks[x][y][z].vbo = m_gl->create_buffer();
+                const f32 chunk_offset = Chunk::BLOCK_SIZE * Chunk::NUM_BLOCKS_PER_AXIS;
+                chunks[x][y][z].max_vertices[0] = chunk_origin;
+                chunks[x][y][z].max_vertices[1] = chunk_origin + Vec3f(0.0f,         0.0f,         chunk_offset);
+                chunks[x][y][z].max_vertices[2] = chunk_origin + Vec3f(0.0f,         chunk_offset, 0.0f);
+                chunks[x][y][z].max_vertices[3] = chunk_origin + Vec3f(chunk_offset, 0.0f,         0.0f);
+                chunks[x][y][z].max_vertices[4] = chunk_origin + Vec3f(0.0f,         chunk_offset, chunk_offset);
+                chunks[x][y][z].max_vertices[5] = chunk_origin + Vec3f(chunk_offset, chunk_offset, 0.0f);
+                chunks[x][y][z].max_vertices[6] = chunk_origin + Vec3f(chunk_offset, 0.0f,         chunk_offset);
+                chunks[x][y][z].max_vertices[7] = chunk_origin + Vec3f(chunk_offset, chunk_offset, chunk_offset);
             }
 }
 
@@ -77,6 +87,9 @@ World::World(const World &world)
                 chunks[x][y][z].origin = world.chunks[x][y][z].origin;
                 chunks[x][y][z].vao = world.chunks[x][y][z].vao;
                 chunks[x][y][z].vbo = world.chunks[x][y][z].vbo;
+                for (i32 i = 0; i < 8; i++)
+                    chunks[x][y][z].max_vertices[i] = world.chunks[x][y][z].max_vertices[i];
+
                 m_gl->add_reference_to_vertex_array(chunks[x][y][z].vao);
                 m_gl->add_reference_to_buffer(chunks[x][y][z].vbo);
             }
@@ -251,18 +264,6 @@ BlocksTextureInfo::BlocksTextureInfo(const char *texture_name, const ResourceMan
 {
     if (!m_texture)
         logger.error("Failed to get texture ", texture_name);
-
-    // NOTE: There will probably be rounding errors and therefore the textures will have
-    // artefacts, consider solving this another way. (am I right?)
-    tile_uv_size = 1.0f / (f32)m_texture->num_tile_cols;
-
-    for (i32 type = 0; type < BlockType_Count; type++)
-    {
-        tile_offset[type][Sides_Uncovered] = Vec2f(0.5f, 0.5f);
-        tile_offset[type][Sides_Covered]   = Vec2f(0.0f, 0.5f);
-        tile_offset[type][Up]              = Vec2f(0.0f, 0.0f);
-        tile_offset[type][Down]            = Vec2f(0.5f, 0.0f);
-    }
 }
 
 bool BlocksTextureInfo::load() { return m_texture->load(); }

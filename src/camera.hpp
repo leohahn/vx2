@@ -4,20 +4,32 @@
 #include "lt_math.hpp"
 
 struct Key;
+struct Chunk;
 
 struct Frustum
 {
     Vec3f  position;
     f32    ratio;
     f32    fovy;
-    f32    znear;
-    f32    zfar;
 
-    Mat4f  projection;
+    f32    znear;
+    f32    znear_width;
+    f32    znear_height;
+    Vec3f  znear_center;
+
+    f32    zfar;
+    f32    zfar_width;
+    f32    zfar_height;
+    Vec3f  zfar_center;
+
     // Calculated attributes
     Quatf  front;
     Quatf  right;
     Quatf  up;
+    Vec3f  normals[6];
+    Mat4f  projection;
+
+    bool   is_chunk_inside(const Chunk &chunk) const;
 };
 
 struct Camera

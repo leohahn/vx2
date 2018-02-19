@@ -67,9 +67,8 @@ main_render(const Application &app, const World &world, ResourceManager &resourc
             basic_shader->use();
             basic_shader->set_matrix("view", world.camera.view_matrix());
             basic_shader->set3f("view_position", world.camera.frustum.position);
-
-            glActiveTexture(GL_TEXTURE0 + basic_shader->texture_unit("blocks_atlas"));
-            glBindTexture(GL_TEXTURE_2D, world.blocks_texture_info.texture_id());
+            glActiveTexture(GL_TEXTURE0 + basic_shader->texture_unit("texture_array_blocks"));
+            glBindTexture(GL_TEXTURE_2D_ARRAY, world.blocks_texture_info.texture_id());
             render_world(world); // render world to the gbuffer
         }
 
@@ -108,8 +107,9 @@ main()
 {
     // --------------------------------------------------------------
     // TODO:
-    //   - Use forward rendering, since BlitFramebuffer is too slow.
+    //   - Add frustum culling
     //   - Reduce number of polygons needed to render the world!!
+    //   - Load new chunks in separate threads.
     // --------------------------------------------------------------
 
     IOTaskManager io_task_manager;

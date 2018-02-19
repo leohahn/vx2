@@ -1,5 +1,5 @@
 shader_source = basic.glsl;
 
 textures = [
-    blocks_atlas
+    texture_array_blocks
 ];

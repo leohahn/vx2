@@ -28,21 +28,17 @@ enum BlockType
 
 struct BlocksTextureInfo
 {
-    enum Texture
+    enum Layer
     {
-        Sides_Uncovered,
-        Sides_Covered,
-        Up,
-        Down,
-        Texture_Count,
+        Sides_Top_Covered = 0,
+        Sides_Top_Uncovered = 1,
+        Top = 2,
+        Bottom = 3,
     };
 
     BlocksTextureInfo(const char *texture_name, const ResourceManager &manager);
     bool load();
     u32 texture_id() const;
-
-    f32 tile_uv_size;
-    Vec2f tile_offset[BlockType_Count][Texture_Count];
 
 private:
     TextureAtlas *m_texture;
@@ -64,8 +60,9 @@ struct Chunk
     }
 
     BlockType blocks[NUM_BLOCKS_PER_AXIS][NUM_BLOCKS_PER_AXIS][NUM_BLOCKS_PER_AXIS];
-    Vec3f origin;
-    u32 vao, vbo;
+    Vec3f     max_vertices[8];
+    Vec3f     origin;
+    u32       vao, vbo;
 };
 
 enum WorldStatus

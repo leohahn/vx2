@@ -75,13 +75,12 @@ TextureCubemap::load()
 // -----------------------------------------------------------------------------
 
 TextureAtlas::TextureAtlas(TextureFormat tf, PixelFormat pf, const std::string &filepath,
-                           i32 num_tile_rows, i32 num_tile_cols, IOTaskManager *manager)
-    : Texture(TextureType_2D, tf, pf)
+                           i32 num_layers, i32 layer_width, i32 layer_height, IOTaskManager *manager)
+    : Texture(TextureType_2D_Array, tf, pf)
     , filepath(filepath)
-    , num_tile_rows(num_tile_rows)
-    , num_tile_cols(num_tile_cols)
-    , tile_width(0)
-    , tile_height(0)
+    , num_layers(num_layers)
+    , layer_width(layer_width)
+    , layer_height(layer_height)
     , m_task(nullptr)
     , m_io_task_manager(manager)
 {
@@ -113,27 +112,24 @@ TextureAtlas::load()
 
             logger.log("Texture sized (", width, ", ", height, ")");
 
-            tile_width = width / num_tile_cols;
-            tile_height = height / num_tile_rows;
-
-            LT_Assert(width == num_tile_cols*tile_width);
-            LT_Assert(height == num_tile_rows*tile_height);
-
-            logger.log("Tile sized (", tile_width, ", ", tile_height, ")");
+            LT_Assert(width == layer_width);
+            LT_Assert(height == num_layers*layer_height);
 
             glGenTextures(1, &id);
-            glBindTexture(GL_TEXTURE_2D, id);
+            glBindTexture(GL_TEXTURE_2D_ARRAY, id);
             const i32 mipmap_level = 0;
-            glTexImage2D(GL_TEXTURE_2D, mipmap_level, texture_format, width, height,
+
+            glTexImage3D(GL_TEXTURE_2D_ARRAY, mipmap_level, texture_format,
+                         layer_width, layer_height, num_layers,
                          0, pixel_format, GL_UNSIGNED_BYTE, loaded_images[0]->data);
 
             // TODO: Should these be parameters?
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+            glTexParameteri(GL_TEXTURE_2D_ARRAY,GL_TEXTURE_MIN_FILTER,GL_NEAREST);
+            glTexParameteri(GL_TEXTURE_2D_ARRAY,GL_TEXTURE_MAG_FILTER,GL_NEAREST);
+            glTexParameteri(GL_TEXTURE_2D_ARRAY,GL_TEXTURE_WRAP_S,GL_CLAMP_TO_EDGE);
+            glTexParameteri(GL_TEXTURE_2D_ARRAY,GL_TEXTURE_WRAP_T,GL_CLAMP_TO_EDGE);
 
-            dump_opengl_errors("After texture 2D creation", __FILE__);
+            dump_opengl_errors("After texture 2D array creation", __FILE__);
         }
         logger.log(filepath, ": id ", id);
         m_task.reset(); // destroy task object and free its resources.
