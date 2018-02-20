@@ -113,7 +113,6 @@ main()
     // --------------------------------------------------------------
 
     IOTaskManager io_task_manager;
-    GLResources gl;
     Application app("Deferred renderer", 1680, 1050);
 
     ResourceManager resource_manager(&io_task_manager);
@@ -142,15 +141,15 @@ main()
             resource_manager.load_from_font_file(name);
     }
 
-    const i32 seed = 1024;
-    World world(seed, "blocks.texture", resource_manager, &gl, app.aspect_ratio());
+    const i32 seed = -1123;
+    World world(seed, "blocks.texture", resource_manager, app.aspect_ratio());
 
     const f64 frequency = 0.01;
     const f64 amplitude = 0.60;
     const f64 lacunarity = 2.0f;
     const f64 gain = 0.5f;
     const i32 num_octaves = 5;
-    world.generate_landscape(amplitude, frequency, num_octaves, lacunarity, gain);
+    world.landscape->generate(amplitude, frequency, num_octaves, lacunarity, gain);
 
     Shader *basic_shader = resource_manager.get_shader("basic.shader");
     basic_shader->load();

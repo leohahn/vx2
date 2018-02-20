@@ -18,6 +18,7 @@ add_executable(dr
   src/camera.cpp
   src/renderer.cpp
   src/resources.cpp
+  src/landscape.cpp
   src/resource_manager.cpp
   src/io_task_manager.cpp
   src/io_task.cpp

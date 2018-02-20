@@ -35,21 +35,21 @@ render_mesh(const Mesh &mesh, Shader *shader)
     }
 }
 
-void
-render_final_quad(const Application &app, const Camera &camera, Shader *shader)
-{
-    render_mesh(app.render_quad, shader);
-}
+// void
+// render_final_quad(const Application &app, const Camera &camera, Shader *shader)
+// {
+//     render_mesh(app.render_quad, shader);
+// }
 
 void
 render_world(World &world)
 {
     // Assuming that every chunk uses the same shader program.
-    for (i32 cx = 0; cx < World::NUM_CHUNKS_X; cx++)
-        for (i32 cy = 0; cy < World::NUM_CHUNKS_Y; cy++)
-            for (i32 cz = 0; cz < World::NUM_CHUNKS_Z; cz++)
+    for (i32 cx = 0; cx < Landscape::NUM_CHUNKS_X; cx++)
+        for (i32 cy = 0; cy < Landscape::NUM_CHUNKS_Y; cy++)
+            for (i32 cz = 0; cz < Landscape::NUM_CHUNKS_Z; cz++)
             {
-                Chunk &chunk = world.chunks[cx][cy][cz];
+                Chunk &chunk = world.landscape->chunks[cx][cy][cz];
 
                 LT_Assert(chunk.vbo != 0); // The vbo should already be created.
 
