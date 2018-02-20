@@ -1,10 +1,12 @@
 #ifndef __FONT_HPP__
 #define __FONT_HPP__
 
+#include <vector>
+
 #include "renderer.hpp"
 #include "stb_truetype.h"
 #include "lt_math.hpp"
-#include <vector>
+#include "vertex.hpp"
 
 struct AsciiFontAtlas
 {

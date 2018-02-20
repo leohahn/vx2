@@ -51,7 +51,7 @@ struct Chunk
     constexpr static i32 BLOCK_SIZE = 1;
 
     Chunk()
-        : vao(0), vbo(0)
+        : vao(0), vbo(0), outdated(true)
     {
         for (i32 x = 0; x < NUM_BLOCKS_PER_AXIS; x++)
             for (i32 y = 0; y < NUM_BLOCKS_PER_AXIS; y++)
@@ -59,10 +59,26 @@ struct Chunk
                     blocks[x][y][z] = BlockType_Air;
     }
 
+    Chunk &operator=(const Chunk &chunk)
+    {
+        vao = chunk.vao;
+        vbo = chunk.vbo;
+        num_vertices_used = chunk.num_vertices_used;
+        origin = chunk.origin;
+        outdated = chunk.outdated;
+        std::memcpy(blocks, chunk.blocks, sizeof(BlockType)*pow(Chunk::NUM_BLOCKS_PER_AXIS, 3));
+        std::memcpy(max_vertices, chunk.max_vertices, sizeof(Vec3f)*LT_Count(max_vertices));
+
+        return *this;
+    }
+
     BlockType blocks[NUM_BLOCKS_PER_AXIS][NUM_BLOCKS_PER_AXIS][NUM_BLOCKS_PER_AXIS];
     Vec3f     max_vertices[8];
     Vec3f     origin;
     u32       vao, vbo;
+    // Signals that the chunk's buffer must be updated.
+    bool      outdated;
+    i32       num_vertices_used;
 };
 
 enum WorldStatus
@@ -99,6 +115,8 @@ struct World
     void update(Key *kb);
     void generate_landscape(f64 amplitude, f64 frequency, i32 num_octaves, f64 lacunarity, f64 gain);
     bool block_exists(i32 abs_block_xi, i32 abs_block_yi, i32 abs_block_zi) const;
+
+    void update_chunk_buffer(i32 cx, i32 cy, i32 cz);
 
 public:
     Camera        camera;

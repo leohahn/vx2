@@ -32,7 +32,7 @@ lt_global_variable Key g_keyboard[NUM_KEYBOARD_KEYS] = {};
 lt_global_variable DebugContext g_debug_context = {};
 
 lt_internal void
-main_render(const Application &app, const World &world, ResourceManager &resource_manager)
+main_render(const Application &app, World &world, ResourceManager &resource_manager)
 {
     Shader *basic_shader = resource_manager.get_shader("basic.shader");
     Shader *wireframe_shader = resource_manager.get_shader("wireframe.shader");
