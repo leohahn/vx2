@@ -28,7 +28,6 @@ using namespace std::chrono_literals;
 
 lt_global_variable lt::Logger logger("main");
 lt_global_variable Key g_keyboard[NUM_KEYBOARD_KEYS] = {};
-
 lt_global_variable DebugContext g_debug_context = {};
 
 lt_internal void
@@ -140,7 +139,7 @@ main()
             resource_manager.load_from_font_file(name);
     }
 
-    const i32 seed = 2000;
+    const i32 seed = -13123;
     World world(seed, "blocks.texture", resource_manager, app.aspect_ratio());
 
     Shader *basic_shader = resource_manager.get_shader("basic.shader");

@@ -10,6 +10,7 @@ struct TextureAtlas;
 struct Camera;
 struct ResourceManager;
 struct osn_context;
+struct ChunkNoise;
 
 enum BlockType
 {
@@ -62,9 +63,9 @@ public:
 
 struct Landscape
 {
-    constexpr static i32 NUM_CHUNKS_X = 4;
-    constexpr static i32 NUM_CHUNKS_Y = 4;
-    constexpr static i32 NUM_CHUNKS_Z = 4;
+    constexpr static i32 NUM_CHUNKS_X = 12;
+    constexpr static i32 NUM_CHUNKS_Y = 6;
+    constexpr static i32 NUM_CHUNKS_Z = 12;
     constexpr static i32 TOTAL_BLOCKS_X = NUM_CHUNKS_X * Chunk::NUM_BLOCKS_PER_AXIS;
     constexpr static i32 TOTAL_BLOCKS_Y = NUM_CHUNKS_Y * Chunk::NUM_BLOCKS_PER_AXIS;
     constexpr static i32 TOTAL_BLOCKS_Z = NUM_CHUNKS_Z * Chunk::NUM_BLOCKS_PER_AXIS;
@@ -84,7 +85,7 @@ struct Landscape
     bool block_exists(i32 abs_block_xi, i32 abs_block_yi, i32 abs_block_zi) const;
     void update(const Camera &camera);
     void generate();
-    void generate_for_chunk(Chunk &chunk);
+    void generate_for_chunk(i32 cx, i32 cy, i32 cz);
 
     inline Vec3f center() const
     {
@@ -106,9 +107,9 @@ private:
 
     osn_context  *m_simplex_ctx;
 
-
     void initialize_chunks();
     Vec3f get_chunk_origin(i32 cx, i32 cy, i32 cz);
+    ChunkNoise *fill_noise_map_for_chunk_column(i32 cx, i32 cz);
 };
 
 #endif // __LANDSCAPE_HPP__

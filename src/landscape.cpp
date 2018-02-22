@@ -70,11 +70,8 @@ Landscape::update(const Camera &camera)
                         {
                             const Vec3f chunk_origin = get_chunk_origin(cx, cy, cz);
                             chunks.emplace_front(chunk_origin);
-
-                            auto new_chunk_it = chunks.begin();
-
-                            generate_for_chunk(*new_chunk_it);
-                            chunk_ptrs[cx][cy][cz] = new_chunk_it;
+                            chunk_ptrs[cx][cy][cz] = chunks.begin();
+                            generate_for_chunk(cx, cy, cz);
                         }
                     }
                     else
@@ -85,21 +82,97 @@ Landscape::update(const Camera &camera)
                         chunks.erase(chunk_it);
                     }
                 }
-
-        // Somehow slide the landscape on the negative x direction
     }
     else if (x_distance_to_center < -chosen_distance) // negative x
     {
-        // logger.log("should load negative x chunk");
+        origin.x -= chosen_distance;
+
+        for (i32 cx = NUM_CHUNKS_X-1; cx >= 0; cx--)
+            for (i32 cy = 0; cy < NUM_CHUNKS_Y; cy++)
+                for (i32 cz = 0; cz < NUM_CHUNKS_Z; cz++)
+                {
+                    auto chunk_it = chunk_ptrs[cx][cy][cz];
+                    if (cx < NUM_CHUNKS_X-1)
+                    {
+                        chunk_ptrs[cx+1][cy][cz] = chunk_it;
+
+                        if (cx == 0)
+                        {
+                            const Vec3f chunk_origin = get_chunk_origin(cx, cy, cz);
+                            chunks.emplace_front(chunk_origin);
+                            chunk_ptrs[cx][cy][cz] = chunks.begin();
+                            generate_for_chunk(cx, cy, cz);
+                        }
+                    }
+                    else
+                    {
+                        // Remove chunks that are outside of the landscape boundary.
+                        // TODO: In the future such chunks should be persisted to disk
+                        // or something similar.
+                        chunks.erase(chunk_it);
+                    }
+                }
     }
 
     if (z_distance_to_center > chosen_distance) // positive z
     {
-        // logger.log("should load positive z chunk");
+        origin.z += chosen_distance;
+
+        for (i32 cz = 0; cz < NUM_CHUNKS_Z; cz++)
+            for (i32 cx = 0; cx < NUM_CHUNKS_X; cx++)
+                for (i32 cy = 0; cy < NUM_CHUNKS_Y; cy++)
+                {
+                    auto chunk_it = chunk_ptrs[cx][cy][cz];
+                    if (cz > 0)
+                    {
+                        chunk_ptrs[cx][cy][cz-1] = chunk_it;
+
+                        if (cz == NUM_CHUNKS_Z-1)
+                        {
+                            const Vec3f chunk_origin = get_chunk_origin(cx, cy, cz);
+                            chunks.emplace_front(chunk_origin);
+                            chunk_ptrs[cx][cy][cz] = chunks.begin();
+                            generate_for_chunk(cx, cy, cz);
+                        }
+                    }
+                    else
+                    {
+                        // Remove chunks that are outside of the landscape boundary.
+                        // TODO: In the future such chunks should be persisted to disk
+                        // or something similar.
+                        chunks.erase(chunk_it);
+                    }
+                }
     }
     else if (z_distance_to_center < -chosen_distance) // negative z
     {
-        // logger.log("should load negative z chunk");
+        origin.z -= chosen_distance;
+
+        for (i32 cz = NUM_CHUNKS_Z-1; cz >= 0; cz--)
+            for (i32 cx = 0; cx < NUM_CHUNKS_X; cx++)
+                for (i32 cy = 0; cy < NUM_CHUNKS_Y; cy++)
+                {
+                    auto chunk_it = chunk_ptrs[cx][cy][cz];
+                    if (cz < NUM_CHUNKS_Z-1)
+                    {
+                        chunk_ptrs[cx][cy][cz+1] = chunk_it;
+
+                        if (cz == 0)
+                        {
+                            const Vec3f chunk_origin = get_chunk_origin(cx, cy, cz);
+                            chunks.emplace_front(chunk_origin);
+                            chunk_ptrs[cx][cy][cz] = chunks.begin();
+                            generate_for_chunk(cx, cy, cz);
+                        }
+                    }
+                    else
+                    {
+                        // Remove chunks that are outside of the landscape boundary.
+                        // TODO: In the future such chunks should be persisted to disk
+                        // or something similar.
+                        chunks.erase(chunk_it);
+                    }
+                }
     }
 
     for (i32 cx = 0; cx < NUM_CHUNKS_X; cx++)
@@ -450,69 +523,81 @@ get_fbm(struct osn_context *ctx, f64 x, f64 y, f64 amplitude,
     return fbm;
 }
 
-void
-Landscape::generate_for_chunk(Chunk &chunk)
+struct ChunkNoise
 {
-    lt_local_persist f64 noise_map[Chunk::NUM_BLOCKS_PER_AXIS*Chunk::NUM_BLOCKS_PER_AXIS] = {};
+    f64 map[Chunk::NUM_BLOCKS_PER_AXIS][Chunk::NUM_BLOCKS_PER_AXIS];
 
-    LT_Panic("Finish this function, since it is not working correctly.");
+};
+
+void
+Landscape::generate_for_chunk(i32 cx, i32 cy, i32 cz)
+{
+    ChunkNoise *chunk_noise = fill_noise_map_for_chunk_column(cx, cz);
+
+    for (i32 bx = 0; bx < Chunk::NUM_BLOCKS_PER_AXIS; bx++)
+        for (i32 bz = 0; bz < Chunk::NUM_BLOCKS_PER_AXIS; bz++)
+        {
+            const f64 normalized_height = chunk_noise->map[bz][bx];
+            const i32 height_aby = std::round((f64)(TOTAL_BLOCKS_Y-1) * normalized_height);
+            const i32 height_by = height_aby % Chunk::NUM_BLOCKS_PER_AXIS;
+            const i32 height_cy = height_aby / Chunk::NUM_BLOCKS_PER_AXIS;
+
+            if (height_cy > cy)
+            {
+                for (i32 by = 0; by <= Chunk::NUM_BLOCKS_PER_AXIS; by++)
+                    chunk_ptrs[cx][cy][cz]->blocks[bx][by][bz] = BlockType_Terrain;
+            }
+            else if (height_cy == cy)
+            {
+                for (i32 by = 0; by <= height_by; by++)
+                    chunk_ptrs[cx][cy][cz]->blocks[bx][by][bz] = BlockType_Terrain;
+            }
+        }
+}
+
+ChunkNoise *
+Landscape::fill_noise_map_for_chunk_column(i32 cx, i32 cz)
+{
+    //
+    // FIXME: This function is not thread safe, since it returns a local persisted
+    // buffer for the noise map.
+    //
+    lt_internal ChunkNoise chunk_noise = {};
+
+    //auto chunk_it = chunk_ptrs[cx][0][cz];
+    Chunk &chunk = *chunk_ptrs[cx][0][cz];
+
+    const f32 origin_x = chunk.origin.x;
+    const f32 origin_z = chunk.origin.z;
 
     // Fill out noise_map
     for (i32 z = 0; z < Chunk::NUM_BLOCKS_PER_AXIS; z++)
         for (i32 x = 0; x < Chunk::NUM_BLOCKS_PER_AXIS; x++)
         {
-            const f64 noise_x = (f64)chunk.origin.x + Chunk::BLOCK_SIZE*x;
-            const f64 noise_y = (f64)chunk.origin.z + Chunk::BLOCK_SIZE*z;
-            const i32 index = x + z*Chunk::NUM_BLOCKS_PER_AXIS;
+            const f64 noise_x = (f64)origin_x + Chunk::BLOCK_SIZE*x;
+            const f64 noise_y = (f64)origin_z + Chunk::BLOCK_SIZE*z;
             const f64 noise = get_fbm(m_simplex_ctx, noise_x, noise_y, m_amplitude,
                                       m_frequency, m_num_octaves, m_lacunarity, m_gain);
-            noise_map[index] = noise;
+            chunk_noise.map[z][x] = noise;
         }
 
-    //
     // Rescale noise values into 0 -> 1 range
-    //
-    // - Find first the maximum and minimum values
-    f64 min = std::numeric_limits<f64>::max();
-    f64 max = std::numeric_limits<f64>::min();
-    for (i32 z = 0; z < Chunk::NUM_BLOCKS_PER_AXIS; z++)
-        for (i32 x = 0; x < Chunk::NUM_BLOCKS_PER_AXIS; x++)
-        {
-            const i32 i = x + z*Chunk::NUM_BLOCKS_PER_AXIS;
-            if (noise_map[i] > max)
-                max = noise_map[i];
-            if (noise_map[i] < min)
-                min = noise_map[i];
-        }
+    const f64 min = -1.0;
+    const f64 max = 1.0;
 
     // // - Actually rescale the values
     for (i32 z = 0; z < Chunk::NUM_BLOCKS_PER_AXIS; z++)
         for (i32 x = 0; x < Chunk::NUM_BLOCKS_PER_AXIS; x++)
         {
-            const i32 i = x + z*Chunk::NUM_BLOCKS_PER_AXIS;
+            chunk_noise.map[z][x] = (chunk_noise.map[z][x] + (max - min)) / (2*max - min);
 
-            f64 noise = noise_map[i];
-            noise_map[i] = (noise + (max - min)) / (2*max - min);
+            const f64 EPSILON = 0.001;
+            LT_Assert(chunk_noise.map[z][x] <= (max+EPSILON) && chunk_noise.map[z][x] >= (min-EPSILON));
 
-            const f64 EPSILON = 0.002;
-            LT_Assert(noise_map[i] <= (1.0 + EPSILON) && noise_map[i] >= -EPSILON);
+            LT_Assert(chunk_noise.map[z][x] <= (1.0 + EPSILON) && chunk_noise.map[z][x] >= -EPSILON);
         }
 
-    // // Fill out the landscape based on the noise values.
-    for (i32 bx = 0; bx < Chunk::NUM_BLOCKS_PER_AXIS; bx++)
-        for (i32 bz = 0; bz < Chunk::NUM_BLOCKS_PER_AXIS; bz++)
-        {
-            const i32 noise_index = bx + bz*Chunk::NUM_BLOCKS_PER_AXIS;
-            const f64 height = noise_map[noise_index];
-
-            const i32 by = std::round((f64)(Chunk::NUM_BLOCKS_PER_AXIS-1) * height);
-            // const i32 abs_block_y = (TOTAL_BLOCKS_Y-1);
-
-            for (i32 y = 0; y <= by; y++)
-            {
-                chunk.blocks[bx][by][bz] = BlockType_Terrain;
-            }
-        }
+    return &chunk_noise;
 }
 
 void
@@ -520,72 +605,25 @@ Landscape::generate()
 {
     logger.log("Generating landscape");
 
-    f64 noise_map[TOTAL_BLOCKS_X*TOTAL_BLOCKS_Z] = {};
-
-    // Fill out noise_map
-    for (i32 z = 0; z < TOTAL_BLOCKS_Z; z++)
-        for (i32 x = 0; x < TOTAL_BLOCKS_X; x++)
+    for (i32 cx = 0; cx < NUM_CHUNKS_X; cx++)
+        for (i32 cz = 0; cz < NUM_CHUNKS_Z; cz++)
         {
-            const f64 noise_x = (f64)origin.x + Chunk::BLOCK_SIZE*x;
-            const f64 noise_y = (f64)origin.z + Chunk::BLOCK_SIZE*z;
+            ChunkNoise *chunk_noise = fill_noise_map_for_chunk_column(cx, cz);
 
-            f64 noise = get_fbm(m_simplex_ctx, noise_x, noise_y, m_amplitude,
-                                m_frequency, m_num_octaves, m_lacunarity, m_gain);
-            noise_map[x + z*TOTAL_BLOCKS_X] = noise;
-        }
+            for (i32 bx = 0; bx < Chunk::NUM_BLOCKS_PER_AXIS; bx++)
+                for (i32 bz = 0; bz < Chunk::NUM_BLOCKS_PER_AXIS; bz++)
+                {
+                    const f64 normalized_height = chunk_noise->map[bz][bx];
+                    const i32 abs_block_y = std::round((f64)(TOTAL_BLOCKS_Y-1) * normalized_height);
 
-    //
-    // Rescale noise values into 0 -> 1 range
-    //
-    // - Find first the maximum and minimum values
-    f64 min = std::numeric_limits<f64>::max();
-    f64 max = std::numeric_limits<f64>::min();
-    for (i32 z = 0; z < TOTAL_BLOCKS_Z; z++)
-        for (i32 x = 0; x < TOTAL_BLOCKS_X; x++)
-        {
-            const i32 i = x + z*TOTAL_BLOCKS_X;
-            if (noise_map[i] > max)
-                max = noise_map[i];
-            if (noise_map[i] < min)
-                min = noise_map[i];
-        }
+                    for (i32 aby = 0; aby <= abs_block_y; aby++)
+                    {
+                        const i32 cy = aby / Chunk::NUM_BLOCKS_PER_AXIS;
+                        const i32 by = aby % Chunk::NUM_BLOCKS_PER_AXIS;
 
-    // - Actually rescale the values
-    for (i32 z = 0; z < TOTAL_BLOCKS_Z; z++)
-        for (i32 x = 0; x < TOTAL_BLOCKS_X; x++)
-        {
-            const i32 i = x + z*TOTAL_BLOCKS_X;
-            const f64 noise = noise_map[i];
-            noise_map[i] = (noise + (max - min)) / (2*max - min);
-
-            const f64 EPSILON = 0.002;
-            LT_Assert(noise_map[i] <= (1.0 + EPSILON) && noise_map[i] >= -EPSILON);
-        }
-
-    // Fill out the landscape based on the noise values.
-    for (i32 abs_block_x = 0; abs_block_x < TOTAL_BLOCKS_X; abs_block_x++)
-        for (i32 abs_block_z = 0; abs_block_z < TOTAL_BLOCKS_Z; abs_block_z++)
-        {
-            const i32 block_xi = abs_block_x % Chunk::NUM_BLOCKS_PER_AXIS;
-            const i32 block_zi = abs_block_z % Chunk::NUM_BLOCKS_PER_AXIS;
-
-            const i32 chunk_xi = abs_block_x / Chunk::NUM_BLOCKS_PER_AXIS;
-            const i32 chunk_zi = abs_block_z / Chunk::NUM_BLOCKS_PER_AXIS;
-
-            const i32 noise_index = abs_block_x + abs_block_z*TOTAL_BLOCKS_X;
-            const f64 height = noise_map[noise_index];
-
-            const i32 abs_block_y = std::round((f64)(TOTAL_BLOCKS_Y-1) * height);
-            // const i32 abs_block_y = (TOTAL_BLOCKS_Y-1);
-
-            for (i32 y = 0; y <= abs_block_y; y++)
-            {
-                const i32 block_yi = y % Chunk::NUM_BLOCKS_PER_AXIS;
-                const i32 chunk_yi = y / Chunk::NUM_BLOCKS_PER_AXIS;
-
-                auto chunk_it = chunk_ptrs[chunk_xi][chunk_yi][chunk_zi];
-                chunk_it->blocks[block_xi][block_yi][block_zi] = BlockType_Terrain;
-            }
+                        chunk_ptrs[cx][cy][cz]->blocks[bx][by][bz] = BlockType_Terrain;
+                    }
+                }
         }
 }
 
