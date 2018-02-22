@@ -23,8 +23,8 @@ struct ResourceManager
 
     Shader *get_shader(const std::string &filename) const;
 
-    template<typename T>
-    T *get_texture(const std::string &filename) const
+    template<typename T> T *
+    get_texture(const std::string &filename) const
     {
         if (m_textures.find(filename) != m_textures.end())
             return dynamic_cast<T*>(m_textures.at(filename).get());

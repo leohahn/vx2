@@ -59,7 +59,7 @@ public:
     bool                   render_wireframe = false;
 
 private:
-    Camera create_camera(f32 aspect_ratio);
+    Camera create_camera(Vec3f position, f32 aspect_ratio);
 };
 
 #endif // __WORLD_HPP__

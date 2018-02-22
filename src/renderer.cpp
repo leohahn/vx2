@@ -49,12 +49,12 @@ render_world(World &world)
         for (i32 cy = 0; cy < Landscape::NUM_CHUNKS_Y; cy++)
             for (i32 cz = 0; cz < Landscape::NUM_CHUNKS_Z; cz++)
             {
-                Chunk &chunk = world.landscape->chunks[cx][cy][cz];
+                auto chunk_it = world.landscape->chunk_ptrs[cx][cy][cz];
 
-                LT_Assert(chunk.vbo != 0); // The vbo should already be created.
+                LT_Assert(chunk_it->vbo != 0); // The vbo should already be created.
 
-                glBindVertexArray(chunk.vao);
-                glDrawArrays(GL_TRIANGLES, 0, chunk.num_vertices_used);
+                glBindVertexArray(chunk_it->vao);
+                glDrawArrays(GL_TRIANGLES, 0, chunk_it->num_vertices_used);
                 dump_opengl_errors("glDrawArrays", __FILE__);
                 glBindBuffer(GL_ARRAY_BUFFER, 0);
             }

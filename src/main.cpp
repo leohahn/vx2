@@ -95,7 +95,7 @@ main_render(const Application &app, World &world, ResourceManager &resource_mana
 
         render_text(font_atlas, text_buffer, 30.5f, 30.5f, font_shader);
 
-        // dump_opengl_errors("After font", __FILE__);
+        dump_opengl_errors("After font", __FILE__);
     }
 
     glfwPollEvents();
@@ -107,13 +107,13 @@ main()
 {
     // --------------------------------------------------------------
     // TODO:
+    //   - Load new chunks in separate threads.
     //   - Add frustum culling
     //   - Reduce number of polygons needed to render the world!!
-    //   - Load new chunks in separate threads.
     // --------------------------------------------------------------
 
-    IOTaskManager io_task_manager;
     Application app("Deferred renderer", 1680, 1050);
+    IOTaskManager io_task_manager;
 
     ResourceManager resource_manager(&io_task_manager);
     {
@@ -124,8 +124,7 @@ main()
             "font.shader",
         };
         const char *textures_to_load[] = {
-            "skybox.texture",
-            "blocks.texture",
+            "skybox.texture", "blocks.texture",
         };
         const char *fonts_to_load[] = {
             "dejavu/ttf/DejaVuSansMono.ttf",
@@ -141,15 +140,8 @@ main()
             resource_manager.load_from_font_file(name);
     }
 
-    const i32 seed = -1123;
+    const i32 seed = 2000;
     World world(seed, "blocks.texture", resource_manager, app.aspect_ratio());
-
-    const f64 frequency = 0.01;
-    const f64 amplitude = 0.60;
-    const f64 lacunarity = 2.0f;
-    const f64 gain = 0.5f;
-    const i32 num_octaves = 5;
-    world.landscape->generate(amplitude, frequency, num_octaves, lacunarity, gain);
 
     Shader *basic_shader = resource_manager.get_shader("basic.shader");
     basic_shader->load();
@@ -174,6 +166,9 @@ main()
     LT_Assert(font_atlas);
     font_atlas->load(18.0f);
 
+    //
+    // Here starts the setup for the main loop
+    //
     bool running = true;
 
     dump_opengl_errors("Before loop", __FILE__);

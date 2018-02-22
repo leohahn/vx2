@@ -9,8 +9,8 @@ GLResources::create_buffer()
 {
     u32 buf;
     glGenBuffers(1, &buf);
-    LT_Assert(m_buffers[buf] == 0);
-    m_buffers[buf] = 1;
+    LT_Assert(m_buffers.find(buf) == m_buffers.end());
+    m_buffers.insert({buf, 1});
     return buf;
 }
 
@@ -19,8 +19,10 @@ GLResources::create_vertex_array()
 {
     u32 vao;
     glGenVertexArrays(1, &vao);
-    LT_Assert(m_vertex_arrays[vao] == 0);
-    m_vertex_arrays[vao] = 1;
+
+    auto it = m_vertex_arrays.find(vao);
+    LT_Assert(it == m_vertex_arrays.end());
+    m_vertex_arrays.insert({vao, 1});
     return vao;
 }
 

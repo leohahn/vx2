@@ -8,7 +8,7 @@ add_subdirectory(thirdparty)
 
 include_directories(src thirdparty lt/src)
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++17")
 
 add_definitions(-DLT_DEBUG)
 

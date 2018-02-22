@@ -61,38 +61,38 @@ dump_opengl_errors(const char *func, const char *file)
 #endif
 }
 
-lt_internal void
-setup_mesh_buffers_pu(Mesh &m)
-{
-    // Temporary vertex buffer to be deallocated at the end of the function.
-    std::vector<Vertex_PU> vertexes_buf(m.vertices.size());
-    for (usize i = 0; i < m.vertices.size(); i++)
-    {
-        vertexes_buf[i].position = m.vertices[i];
-        vertexes_buf[i].tex_coords = m.tex_coords[i];
-    }
+// lt_internal void
+// setup_mesh_buffers_pu(Mesh &m)
+// {
+//     // Temporary vertex buffer to be deallocated at the end of the function.
+//     std::vector<Vertex_PU> vertexes_buf(m.vertices.size());
+//     for (usize i = 0; i < m.vertices.size(); i++)
+//     {
+//         vertexes_buf[i].position = m.vertices[i];
+//         vertexes_buf[i].tex_coords = m.tex_coords[i];
+//     }
 
-    glGenVertexArrays(1, &m.vao);
-    glGenBuffers(1, &m.vbo);
-    glGenBuffers(1, &m.ebo);
+//     glGenVertexArrays(1, &m.vao);
+//     glGenBuffers(1, &m.vbo);
+//     glGenBuffers(1, &m.ebo);
 
-    glBindVertexArray(m.vao);
+//     glBindVertexArray(m.vao);
 
-    glBindBuffer(GL_ARRAY_BUFFER, m.vbo);
-    glBufferData(GL_ARRAY_BUFFER, vertexes_buf.size() * sizeof(Vertex_PU), &vertexes_buf[0], GL_STATIC_DRAW);
+//     glBindBuffer(GL_ARRAY_BUFFER, m.vbo);
+//     glBufferData(GL_ARRAY_BUFFER, vertexes_buf.size() * sizeof(Vertex_PU), &vertexes_buf[0], GL_STATIC_DRAW);
 
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m.ebo);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, m.faces.size() * sizeof(Face), &m.faces[0], GL_STATIC_DRAW);
+//     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m.ebo);
+//     glBufferData(GL_ELEMENT_ARRAY_BUFFER, m.faces.size() * sizeof(Face), &m.faces[0], GL_STATIC_DRAW);
 
-    // vertex positions
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex_PU), (void*)offsetof(Vertex_PU, position));
-    glEnableVertexAttribArray(0);
-    // vertex texture coords
-    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex_PU), (void*)offsetof(Vertex_PU, tex_coords));
-    glEnableVertexAttribArray(1);
+//     // vertex positions
+//     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex_PU), (void*)offsetof(Vertex_PU, position));
+//     glEnableVertexAttribArray(0);
+//     // vertex texture coords
+//     glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex_PU), (void*)offsetof(Vertex_PU, tex_coords));
+//     glEnableVertexAttribArray(1);
 
-    glBindVertexArray(0);
-}
+//     glBindVertexArray(0);
+// }
 
 Application::~Application()
 {
@@ -128,14 +128,14 @@ Application::Application(const char *title, i32 width, i32 height)
     if (!window)
     {
         glfwTerminate();
-        LT_Fail("Failed to create glfw window.\n");
+        LT_Panic("Failed to create glfw window.\n");
     }
 
     glfwMakeContextCurrent(window);
     glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
 
     if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
-        LT_Fail("Failed to initialize GLAD\n");
+        LT_Panic("Failed to initialize GLAD\n");
 
     glEnable(GL_CULL_FACE);
     glFrontFace(GL_CCW);
