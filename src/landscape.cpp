@@ -303,8 +303,8 @@ Landscape::update_chunk_buffer(i32 cx, i32 cy, i32 cz)
                         !block_exists(abx, aby, abz-1);
 
                     const i32 sides_layer = (should_render_top_face)
-                        ? BlocksTextureInfo::Sides_Top_Uncovered
-                        : BlocksTextureInfo::Sides_Top_Covered;
+                        ? BlocksTextureInfo::Snow_Sides_Top
+                        : BlocksTextureInfo::Snow_Sides;
 
                     // Vec2f sides_uv_offset(0.5f, 0.0f);
 
@@ -365,7 +365,7 @@ Landscape::update_chunk_buffer(i32 cx, i32 cy, i32 cz)
                     // Top face --------------------------------------------------------
                     if (should_render_top_face)
                     {
-                        const i32 top_layer = BlocksTextureInfo::Top;
+                        const i32 top_layer = BlocksTextureInfo::Snow_Top;
                         chunk_vertices[chunk.num_vertices_used].position   = left_top_front;
                         chunk_vertices[chunk.num_vertices_used].tex_coords_layer = Vec3f(0, 0, top_layer);
                         chunk_vertices[chunk.num_vertices_used++].normal   = Vec3f(0, 1, 0);
@@ -393,7 +393,7 @@ Landscape::update_chunk_buffer(i32 cx, i32 cy, i32 cz)
                     // Bottom face -----------------------------------------------------
                     if (should_render_bottom_face)
                     {
-                        const i32 bottom_layer = BlocksTextureInfo::Bottom;
+                        const i32 bottom_layer = BlocksTextureInfo::Snow_Bottom;
                         chunk_vertices[chunk.num_vertices_used].position   = left_bottom_back;
                         chunk_vertices[chunk.num_vertices_used].tex_coords_layer = Vec3f(0, 0, bottom_layer);
                         chunk_vertices[chunk.num_vertices_used++].normal   = Vec3f(0, -1, 0);
@@ -526,7 +526,6 @@ get_fbm(struct osn_context *ctx, f64 x, f64 y, f64 amplitude,
 struct ChunkNoise
 {
     f64 map[Chunk::NUM_BLOCKS_PER_AXIS][Chunk::NUM_BLOCKS_PER_AXIS];
-
 };
 
 void

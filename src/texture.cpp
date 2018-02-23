@@ -111,6 +111,7 @@ TextureAtlas::load()
             height = loaded_images[0]->height;
 
             logger.log("Texture sized (", width, ", ", height, ")");
+            logger.log("Num layers: ", num_layers);
 
             LT_Assert(width == layer_width);
             LT_Assert(height == num_layers*layer_height);

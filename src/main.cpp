@@ -106,9 +106,10 @@ main()
 {
     // --------------------------------------------------------------
     // TODO:
-    //   - Load new chunks in separate threads.
-    //   - Add frustum culling
-    //   - Reduce number of polygons needed to render the world!!
+    //   1. Finish loading a snow texture
+    //   2. Load new chunks in separate threads.
+    //   3. Add frustum culling
+    //   4. Reduce number of polygons needed to render the world!!
     // --------------------------------------------------------------
 
     Application app("Deferred renderer", 1680, 1050);
@@ -139,7 +140,7 @@ main()
             resource_manager.load_from_font_file(name);
     }
 
-    const i32 seed = -13123;
+    const i32 seed = -123;
     World world(seed, "blocks.texture", resource_manager, app.aspect_ratio());
 
     Shader *basic_shader = resource_manager.get_shader("basic.shader");

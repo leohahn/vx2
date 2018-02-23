@@ -23,10 +23,15 @@ struct BlocksTextureInfo
 {
     enum Layer
     {
-        Sides_Top_Covered = 0,
-        Sides_Top_Uncovered = 1,
-        Top = 2,
-        Bottom = 3,
+        Earth_Sides = 0,
+        Earth_Sides_Top = 1,
+        Earth_Top = 2,
+        Earth_Bottom = 3,
+
+        Snow_Sides = 4,
+        Snow_Sides_Top = 5,
+        Snow_Top = 6,
+        Snow_Bottom = 7,
     };
 
     BlocksTextureInfo(const char *texture_name, const ResourceManager &manager);
@@ -63,9 +68,9 @@ public:
 
 struct Landscape
 {
-    constexpr static i32 NUM_CHUNKS_X = 12;
-    constexpr static i32 NUM_CHUNKS_Y = 6;
-    constexpr static i32 NUM_CHUNKS_Z = 12;
+    constexpr static i32 NUM_CHUNKS_X = 15;
+    constexpr static i32 NUM_CHUNKS_Y = 7;
+    constexpr static i32 NUM_CHUNKS_Z = 15;
     constexpr static i32 TOTAL_BLOCKS_X = NUM_CHUNKS_X * Chunk::NUM_BLOCKS_PER_AXIS;
     constexpr static i32 TOTAL_BLOCKS_Y = NUM_CHUNKS_Y * Chunk::NUM_BLOCKS_PER_AXIS;
     constexpr static i32 TOTAL_BLOCKS_Z = NUM_CHUNKS_Z * Chunk::NUM_BLOCKS_PER_AXIS;

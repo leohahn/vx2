@@ -30,8 +30,8 @@ World::World(i32 seed, const char *blocks_texture, const ResourceManager &manage
     , blocks_texture_info(blocks_texture, manager)
     , sun()
 {
-    const f64 amplitude = 0.60;
-    const f64 frequency = 0.01;
+    const f64 amplitude = 0.70;
+    const f64 frequency = 0.02;
     const i32 num_octaves = 5;
     const f64 lacunarity = 2.0f;
     const f64 gain = 0.5f;
