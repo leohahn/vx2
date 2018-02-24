@@ -24,7 +24,8 @@ World::create_camera(Vec3f position, f32 aspect_ratio)
                   FIELD_OF_VIEW, aspect_ratio, MOVE_SPEED, ROTATION_SPEED);
 }
 
-World::World(i32 seed, const char *blocks_texture, const ResourceManager &manager, f32 aspect_ratio)
+World::World(Application &app, i32 seed, const char *blocks_texture,
+             const ResourceManager &manager, f32 aspect_ratio)
     : landscape(nullptr)
     , skybox("skybox.texture", "skybox.shader", manager)
     , blocks_texture_info(blocks_texture, manager)
@@ -36,7 +37,7 @@ World::World(i32 seed, const char *blocks_texture, const ResourceManager &manage
     const f64 lacunarity = 2.0f;
     const f64 gain = 0.5f;
 
-    landscape = std::make_shared<Landscape>(seed, amplitude, frequency, num_octaves, lacunarity, gain);
+    landscape = std::make_shared<Landscape>(app.memory, seed, amplitude, frequency, num_octaves, lacunarity, gain);
     landscape->generate();
 
     camera = create_camera(landscape->center(), aspect_ratio);

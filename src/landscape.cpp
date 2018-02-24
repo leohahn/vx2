@@ -7,6 +7,7 @@
 #include "vertex.hpp"
 #include "application.hpp"
 #include "camera.hpp"
+//#include "pool_allocator.hpp"
 
 lt_global_variable lt::Logger logger("landscape");
 
@@ -20,8 +21,11 @@ get_world_coords(const Chunk &chunk, i32 block_xi, i32 block_yi, i32 block_zi)
     return coords;
 }
 
-Landscape::Landscape(i32 seed, f64 amplitude, f64 frequency, i32 num_octaves, f64 lacunarity, f64 gain)
-    : origin(Vec3f(0))
+Landscape::Landscape(Memory &memory, i32 seed, f64 amplitude,
+                     f64 frequency, i32 num_octaves, f64 lacunarity, f64 gain)
+    // : chunks(PoolAllocator<Chunk>(memory.chunks_memory, memory.chunks_memory_size, sizeof(Chunk), alignof(Chunk)))
+    : chunks()
+    , origin(Vec3f(0))
     , m_seed(seed)
     , m_amplitude(amplitude)
     , m_frequency(frequency)

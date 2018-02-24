@@ -141,7 +141,7 @@ main()
     }
 
     const i32 seed = -123;
-    World world(seed, "blocks.texture", resource_manager, app.aspect_ratio());
+    World world(app, seed, "blocks.texture", resource_manager, app.aspect_ratio());
 
     Shader *basic_shader = resource_manager.get_shader("basic.shader");
     basic_shader->load();

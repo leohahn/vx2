@@ -2,6 +2,7 @@
 #define __LANDSCAPE_HPP__
 
 #include <list>
+#include "pool_allocator.hpp"
 
 #include "lt_core.hpp"
 #include "lt_math.hpp"
@@ -11,6 +12,7 @@ struct Camera;
 struct ResourceManager;
 struct osn_context;
 struct ChunkNoise;
+struct Memory;
 
 enum BlockType
 {
@@ -77,7 +79,7 @@ struct Landscape
     constexpr static i32 SIZE_Y = TOTAL_BLOCKS_Y * Chunk::BLOCK_SIZE;
     constexpr static i32 SIZE_Z = TOTAL_BLOCKS_Z * Chunk::BLOCK_SIZE;
 
-    Landscape(i32 seed, f64 amplitude, f64 frequency, i32 num_octaves, f64 lacunarity, f64 gain);
+    Landscape(Memory &memory, i32 seed, f64 amplitude, f64 frequency, i32 num_octaves, f64 lacunarity, f64 gain);
 
     // A landscape cannot be copied.
     Landscape(const Landscape&) = delete;
@@ -97,8 +99,11 @@ struct Landscape
     }
 
 public:
-    std::list<Chunk> chunks;
-    std::list<Chunk>::iterator chunk_ptrs[NUM_CHUNKS_X][NUM_CHUNKS_Y][NUM_CHUNKS_Z];
+    // using ChunksList = std::list<Chunk, PoolAllocator<Chunk>>;
+    using ChunksList = std::list<Chunk>;
+
+    ChunksList chunks;
+    ChunksList::iterator chunk_ptrs[NUM_CHUNKS_X][NUM_CHUNKS_Y][NUM_CHUNKS_Z];
     Vec3f   origin;
 
 private:
