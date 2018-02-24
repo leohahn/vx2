@@ -212,14 +212,6 @@ Landscape::initialize_chunks()
 
                 auto chunk_it = chunks.begin();
 
-                chunk_it->max_vertices[0] = chunk_origin;
-                chunk_it->max_vertices[1] = chunk_origin + Vec3f(0.0f, 0.0f, Chunk::SIZE);
-                chunk_it->max_vertices[2] = chunk_origin + Vec3f(0.0f, Chunk::SIZE, 0.0f);
-                chunk_it->max_vertices[3] = chunk_origin + Vec3f(Chunk::SIZE, 0.0f, 0.0f);
-                chunk_it->max_vertices[4] = chunk_origin + Vec3f(0.0f, Chunk::SIZE, Chunk::SIZE);
-                chunk_it->max_vertices[5] = chunk_origin + Vec3f(Chunk::SIZE, Chunk::SIZE, 0.0f);
-                chunk_it->max_vertices[6] = chunk_origin + Vec3f(Chunk::SIZE, 0.0f, Chunk::SIZE);
-                chunk_it->max_vertices[7] = chunk_origin + Vec3f(Chunk::SIZE, Chunk::SIZE, Chunk::SIZE);
                 chunk_ptrs[x][y][z] = chunk_it;
             }
 
@@ -305,8 +297,6 @@ Landscape::update_chunk_buffer(i32 cx, i32 cy, i32 cz)
                     const i32 sides_layer = (should_render_top_face)
                         ? BlocksTextureInfo::Snow_Sides_Top
                         : BlocksTextureInfo::Snow_Sides;
-
-                    // Vec2f sides_uv_offset(0.5f, 0.0f);
 
                     // Left face ------------------------------------------------------
                     if (should_render_left_face)
@@ -543,7 +533,7 @@ Landscape::generate_for_chunk(i32 cx, i32 cy, i32 cz)
 
             if (height_cy > cy)
             {
-                for (i32 by = 0; by <= Chunk::NUM_BLOCKS_PER_AXIS; by++)
+                for (i32 by = 0; by < Chunk::NUM_BLOCKS_PER_AXIS; by++)
                     chunk_ptrs[cx][cy][cz]->blocks[bx][by][bz] = BlockType_Terrain;
             }
             else if (height_cy == cy)

@@ -58,7 +58,6 @@ struct Chunk
 
 public:
     BlockType blocks[NUM_BLOCKS_PER_AXIS][NUM_BLOCKS_PER_AXIS][NUM_BLOCKS_PER_AXIS];
-    Vec3f     max_vertices[8];
     Vec3f     origin;
     u32       vao, vbo;
     // Signals that the chunk's buffer must be updated.
