@@ -1,0 +1,6 @@
+-/build
+-/resources/textures
+-*.tga
+-*.jpg
+-*.png
+-*.ttf

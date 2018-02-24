@@ -157,72 +157,72 @@ Camera::view_matrix() const
                        frustum.up.v);
 }
 
-bool
-Frustum::is_chunk_inside(const Chunk &chunk) const
-{
-    Vec3f offset_far_right = right.v * (0.5f * zfar_width);
+// bool
+// Frustum::is_chunk_inside(const Chunk &chunk) const
+// {
+//     Vec3f offset_far_right = right.v * (0.5f * zfar_width);
 
-    Vec3f far_top_left = zfar_center + up.v * (zfar_height * 0.5f) - offset_far_right;
-    Vec3f far_top_right = zfar_center + up.v * (zfar_height * 0.5f) + offset_far_right;
-    Vec3f far_bottom_left = zfar_center - up.v * (zfar_height * 0.5f) - offset_far_right;
-    Vec3f far_bottom_right = zfar_center - up.v * (zfar_height * 0.5f) + offset_far_right;
+//     Vec3f far_top_left = zfar_center + up.v * (zfar_height * 0.5f) - offset_far_right;
+//     Vec3f far_top_right = zfar_center + up.v * (zfar_height * 0.5f) + offset_far_right;
+//     Vec3f far_bottom_left = zfar_center - up.v * (zfar_height * 0.5f) - offset_far_right;
+//     Vec3f far_bottom_right = zfar_center - up.v * (zfar_height * 0.5f) + offset_far_right;
 
-    Vec3f offset_near_right = right.v * (znear_width * 0.5f);
-    Vec3f near_top_left = (znear_center + up.v * (znear_height * 0.5f)) - offset_near_right;
-    Vec3f near_top_right = (znear_center + up.v * (znear_height * 0.5f)) + offset_near_right;
-    Vec3f near_bottom_left = (znear_center - up.v * (znear_height * 0.5f)) - offset_near_right;
-    Vec3f near_bottom_right = (znear_center - up.v * (znear_height * 0.5f)) + offset_near_right;
+//     Vec3f offset_near_right = right.v * (znear_width * 0.5f);
+//     Vec3f near_top_left = (znear_center + up.v * (znear_height * 0.5f)) - offset_near_right;
+//     Vec3f near_top_right = (znear_center + up.v * (znear_height * 0.5f)) + offset_near_right;
+//     Vec3f near_bottom_left = (znear_center - up.v * (znear_height * 0.5f)) - offset_near_right;
+//     Vec3f near_bottom_right = (znear_center - up.v * (znear_height * 0.5f)) + offset_near_right;
 
-    Vec3f top_left_vec = far_top_left - near_top_left;
-    Vec3f bottom_left_vec = far_bottom_left - near_bottom_left;
-    Vec3f top_right_vec = far_top_right - near_top_right;
-    Vec3f bottom_right_vec = far_bottom_right - near_bottom_right;
-    Vec3f far_h = far_top_left - far_top_right;
-    Vec3f far_v = far_bottom_left - far_top_left;
-    Vec3f frustum_normals[6] =
-    {
-        // Right normal
-        lt::normalize(lt::cross(bottom_right_vec, top_right_vec)),
-        /* UM::Normalize(Vec3f_Cross(farV, topRightVec)), */
-        // LEft normal
-        lt::normalize(lt::cross(top_left_vec, bottom_left_vec)),
-        // TOp normal
-        lt::normalize(lt::cross(top_right_vec, top_left_vec)),
-        // BOttom normal
-        lt::normalize(lt::cross(bottom_left_vec, bottom_right_vec)),
-        // FAr normal
-        lt::normalize(lt::cross(far_v, far_h)),
-        // NEar normal
-        lt::normalize(lt::cross(far_h, far_v))
-    };
-    Vec3f frustum_points[6] =
-    {
-        far_top_right,
-        far_top_left,
-        far_top_right,
-        far_bottom_right,
-        far_bottom_right,
-        near_top_left,
-    };
+//     Vec3f top_left_vec = far_top_left - near_top_left;
+//     Vec3f bottom_left_vec = far_bottom_left - near_bottom_left;
+//     Vec3f top_right_vec = far_top_right - near_top_right;
+//     Vec3f bottom_right_vec = far_bottom_right - near_bottom_right;
+//     Vec3f far_h = far_top_left - far_top_right;
+//     Vec3f far_v = far_bottom_left - far_top_left;
+//     Vec3f frustum_normals[6] =
+//     {
+//         // Right normal
+//         lt::normalize(lt::cross(bottom_right_vec, top_right_vec)),
+//         /* UM::Normalize(Vec3f_Cross(farV, topRightVec)), */
+//         // LEft normal
+//         lt::normalize(lt::cross(top_left_vec, bottom_left_vec)),
+//         // TOp normal
+//         lt::normalize(lt::cross(top_right_vec, top_left_vec)),
+//         // BOttom normal
+//         lt::normalize(lt::cross(bottom_left_vec, bottom_right_vec)),
+//         // FAr normal
+//         lt::normalize(lt::cross(far_v, far_h)),
+//         // NEar normal
+//         lt::normalize(lt::cross(far_h, far_v))
+//     };
+//     Vec3f frustum_points[6] =
+//     {
+//         far_top_right,
+//         far_top_left,
+//         far_top_right,
+//         far_bottom_right,
+//         far_bottom_right,
+//         near_top_left,
+//     };
 
-    bool inside_frustum = true;
-    Vec3f point_vec;
-    for (i32 p = 0; p < 6; p++)
-    {
-        bool insidePlane = false;
-        for (i32 v = 0; v < 8; v++)
-        {
-            point_vec = frustum_points[p] - chunk.max_vertices[v];
-            if (lt::dot(point_vec, frustum_normals[p]) >= 0.0f)
-            {
-                insidePlane = true;
-            }
-        }
-        if (!insidePlane)
-        {
-            inside_frustum = false;
-            break;
-        }
-    }
-    return inside_frustum;
-}
+//     bool inside_frustum = true;
+//     Vec3f point_vec;
+//     for (i32 p = 0; p < 6; p++)
+//     {
+//         bool insidePlane = false;
+//         for (i32 v = 0; v < 8; v++)
+//         {
+//             point_vec = frustum_points[p] - chunk.max_vertices[v];
+//             if (lt::dot(point_vec, frustum_normals[p]) >= 0.0f)
+//             {
+//                 insidePlane = true;
+//             }
+//         }
+//         if (!insidePlane)
+//         {
+//             inside_frustum = false;
+//             break;
+//         }
+//     }
+//     return inside_frustum;
+// }
