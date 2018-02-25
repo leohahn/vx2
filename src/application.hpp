@@ -3,6 +3,7 @@
 
 #include "lt_core.hpp"
 #include "mesh.hpp"
+#include "landscape.hpp"
 
 struct GLFWwindow;
 struct Resources;
@@ -14,7 +15,7 @@ struct Memory
 
     Memory()
         // TODO: Find a better value than simply 100 chunks.
-        : chunks_memory_size(Megabytes(100))
+        : chunks_memory_size(sizeof(Chunk) * 1575)
         , chunks_memory(calloc(1, chunks_memory_size))
     {}
 

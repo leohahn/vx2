@@ -49,7 +49,7 @@ render_world(World &world)
         for (i32 cy = 0; cy < Landscape::NUM_CHUNKS_Y; cy++)
             for (i32 cz = 0; cz < Landscape::NUM_CHUNKS_Z; cz++)
             {
-                auto chunk_it = world.landscape->chunk_ptrs[cx][cy][cz];
+                auto chunk_it = world.landscape->chunk_ptrs[cx][cy][cz].get();
 
                 LT_Assert(chunk_it->vbo != 0); // The vbo should already be created.
 

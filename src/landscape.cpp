@@ -9,6 +9,8 @@
 #include "camera.hpp"
 //#include "pool_allocator.hpp"
 
+using std::placeholders::_1;
+
 lt_global_variable lt::Logger logger("landscape");
 
 lt_internal inline Vec3f
@@ -23,15 +25,16 @@ get_world_coords(const Chunk &chunk, i32 block_xi, i32 block_yi, i32 block_zi)
 
 Landscape::Landscape(Memory &memory, i32 seed, f64 amplitude,
                      f64 frequency, i32 num_octaves, f64 lacunarity, f64 gain)
-    // : chunks(PoolAllocator<Chunk>(memory.chunks_memory, memory.chunks_memory_size, sizeof(Chunk), alignof(Chunk)))
-    : chunks()
-    , origin(Vec3f(0))
+    // : chunks()
+    : origin(Vec3f(0))
     , m_seed(seed)
     , m_amplitude(amplitude)
     , m_frequency(frequency)
     , m_num_octaves(num_octaves)
     , m_lacunarity(lacunarity)
     , m_gain(gain)
+    , m_chunks_allocator(memory.chunks_memory, memory.chunks_memory_size,
+                         sizeof(Chunk), alignof(Chunk))
 {
     initialize_chunks();
 
@@ -65,16 +68,21 @@ Landscape::update(const Camera &camera)
             for (i32 cy = 0; cy < NUM_CHUNKS_Y; cy++)
                 for (i32 cz = 0; cz < NUM_CHUNKS_Z; cz++)
                 {
-                    auto chunk_it = chunk_ptrs[cx][cy][cz];
+                    // auto chunk_it = chunk_ptrs[cx][cy][cz].get();
                     if (cx > 0)
                     {
-                        chunk_ptrs[cx-1][cy][cz] = chunk_it;
+                        chunk_ptrs[cx-1][cy][cz] = std::move(chunk_ptrs[cx][cy][cz]);
 
                         if (cx == NUM_CHUNKS_X-1)
                         {
                             const Vec3f chunk_origin = get_chunk_origin(cx, cy, cz);
-                            chunks.emplace_front(chunk_origin);
-                            chunk_ptrs[cx][cy][cz] = chunks.begin();
+
+                            Chunk *chunk = memory::allocate_and_construct<Chunk>(
+                                m_chunks_allocator, chunk_origin
+                            );
+
+                            chunk_ptrs[cx][cy][cz] = ChunkPtr(chunk,
+                                                              std::bind(&Landscape::chunk_deleter, this, _1));
                             generate_for_chunk(cx, cy, cz);
                         }
                     }
@@ -83,7 +91,7 @@ Landscape::update(const Camera &camera)
                         // Remove chunks that are outside of the landscape boundary.
                         // TODO: In the future such chunks should be persisted to disk
                         // or something similar.
-                        chunks.erase(chunk_it);
+                        chunk_ptrs[cx][cy][cz].reset();
                     }
                 }
     }
@@ -95,16 +103,20 @@ Landscape::update(const Camera &camera)
             for (i32 cy = 0; cy < NUM_CHUNKS_Y; cy++)
                 for (i32 cz = 0; cz < NUM_CHUNKS_Z; cz++)
                 {
-                    auto chunk_it = chunk_ptrs[cx][cy][cz];
+                    // auto chunk_it = chunk_ptrs[cx][cy][cz];
                     if (cx < NUM_CHUNKS_X-1)
                     {
-                        chunk_ptrs[cx+1][cy][cz] = chunk_it;
+                        chunk_ptrs[cx+1][cy][cz] = std::move(chunk_ptrs[cx][cy][cz]);
 
                         if (cx == 0)
                         {
                             const Vec3f chunk_origin = get_chunk_origin(cx, cy, cz);
-                            chunks.emplace_front(chunk_origin);
-                            chunk_ptrs[cx][cy][cz] = chunks.begin();
+
+                            Chunk *chunk = memory::allocate_and_construct<Chunk>(
+                                m_chunks_allocator, chunk_origin
+                            );
+                            chunk_ptrs[cx][cy][cz] = ChunkPtr(chunk,
+                                                              std::bind(&Landscape::chunk_deleter, this, _1));
                             generate_for_chunk(cx, cy, cz);
                         }
                     }
@@ -113,7 +125,7 @@ Landscape::update(const Camera &camera)
                         // Remove chunks that are outside of the landscape boundary.
                         // TODO: In the future such chunks should be persisted to disk
                         // or something similar.
-                        chunks.erase(chunk_it);
+                        chunk_ptrs[cx][cy][cz].reset();
                     }
                 }
     }
@@ -126,16 +138,19 @@ Landscape::update(const Camera &camera)
             for (i32 cx = 0; cx < NUM_CHUNKS_X; cx++)
                 for (i32 cy = 0; cy < NUM_CHUNKS_Y; cy++)
                 {
-                    auto chunk_it = chunk_ptrs[cx][cy][cz];
+                    // auto chunk_it = chunk_ptrs[cx][cy][cz];
                     if (cz > 0)
                     {
-                        chunk_ptrs[cx][cy][cz-1] = chunk_it;
+                        chunk_ptrs[cx][cy][cz-1] = std::move(chunk_ptrs[cx][cy][cz]);
 
                         if (cz == NUM_CHUNKS_Z-1)
                         {
                             const Vec3f chunk_origin = get_chunk_origin(cx, cy, cz);
-                            chunks.emplace_front(chunk_origin);
-                            chunk_ptrs[cx][cy][cz] = chunks.begin();
+                            Chunk *chunk = memory::allocate_and_construct<Chunk>(
+                                m_chunks_allocator, chunk_origin
+                            );
+                            chunk_ptrs[cx][cy][cz] = ChunkPtr(chunk,
+                                                              std::bind(&Landscape::chunk_deleter, this, _1));
                             generate_for_chunk(cx, cy, cz);
                         }
                     }
@@ -144,7 +159,7 @@ Landscape::update(const Camera &camera)
                         // Remove chunks that are outside of the landscape boundary.
                         // TODO: In the future such chunks should be persisted to disk
                         // or something similar.
-                        chunks.erase(chunk_it);
+                        chunk_ptrs[cx][cy][cz].reset();
                     }
                 }
     }
@@ -156,16 +171,19 @@ Landscape::update(const Camera &camera)
             for (i32 cx = 0; cx < NUM_CHUNKS_X; cx++)
                 for (i32 cy = 0; cy < NUM_CHUNKS_Y; cy++)
                 {
-                    auto chunk_it = chunk_ptrs[cx][cy][cz];
+                    // auto chunk_it = chunk_ptrs[cx][cy][cz];
                     if (cz < NUM_CHUNKS_Z-1)
                     {
-                        chunk_ptrs[cx][cy][cz+1] = chunk_it;
+                        chunk_ptrs[cx][cy][cz+1] = std::move(chunk_ptrs[cx][cy][cz]);
 
                         if (cz == 0)
                         {
                             const Vec3f chunk_origin = get_chunk_origin(cx, cy, cz);
-                            chunks.emplace_front(chunk_origin);
-                            chunk_ptrs[cx][cy][cz] = chunks.begin();
+                            Chunk *chunk = memory::allocate_and_construct<Chunk>(
+                                m_chunks_allocator, chunk_origin
+                                );
+                            chunk_ptrs[cx][cy][cz] = ChunkPtr(chunk,
+                                                              std::bind(&Landscape::chunk_deleter, this, _1));
                             generate_for_chunk(cx, cy, cz);
                         }
                     }
@@ -174,7 +192,7 @@ Landscape::update(const Camera &camera)
                         // Remove chunks that are outside of the landscape boundary.
                         // TODO: In the future such chunks should be persisted to disk
                         // or something similar.
-                        chunks.erase(chunk_it);
+                        chunk_ptrs[cx][cy][cz].reset();
                     }
                 }
     }
@@ -202,7 +220,6 @@ Landscape::block_exists(i32 abs_block_xi, i32 abs_block_yi, i32 abs_block_zi) co
     return chunk_ptrs[cx][cy][cz]->blocks[bx][by][bz] != BlockType_Air;
 }
 
-
 void
 Landscape::initialize_chunks()
 {
@@ -212,14 +229,9 @@ Landscape::initialize_chunks()
             for (i32 z = 0; z < NUM_CHUNKS_Z; z++)
             {
                 const Vec3f chunk_origin = get_chunk_origin(x, y, z);
-                chunks.emplace_front(chunk_origin);
-
-                auto chunk_it = chunks.begin();
-
-                chunk_ptrs[x][y][z] = chunk_it;
+                Chunk *chunk = memory::allocate_and_construct<Chunk>(m_chunks_allocator, chunk_origin);
+                chunk_ptrs[x][y][z] = ChunkPtr(chunk, std::bind(&Landscape::chunk_deleter, this, _1));
             }
-
-    LT_Assert(chunks.size() == NUM_CHUNKS_X*NUM_CHUNKS_Y*NUM_CHUNKS_Z);
 }
 
 void
@@ -618,6 +630,12 @@ Landscape::generate()
                     }
                 }
         }
+}
+
+void
+Landscape::chunk_deleter(Chunk *chunk)
+{
+    memory::destroy_and_deallocate(m_chunks_allocator, chunk);
 }
 
 

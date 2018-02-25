@@ -6,72 +6,15 @@
 #include "lt_core.hpp"
 #include "lt_utils.hpp"
 
-template<typename T>
+namespace memory
+{
+
 struct PoolAllocator
 {
-    using value_type = T;
-    using pointer = value_type*;
+    PoolAllocator(void *mem, usize pool_size, usize block_size, usize block_alignment);
 
-    PoolAllocator(void *mem, usize pool_size, usize block_size, usize block_alignment)
-        : block_size(block_size)
-        , m_mem(mem)
-        , m_aligned_mem(mem)
-        , m_pool_size(pool_size)
-    {
-        LT_Assert(block_size <= pool_size);
-
-        // logger.log("Block size: ", block_size);
-        // logger.log("Block alignment: ", block_alignment);
-
-        // const usize old_size = m_pool_size;
-        if (std::align(block_alignment, block_size, m_aligned_mem, m_pool_size))
-        {
-            // logger.log("Pool allocator aligned address by adjusting ", old_size - m_pool_size, " bytes");
-            LT_Assert(m_pool_size % block_size == 0);
-
-            m_num_blocks = m_pool_size / block_size;
-            // logger.log("number of blocks: ", m_num_blocks);
-
-            m_free_list = (void**)m_aligned_mem;
-
-            //
-            // Initialize free list with all the blocks.
-            // NOTE: This code uses the freed blocks as storage to place the free list.
-            //
-            void **it = m_free_list;
-            for (i32 i = 0; i < m_num_blocks-1; i++)
-            {
-                *it = ((u8*)(it) + block_size);
-                it = (void**)(*it);
-            }
-        }
-        else
-        {
-            LT_Panic("Failed to align the Pool Allocator.");
-        }
-    }
-
-    pointer allocate(usize size)
-    {
-        LT_Assert(size == block_size);
-
-        if (!m_free_list) return nullptr;
-
-        // Take first element of the list.
-        void *ptr = m_free_list;
-        // Remove the first element of the list.
-        m_free_list = (void**)(*m_free_list);
-
-        return static_cast<pointer>(ptr);
-    }
-
-    void deallocate(value_type *ptr)
-    {
-        // TODO: Make an assertion that the passed pointer is owned by this allocator.
-        void **head = (void**)ptr;
-        *head = m_free_list;
-        m_free_list = head;
-    }
+    void *allocate(usize size);
+    void deallocate(void *ptr);
 
     inline usize num_blocks() const
     {
@@ -89,6 +32,32 @@ private:
     usize   m_pool_size;
     i32     m_num_blocks;
     void  **m_free_list;
+    usize   m_free_list_size;
+};
+
+template<typename T, typename Allocator, typename ...Args> T *
+allocate_and_construct(Allocator &allocator, Args&& ...args)
+{
+    void *ptr = allocator.allocate(sizeof(T));
+
+    if (!ptr) return nullptr;
+
+    return ::new(ptr) T(std::forward<Args>(args)...);
+}
+
+template<typename T, typename ...Args> T *
+construct(void *ptr, Args&& ...args)
+{
+    return ::new(ptr) T(std::forward<Args>(args)...);
+}
+
+template<typename Allocator, typename T, typename ...Args> void
+destroy_and_deallocate(Allocator &allocator, T *t)
+{
+    t->~T();
+    allocator.deallocate(static_cast<void*>(t));
+}
+
 };
 
 #endif // __POOL_ALLOCATOR_HPP__

@@ -1,11 +1,13 @@
 #ifndef __LANDSCAPE_HPP__
 #define __LANDSCAPE_HPP__
 
-#include <list>
+// #include <list>
+#include <functional>
 #include "pool_allocator.hpp"
 
 #include "lt_core.hpp"
 #include "lt_math.hpp"
+#include "pool_allocator.hpp"
 
 struct TextureAtlas;
 struct Camera;
@@ -98,12 +100,15 @@ struct Landscape
         return origin + 0.5f*Vec3f(SIZE_X, SIZE_Y, SIZE_Z);
     }
 
+private:
+    void chunk_deleter(Chunk *chunk);
+
 public:
     // using ChunksList = std::list<Chunk, PoolAllocator<Chunk>>;
-    using ChunksList = std::list<Chunk>;
+    using ChunkPtr = std::unique_ptr<Chunk,std::function<void(Chunk*)>>;
 
-    ChunksList chunks;
-    ChunksList::iterator chunk_ptrs[NUM_CHUNKS_X][NUM_CHUNKS_Y][NUM_CHUNKS_Z];
+    // ChunksList chunks;
+    ChunkPtr chunk_ptrs[NUM_CHUNKS_X][NUM_CHUNKS_Y][NUM_CHUNKS_Z];
     Vec3f   origin;
 
 private:
@@ -115,6 +120,8 @@ private:
     f64           m_gain;
 
     osn_context  *m_simplex_ctx;
+
+    memory::PoolAllocator m_chunks_allocator;
 
     void initialize_chunks();
     Vec3f get_chunk_origin(i32 cx, i32 cy, i32 cz);

@@ -20,6 +20,7 @@ add_executable(dr
   src/resources.cpp
   src/landscape.cpp
   src/resource_manager.cpp
+  src/pool_allocator.cpp
   src/io_task_manager.cpp
   src/io_task.cpp
   src/shader.cpp
