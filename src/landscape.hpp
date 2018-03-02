@@ -71,7 +71,8 @@ private:
         QueueRequest(Chunk *chunk) : chunk(chunk), processed(false) {}
 
         Chunk *chunk;
-        bool processed;
+        std::atomic<bool> processed;
+        std::vector<Vertex_PLN> vertexes;
     };
 
     struct ChunkQueue
@@ -210,6 +211,7 @@ private:
 
     // // Queue that contains the chunks that need to be loaded by the threads.
     ChunkQueue m_chunks_to_process_queue;
+    ChunkQueue m_chunks_processed_queue;
 };
 
 #endif // __LANDSCAPE_HPP__
