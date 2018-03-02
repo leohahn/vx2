@@ -17,7 +17,6 @@ add_executable(dr
   src/application.cpp
   src/camera.cpp
   src/renderer.cpp
-  src/resources.cpp
   src/landscape.cpp
   src/resource_manager.cpp
   src/pool_allocator.cpp

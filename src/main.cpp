@@ -106,10 +106,9 @@ main()
 {
     // --------------------------------------------------------------
     // TODO:
-    //   1. Finish loading a snow texture
-    //   2. Load new chunks in separate threads.
-    //   3. Add frustum culling
-    //   4. Reduce number of polygons needed to render the world!!
+    //   1. Load new chunks in separate threads.
+    //   2. Add frustum culling
+    //   3. Reduce number of polygons needed to render the world!!
     // --------------------------------------------------------------
 
     Application app("Deferred renderer", 1680, 1050);

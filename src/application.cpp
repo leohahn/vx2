@@ -2,7 +2,6 @@
 #include <cstring>
 #include "glad/glad.h"
 #include <GLFW/glfw3.h>
-#include "resources.hpp"
 #include "lt_utils.hpp"
 #include "unit_plane_data.hpp"
 

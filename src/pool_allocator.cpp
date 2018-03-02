@@ -1,5 +1,6 @@
 #include "pool_allocator.hpp"
 #include "lt_utils.hpp"
+#include <thread>
 
 lt_global_variable lt::Logger logger("pool_allocator");
 
@@ -50,8 +51,7 @@ memory::PoolAllocator::allocate(usize size)
 
     if (!m_free_list)
     {
-        logger.log("Memory not available.");
-        return nullptr;
+        LT_Panic("Memory not available.");
     }
 
     // Take first element of the list.

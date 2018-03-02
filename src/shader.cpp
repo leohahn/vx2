@@ -6,7 +6,6 @@
 #include <unordered_map>
 
 #include "glad/glad.h"
-#include "resources.hpp"
 #include "lt_fs.hpp"
 #include "lt_utils.hpp"
 #include "camera.hpp"

@@ -21,9 +21,9 @@ struct Vertex_PUN
 
 struct Vertex_PLN
 {
-    Vec3f position;
-    Vec3f tex_coords_layer;
-    Vec3f normal;
+    Vec3f position         = Vec3f(0.0f);
+    Vec3f tex_coords_layer = Vec3f(0.0f);
+    Vec3f normal           = Vec3f(0.0f);
 };
 
 #endif // __VERTEX_HPP__

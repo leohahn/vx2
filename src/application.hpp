@@ -10,12 +10,9 @@ struct Resources;
 
 struct Memory
 {
-    usize chunks_memory_size;
-    void *chunks_memory;
-
     Memory()
-        // TODO: Find a better value than simply 100 chunks.
-        : chunks_memory_size(sizeof(Chunk) * 1575)
+        // This memory is used with a pool allocator.
+        : chunks_memory_size(sizeof(Landscape::Chunk) * 1575)
         , chunks_memory(calloc(1, chunks_memory_size))
     {}
 
@@ -23,6 +20,10 @@ struct Memory
     {
         free(chunks_memory);
     }
+
+public:
+    usize chunks_memory_size;
+    void *chunks_memory;
 };
 
 

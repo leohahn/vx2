@@ -1,4 +1,5 @@
 #include "renderer.hpp"
+#include <mutex>
 #include "glad/glad.h"
 #include "world.hpp"
 #include "application.hpp"
@@ -42,22 +43,23 @@ render_mesh(const Mesh &mesh, Shader *shader)
 // }
 
 void
-render_world(World &world)
+render_world(World &world) // TODO: maybe change this to render_landscape??
 {
     // Assuming that every chunk uses the same shader program.
-    for (i32 cx = 0; cx < Landscape::NUM_CHUNKS_X; cx++)
-        for (i32 cy = 0; cy < Landscape::NUM_CHUNKS_Y; cy++)
-            for (i32 cz = 0; cz < Landscape::NUM_CHUNKS_Z; cz++)
-            {
-                auto chunk_it = world.landscape->chunk_ptrs[cx][cy][cz].get();
+    for (i32 i = 0; i < Landscape::NUM_CHUNKS; i++)
+    {
+        std::lock_guard<std::mutex> lock(world.landscape->vao_array.mutex);
+        auto entry = world.landscape->vao_array.vaos[i];
+        if (entry.is_used && entry.num_vertices_used > 0)
+        {
+            LT_Assert(entry.vao != 0); // The vao should already be created.
+            LT_Assert(entry.vbo != 0); // The vbo should already be created.
 
-                LT_Assert(chunk_it->vbo != 0); // The vbo should already be created.
-
-                glBindVertexArray(chunk_it->vao);
-                glDrawArrays(GL_TRIANGLES, 0, chunk_it->num_vertices_used);
-                dump_opengl_errors("glDrawArrays", __FILE__);
-                glBindBuffer(GL_ARRAY_BUFFER, 0);
-            }
+            glBindVertexArray(entry.vao);
+            glDrawArrays(GL_TRIANGLES, 0, entry.num_vertices_used);
+            glBindBuffer(GL_ARRAY_BUFFER, 0);
+        }
+    }
 }
 
 void

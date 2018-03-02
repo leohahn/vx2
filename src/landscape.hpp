@@ -1,13 +1,16 @@
 #ifndef __LANDSCAPE_HPP__
 #define __LANDSCAPE_HPP__
 
-// #include <list>
+#include <atomic>
+#include <thread>
 #include <functional>
 #include "pool_allocator.hpp"
 
 #include "lt_core.hpp"
 #include "lt_math.hpp"
 #include "pool_allocator.hpp"
+#include "semaphore.hpp"
+#include "vertex.hpp"
 
 struct TextureAtlas;
 struct Camera;
@@ -48,40 +51,107 @@ private:
 
 typedef i32 ChunkIndex;
 
-struct Chunk
-{
-    constexpr static i32 NUM_BLOCKS_PER_AXIS = 16;
-    constexpr static i32 NUM_BLOCKS = NUM_BLOCKS_PER_AXIS*NUM_BLOCKS_PER_AXIS*NUM_BLOCKS_PER_AXIS;
-    constexpr static i32 BLOCK_SIZE = 1;
-    constexpr static i32 SIZE = BLOCK_SIZE * NUM_BLOCKS_PER_AXIS;
-
-    Chunk(Vec3f origin, BlockType fill_type = BlockType_Air);
-    ~Chunk();
-    Chunk(Chunk &chunk) = delete;
-    Chunk &operator=(const Chunk &chunk) = delete;
-
-public:
-    BlockType blocks[NUM_BLOCKS_PER_AXIS][NUM_BLOCKS_PER_AXIS][NUM_BLOCKS_PER_AXIS];
-    Vec3f     origin;
-    u32       vao, vbo;
-    // Signals that the chunk's buffer must be updated.
-    i32       num_vertices_used;
-    bool      outdated;
-};
+static_assert(std::atomic<bool>::is_always_lock_free);
+static_assert(std::atomic<i32>::is_always_lock_free);
 
 struct Landscape
 {
     constexpr static i32 NUM_CHUNKS_X = 15;
     constexpr static i32 NUM_CHUNKS_Y = 7;
     constexpr static i32 NUM_CHUNKS_Z = 15;
+    constexpr static i32 NUM_CHUNKS = NUM_CHUNKS_X*NUM_CHUNKS_Y*NUM_CHUNKS_Z;
+
+    struct Chunk;
+private:
+    // -----------------------------------------------------------------
+    // Queue definition for asynchronously loading chunks
+    // -----------------------------------------------------------------
+    struct QueueRequest
+    {
+        QueueRequest(Chunk *chunk) : chunk(chunk), processed(false) {}
+
+        Chunk *chunk;
+        bool processed;
+    };
+
+    struct ChunkQueue
+    {
+        static constexpr i32 MAX_ENTRIES = 1600; // TODO: figure out the best number here.
+
+        struct Request
+        {
+            Chunk *chunk;
+        };
+
+        void insert(const std::shared_ptr<QueueRequest> &request, std::recursive_mutex &chunks_mutex);
+        inline bool is_empty() const { return read_index == write_index; }
+        std::shared_ptr<QueueRequest> take_next_request(std::recursive_mutex &chunks_mutex);
+
+        // The entries array is a circular FIFO queue.
+        std::shared_ptr<QueueRequest> requests[MAX_ENTRIES];
+        std::atomic<i32> read_index = 0;
+        std::atomic<i32> write_index = 0;
+        Semaphore        semaphore;
+    };
+
+public:
+    struct VAOArray
+    {
+        struct Entry
+        {
+            const u32 vao;
+            const u32 vbo;
+            u32 num_vertices_used;
+            bool is_used;
+            Entry();
+        };
+
+        isize take_free_entry();
+        void free_entry(isize index);
+
+        Entry vaos[NUM_CHUNKS];
+        std::mutex mutex;
+    };
+
+    struct Chunk
+    {
+        constexpr static i32 NUM_BLOCKS_PER_AXIS = 16;
+        constexpr static i32 NUM_BLOCKS = NUM_BLOCKS_PER_AXIS*NUM_BLOCKS_PER_AXIS*NUM_BLOCKS_PER_AXIS;
+        constexpr static i32 BLOCK_SIZE = 1;
+        constexpr static i32 SIZE = BLOCK_SIZE * NUM_BLOCKS_PER_AXIS;
+
+        Chunk(Vec3f origin, VAOArray *vao_array, BlockType fill_type = BlockType_Air);
+        ~Chunk();
+        Chunk(Chunk &chunk) = delete;
+        Chunk &operator=(const Chunk &chunk) = delete;
+
+        void create_request();
+        void cancel_request(std::recursive_mutex &chunks_mutex);
+
+    public:
+        BlockType blocks[NUM_BLOCKS_PER_AXIS][NUM_BLOCKS_PER_AXIS][NUM_BLOCKS_PER_AXIS];
+        Vec3f     origin;
+        isize     entry_index;
+        std::atomic_bool outdated; // Signals that the chunk's buffer must be updated.
+        std::shared_ptr<QueueRequest> request;
+    private:
+        VAOArray *m_vao_array;
+    };
+
+    using ChunkPtr = std::unique_ptr<Chunk,std::function<void(Chunk*)>>;
+
     constexpr static i32 TOTAL_BLOCKS_X = NUM_CHUNKS_X * Chunk::NUM_BLOCKS_PER_AXIS;
     constexpr static i32 TOTAL_BLOCKS_Y = NUM_CHUNKS_Y * Chunk::NUM_BLOCKS_PER_AXIS;
     constexpr static i32 TOTAL_BLOCKS_Z = NUM_CHUNKS_Z * Chunk::NUM_BLOCKS_PER_AXIS;
+
     constexpr static i32 SIZE_X = TOTAL_BLOCKS_X * Chunk::BLOCK_SIZE;
     constexpr static i32 SIZE_Y = TOTAL_BLOCKS_Y * Chunk::BLOCK_SIZE;
     constexpr static i32 SIZE_Z = TOTAL_BLOCKS_Z * Chunk::BLOCK_SIZE;
 
-    Landscape(Memory &memory, i32 seed, f64 amplitude, f64 frequency, i32 num_octaves, f64 lacunarity, f64 gain);
+
+    Landscape(Memory &memory, i32 seed, f64 amplitude, f64 frequency,
+              i32 num_octaves, f64 lacunarity, f64 gain);
+    ~Landscape();
 
     // A landscape cannot be copied.
     Landscape(const Landscape&) = delete;
@@ -89,11 +159,10 @@ struct Landscape
     Landscape &operator=(const Landscape&) = delete;
     Landscape &operator=(const Landscape&&) = delete;
 
-    void update_chunk_buffer(i32 cx, i32 cy, i32 cz);
-    bool block_exists(i32 abs_block_xi, i32 abs_block_yi, i32 abs_block_zi) const;
+    std::vector<Vertex_PLN> update_chunk_buffer(Chunk *chunk);
+    bool block_exists(i32 abs_block_xi, i32 abs_block_yi, i32 abs_block_zi);
     void update(const Camera &camera);
     void generate();
-    void generate_for_chunk(i32 cx, i32 cy, i32 cz);
 
     inline Vec3f center() const
     {
@@ -104,28 +173,43 @@ private:
     void chunk_deleter(Chunk *chunk);
 
 public:
-    // using ChunksList = std::list<Chunk, PoolAllocator<Chunk>>;
-    using ChunkPtr = std::unique_ptr<Chunk,std::function<void(Chunk*)>>;
-
-    // ChunksList chunks;
+    std::recursive_mutex chunks_mutex;
     ChunkPtr chunk_ptrs[NUM_CHUNKS_X][NUM_CHUNKS_Y][NUM_CHUNKS_Z];
     Vec3f   origin;
 
+    // Structure that contains all of the VBOs and VAOs necessary to render
+    // the chunks.
+    VAOArray vao_array;
+
 private:
-    i32           m_seed;
-    f64           m_amplitude;
-    f64           m_frequency;
-    i32           m_num_octaves;
-    f64           m_lacunarity;
-    f64           m_gain;
+    const i32           m_seed;
+    const f64           m_amplitude;
+    const f64           m_frequency;
+    const i32           m_num_octaves;
+    const f64           m_lacunarity;
+    const f64           m_gain;
+
+    // TODO: Instead of hardcoding the number of threads, decide this at runtime
+    // which number is the best.
+    static constexpr i32 M_NUM_THREADS = 4;
+    std::thread          m_threads[M_NUM_THREADS];
+    std::atomic<bool>    m_threads_should_run;
 
     osn_context  *m_simplex_ctx;
 
     memory::PoolAllocator m_chunks_allocator;
 
     void initialize_chunks();
+    void initialize_threads();
     Vec3f get_chunk_origin(i32 cx, i32 cy, i32 cz);
-    ChunkNoise *fill_noise_map_for_chunk_column(i32 cx, i32 cz);
+    ChunkNoise *fill_noise_map_for_chunk_column(f32 origin_x, f32 origin_z);
+    void do_chunk_generation_work(Chunk *chunk);
+    void run_worker_thread();
+    void stop_threads();
+    void pass_chunk_buffer_to_gpu(Chunk *chunk, const std::vector<Vertex_PLN> &buf);
+
+    // // Queue that contains the chunks that need to be loaded by the threads.
+    ChunkQueue m_chunks_to_process_queue;
 };
 
 #endif // __LANDSCAPE_HPP__
