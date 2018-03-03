@@ -2,6 +2,10 @@ cmake_minimum_required(VERSION 2.6)
 
 project(deferred_renderer)
 
+if(NOT CMAKE_BUILD_TYPE)
+    set(CMAKE_BUILD_TYPE Release)
+endif(NOT CMAKE_BUILD_TYPE)
+
 add_subdirectory(src)
 add_subdirectory(lt)
 add_subdirectory(thirdparty)
@@ -10,7 +14,10 @@ include_directories(src thirdparty lt/src)
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++17")
 
-add_definitions(-DLT_DEBUG)
+if(CMAKE_BUILD_TYPE MATCHES Debug)
+    add_definitions(-DLT_DEBUG)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fno-omit-frame-pointer")
+endif(CMAKE_BUILD_TYPE MATCHES Debug)
 
 add_executable(dr
   src/main.cpp

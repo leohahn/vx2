@@ -56,9 +56,9 @@ static_assert(std::atomic<i32>::is_always_lock_free);
 
 struct Landscape
 {
-    constexpr static i32 NUM_CHUNKS_X = 15;
+    constexpr static i32 NUM_CHUNKS_X = 14;
     constexpr static i32 NUM_CHUNKS_Y = 7;
-    constexpr static i32 NUM_CHUNKS_Z = 15;
+    constexpr static i32 NUM_CHUNKS_Z = 14;
     constexpr static i32 NUM_CHUNKS = NUM_CHUNKS_X*NUM_CHUNKS_Y*NUM_CHUNKS_Z;
 
     struct Chunk;
@@ -140,6 +140,7 @@ public:
     };
 
     using ChunkPtr = std::unique_ptr<Chunk,std::function<void(Chunk*)>>;
+    // using ChunkPtr = std::unique_ptr<Chunk>;
 
     constexpr static i32 TOTAL_BLOCKS_X = NUM_CHUNKS_X * Chunk::NUM_BLOCKS_PER_AXIS;
     constexpr static i32 TOTAL_BLOCKS_Y = NUM_CHUNKS_Y * Chunk::NUM_BLOCKS_PER_AXIS;
