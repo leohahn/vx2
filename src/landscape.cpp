@@ -61,15 +61,28 @@ Landscape::update(const Camera &camera)
 {
     // See which chunks where already loaded by the different threads and
     // pass the vertex data to the gpu if so happened.
-    const i32 MAX_CHUNKS_TO_LOAD = 4;
-
-    std::shared_ptr<QueueRequest> request = nullptr;
-    i32 chunks_loaded = 0;
-    while (chunks_loaded++ < MAX_CHUNKS_TO_LOAD &&
-           (request = m_chunks_processed_queue.take_next_request(chunks_mutex)))
     {
-        LT_Assert(request->processed);
-        pass_chunk_buffer_to_gpu(request->chunk, request->vertexes);
+        const i32 MAX_CHUNKS_TO_LOAD = 4;
+
+        i32 chunks_loaded = 0;
+        std::shared_ptr<QueueRequest> request = nullptr;
+        while (chunks_loaded++ < MAX_CHUNKS_TO_LOAD &&
+               (request = m_chunks_processed_queue.take_next_request()))
+        {
+            LT_Assert(request->processed);
+            LT_Assert(request->chunk);
+
+            chunks_mutex.lock_high_priority(); // LOCK
+
+            request->chunk->outdated = false;
+            auto &entry = vao_array.vaos[request->chunk->entry_index];
+            entry.num_vertices_used = request->vertexes.size();
+
+            if (entry.num_vertices_used > 0)
+                pass_chunk_buffer_to_gpu(entry, request->vertexes);
+
+            chunks_mutex.unlock_high_priority(); // UNLOCK
+        }
     }
 
     const f32 x_distance_to_center = camera.position().x - center().x;
@@ -86,7 +99,7 @@ Landscape::update(const Camera &camera)
             for (i32 cy = 0; cy < NUM_CHUNKS_Y; cy++)
                 for (i32 cz = 0; cz < NUM_CHUNKS_Z; cz++)
                 {
-                    std::lock_guard<decltype(chunks_mutex)> lock(chunks_mutex);
+                    chunks_mutex.lock_low_priority(); // LOCK
                     if (cx > 0)
                     {
                         chunk_ptrs[cx-1][cy][cz] = std::move(chunk_ptrs[cx][cy][cz]);
@@ -109,7 +122,7 @@ Landscape::update(const Camera &camera)
                             do_chunk_generation_work(chunk);
 
                             chunk->create_request();
-                            m_chunks_to_process_queue.insert(chunk->request, chunks_mutex);
+                            m_chunks_to_process_queue.insert(chunk->request);
                         }
                     }
                     else
@@ -119,6 +132,7 @@ Landscape::update(const Camera &camera)
                         // or something similar.
                         chunk_ptrs[cx][cy][cz].reset();
                     }
+                    chunks_mutex.unlock_low_priority(); // UNLOCK
                 }
     }
     else if (x_distance_to_center < -chosen_distance) // negative x
@@ -129,7 +143,7 @@ Landscape::update(const Camera &camera)
             for (i32 cy = 0; cy < NUM_CHUNKS_Y; cy++)
                 for (i32 cz = 0; cz < NUM_CHUNKS_Z; cz++)
                 {
-                    std::lock_guard<decltype(chunks_mutex)> lock(chunks_mutex);
+                    chunks_mutex.lock_low_priority(); // LOCK
                     if (cx < NUM_CHUNKS_X-1)
                     {
                         chunk_ptrs[cx+1][cy][cz] = std::move(chunk_ptrs[cx][cy][cz]);
@@ -147,7 +161,7 @@ Landscape::update(const Camera &camera)
 
                             do_chunk_generation_work(chunk);
                             chunk->create_request();
-                            m_chunks_to_process_queue.insert(chunk->request, chunks_mutex);
+                            m_chunks_to_process_queue.insert(chunk->request);
                         }
                     }
                     else
@@ -157,6 +171,7 @@ Landscape::update(const Camera &camera)
                         // or something similar.
                         chunk_ptrs[cx][cy][cz].reset();
                     }
+                    chunks_mutex.unlock_low_priority(); // UNLOCK
                 }
     }
 
@@ -168,7 +183,7 @@ Landscape::update(const Camera &camera)
             for (i32 cx = 0; cx < NUM_CHUNKS_X; cx++)
                 for (i32 cy = 0; cy < NUM_CHUNKS_Y; cy++)
                 {
-                    std::lock_guard<decltype(chunks_mutex)> lock(chunks_mutex);
+                    chunks_mutex.lock_low_priority(); // LOCK
                     if (cz > 0)
                     {
                         chunk_ptrs[cx][cy][cz-1] = std::move(chunk_ptrs[cx][cy][cz]);
@@ -185,7 +200,7 @@ Landscape::update(const Camera &camera)
 
                             do_chunk_generation_work(chunk);
                             chunk->create_request();
-                            m_chunks_to_process_queue.insert(chunk->request, chunks_mutex);
+                            m_chunks_to_process_queue.insert(chunk->request);
                         }
                     }
                     else
@@ -195,6 +210,7 @@ Landscape::update(const Camera &camera)
                         // or something similar.
                         chunk_ptrs[cx][cy][cz].reset();
                     }
+                    chunks_mutex.unlock_low_priority(); // UNLOCK
                 }
     }
     else if (z_distance_to_center < -chosen_distance) // negative z
@@ -205,7 +221,7 @@ Landscape::update(const Camera &camera)
             for (i32 cx = 0; cx < NUM_CHUNKS_X; cx++)
                 for (i32 cy = 0; cy < NUM_CHUNKS_Y; cy++)
                 {
-                    std::lock_guard<decltype(chunks_mutex)> lock(chunks_mutex);
+                    chunks_mutex.lock_low_priority(); // LOCK
                     if (cz < NUM_CHUNKS_Z-1)
                     {
                         chunk_ptrs[cx][cy][cz+1] = std::move(chunk_ptrs[cx][cy][cz]);
@@ -222,7 +238,7 @@ Landscape::update(const Camera &camera)
 
                             do_chunk_generation_work(chunk);
                             chunk->create_request();
-                            m_chunks_to_process_queue.insert(chunk->request, chunks_mutex);
+                            m_chunks_to_process_queue.insert(chunk->request);
                         }
                     }
                     else
@@ -232,6 +248,7 @@ Landscape::update(const Camera &camera)
                         // or something similar.
                         chunk_ptrs[cx][cy][cz].reset();
                     }
+                    chunks_mutex.unlock_low_priority(); // UNLOCK
                 }
     }
 }
@@ -277,20 +294,12 @@ Landscape::initialize_chunks()
                 // chunk_ptrs[cx][cy][cz] = ChunkPtr(chunk);
 
             }
-
-    // for (i32 cx = 0; cx < NUM_CHUNKS_X; cx++)
-    //     for (i32 cy = 0; cy < NUM_CHUNKS_Y; cy++)
-    //         for (i32 cz = 0; cz < NUM_CHUNKS_Z; cz++)
-    //         {
-    //             // std::lock_guard<decltype(chunks_mutex)> lock(chunks_mutex);
-    //             // m_chunks_to_process_queue.insert(chunk_ptrs[cx][cy][cz].get());
-    //         }
 }
 
 std::vector<Vertex_PLN>
 Landscape::update_chunk_buffer(Chunk *chunk)
 {
-    std::lock_guard<decltype(chunks_mutex)> chunks_lock(chunks_mutex);
+    // std::lock_guard<decltype(chunks_mutex)> chunks_lock(chunks_mutex);
 
     LT_Assert(chunk);
 
@@ -671,37 +680,27 @@ Landscape::fill_noise_map_for_chunk_column(f32 origin_x, f32 origin_z)
 }
 
 void
-Landscape::pass_chunk_buffer_to_gpu(Chunk *chunk, const std::vector<Vertex_PLN> &buf)
+Landscape::pass_chunk_buffer_to_gpu(const VAOArray::Entry &entry, const std::vector<Vertex_PLN> &buf)
 {
-    std::lock_guard<std::mutex> lock(vao_array.mutex);
-    auto &entry = vao_array.vaos[chunk->entry_index];
-    entry.num_vertices_used = buf.size();
+    glBindVertexArray(entry.vao);
+    glBindBuffer(GL_ARRAY_BUFFER, entry.vbo);
+    // TODO: Figure out if GL_DYNAMIC_DRAW is the best enum to use or there's something better.
+    glBufferData(GL_ARRAY_BUFFER, sizeof(Vertex_PLN) * entry.num_vertices_used, &buf[0], GL_DYNAMIC_DRAW);
 
-    if (entry.num_vertices_used > 0)
-    {
-        glBindVertexArray(entry.vao);
-        glBindBuffer(GL_ARRAY_BUFFER, entry.vbo);
-        // TODO: Figure out if GL_DYNAMIC_DRAW is the best enum to use or there's something better.
-        glBufferData(GL_ARRAY_BUFFER, sizeof(Vertex_PLN) * entry.num_vertices_used,
-                     &buf[0], GL_DYNAMIC_DRAW);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex_PLN),
+                          (const void*)offsetof(Vertex_PLN, position));
+    glEnableVertexAttribArray(0);
 
-        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex_PLN),
-                              (const void*)offsetof(Vertex_PLN, position));
-        glEnableVertexAttribArray(0);
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex_PLN),
+                          (const void*)offsetof(Vertex_PLN, tex_coords_layer));
+    glEnableVertexAttribArray(1);
 
-        glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex_PLN),
-                              (const void*)offsetof(Vertex_PLN, tex_coords_layer));
-        glEnableVertexAttribArray(1);
+    glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex_PLN),
+                          (const void*)offsetof(Vertex_PLN, normal));
+    glEnableVertexAttribArray(2);
 
-        glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex_PLN),
-                              (const void*)offsetof(Vertex_PLN, normal));
-        glEnableVertexAttribArray(2);
-
-        glDrawArrays(GL_TRIANGLES, 0, entry.num_vertices_used);
-        glBindBuffer(GL_ARRAY_BUFFER, 0);
-    }
-
-    chunk->outdated = false;
+    glDrawArrays(GL_TRIANGLES, 0, entry.num_vertices_used);
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
 }
 
 void
@@ -712,7 +711,7 @@ Landscape::generate()
     for (i32 cx = 0; cx < NUM_CHUNKS_X; cx++)
         for (i32 cz = 0; cz < NUM_CHUNKS_Z; cz++)
         {
-            //std::lock_guard<decltype(chunks_mutex)> lock(chunks_mutex);
+            chunks_mutex.lock_low_priority(); // LOCK
 
             Chunk *chunk = chunk_ptrs[cx][0][cz].get();
             LT_Assert(chunk);
@@ -733,6 +732,7 @@ Landscape::generate()
                     }
                 }
 
+            chunks_mutex.unlock_low_priority(); // UNLOCK
             delete[] chunk_noise;
         }
 
@@ -740,10 +740,13 @@ Landscape::generate()
         for (i32 cy = 0; cy < NUM_CHUNKS_Y; cy++)
             for (i32 cz = 0; cz < NUM_CHUNKS_Z; cz++)
             {
-                std::lock_guard<decltype(chunks_mutex)> lock(chunks_mutex);
+                chunks_mutex.lock_low_priority(); // LOCK
+
                 Chunk *chunk = chunk_ptrs[cx][cy][cz].get();
                 chunk->create_request();
-                m_chunks_to_process_queue.insert(chunk->request, chunks_mutex);
+                m_chunks_to_process_queue.insert(chunk->request);
+
+                chunks_mutex.unlock_low_priority(); // UNLOCK
             }
 }
 
@@ -784,9 +787,11 @@ Landscape::run_worker_thread()
     while (m_threads_should_run)
     {
         // Process while there are entries on the queue.
-        auto request = m_chunks_to_process_queue.take_next_request(chunks_mutex);
+        auto request = m_chunks_to_process_queue.take_next_request();
         if (request)
         {
+            chunks_mutex.lock_low_priority(); // LOCK
+
             if (!request->chunk)
             {
                 // TODO: If chunk is null, it means the request was cancelled, so it should be ignored.
@@ -794,10 +799,11 @@ Landscape::run_worker_thread()
                 continue;
             }
 
-            std::lock_guard<decltype(chunks_mutex)> lock(chunks_mutex);
             request->vertexes = update_chunk_buffer(request->chunk);
             request->processed = true;
-            m_chunks_processed_queue.insert(request, chunks_mutex);
+            m_chunks_processed_queue.insert(request);
+
+            chunks_mutex.unlock_low_priority(); // UNLOCK
         }
         // Wait for more work to be added to the queue.
         m_chunks_to_process_queue.semaphore.wait();
@@ -863,11 +869,12 @@ Landscape::Chunk::create_request()
 }
 
 void
-Landscape::Chunk::cancel_request(std::recursive_mutex &chunks_mutex)
+Landscape::Chunk::cancel_request(ChunksMutex &chunks_mutex)
 {
-    std::lock_guard<decltype(chunks_mutex)> lock(chunks_mutex);
+    chunks_mutex.lock_low_priority(); // LOCK
     if (request && request->chunk)
         request->chunk = nullptr;
+    chunks_mutex.unlock_low_priority(); // UNLOCK
 }
 
 // ----------------------------------------------------------------------------------------------
@@ -921,9 +928,9 @@ Landscape::VAOArray::free_entry(isize index)
 }
 
 void
-Landscape::ChunkQueue::insert(const std::shared_ptr<QueueRequest> &request, std::recursive_mutex &chunks_mutex)
+Landscape::ChunkQueue::insert(const std::shared_ptr<QueueRequest> &request)
 {
-    std::lock_guard<decltype(chunks_mutex)> lock(chunks_mutex);
+    std::lock_guard<decltype(mutex)> lock(mutex);
 
     const i32 next_write_index = (write_index + 1) % MAX_ENTRIES;
     // if next write and read index are the same, the queue is full.
@@ -935,10 +942,9 @@ Landscape::ChunkQueue::insert(const std::shared_ptr<QueueRequest> &request, std:
 }
 
 std::shared_ptr<Landscape::QueueRequest>
-Landscape::ChunkQueue::take_next_request(std::recursive_mutex &chunks_mutex)
+Landscape::ChunkQueue::take_next_request()
 {
-    std::lock_guard<decltype(chunks_mutex)> lock(chunks_mutex);
-
+    std::lock_guard<decltype(mutex)> lock(mutex);
     if (read_index != write_index) // There is an entry to consume
     {
         const i32 next_read_index = (read_index + 1) % MAX_ENTRIES;

@@ -68,6 +68,8 @@ private:
     // -----------------------------------------------------------------
     struct QueueRequest
     {
+        // TODO: As soon as multiple threads start modifying this object,
+        // introduce a mutex.
         QueueRequest(Chunk *chunk) : chunk(chunk), processed(false) {}
 
         Chunk *chunk;
@@ -84,9 +86,10 @@ private:
             Chunk *chunk;
         };
 
-        void insert(const std::shared_ptr<QueueRequest> &request, std::recursive_mutex &chunks_mutex);
+        void insert(const std::shared_ptr<QueueRequest> &request);
         inline bool is_empty() const { return read_index == write_index; }
-        std::shared_ptr<QueueRequest> take_next_request(std::recursive_mutex &chunks_mutex);
+        std::shared_ptr<QueueRequest> take_next_request();
+        std::mutex mutex;
 
         // The entries array is a circular FIFO queue.
         std::shared_ptr<QueueRequest> requests[MAX_ENTRIES];
@@ -111,7 +114,38 @@ public:
         void free_entry(isize index);
 
         Entry vaos[NUM_CHUNKS];
-        std::mutex mutex;
+    };
+
+    struct ChunksMutex
+    {
+        void lock_high_priority()
+        {
+            LT_Assert(m_hpt_waiting == false);
+            m_hpt_waiting = true;
+            m_mutex.lock();
+            m_hpt_waiting = false;
+        }
+        void unlock_high_priority()
+        {
+            m_hpt_done_signal.notify_one();
+            m_mutex.unlock();
+        }
+        void lock_low_priority()
+        {
+            std::unique_lock<decltype(m_mutex)> lock(m_mutex);
+            while (m_hpt_waiting)
+                m_hpt_done_signal.wait(lock);
+            lock.release();
+        }
+        void unlock_low_priority()
+        {
+            m_hpt_done_signal.notify_one();
+            m_mutex.unlock();
+        }
+    private:
+        std::mutex m_mutex;
+        std::atomic_bool m_hpt_waiting = false;
+        std::condition_variable m_hpt_done_signal;
     };
 
     struct Chunk
@@ -127,7 +161,7 @@ public:
         Chunk &operator=(const Chunk &chunk) = delete;
 
         void create_request();
-        void cancel_request(std::recursive_mutex &chunks_mutex);
+        void cancel_request(ChunksMutex &chunks_mutex);
 
     public:
         BlockType blocks[NUM_BLOCKS_PER_AXIS][NUM_BLOCKS_PER_AXIS][NUM_BLOCKS_PER_AXIS];
@@ -175,8 +209,12 @@ private:
     void chunk_deleter(Chunk *chunk);
 
 public:
-    std::recursive_mutex chunks_mutex;
+    ChunksMutex chunks_mutex;
+
+    // Chunks matrix.
     ChunkPtr chunk_ptrs[NUM_CHUNKS_X][NUM_CHUNKS_Y][NUM_CHUNKS_Z];
+
+    // Where the (left, bottom, back) corner of the landscape starts.
     Vec3f   origin;
 
     // Structure that contains all of the VBOs and VAOs necessary to render
@@ -208,7 +246,7 @@ private:
     void do_chunk_generation_work(Chunk *chunk);
     void run_worker_thread();
     void stop_threads();
-    void pass_chunk_buffer_to_gpu(Chunk *chunk, const std::vector<Vertex_PLN> &buf);
+    void pass_chunk_buffer_to_gpu(const VAOArray::Entry &entry, const std::vector<Vertex_PLN> &buf);
 
     // // Queue that contains the chunks that need to be loaded by the threads.
     ChunkQueue m_chunks_to_process_queue;

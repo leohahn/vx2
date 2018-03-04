@@ -48,8 +48,9 @@ render_world(World &world) // TODO: maybe change this to render_landscape??
     // Assuming that every chunk uses the same shader program.
     for (i32 i = 0; i < Landscape::NUM_CHUNKS; i++)
     {
-        std::lock_guard<std::mutex> lock(world.landscape->vao_array.mutex);
-        auto entry = world.landscape->vao_array.vaos[i];
+        auto &vao_array = world.landscape->vao_array;
+
+        auto entry = vao_array.vaos[i];
         if (entry.is_used && entry.num_vertices_used > 0)
         {
             LT_Assert(entry.vao != 0); // The vao should already be created.
