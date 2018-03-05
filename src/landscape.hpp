@@ -161,7 +161,7 @@ public:
         Chunk &operator=(const Chunk &chunk) = delete;
 
         void create_request();
-        void cancel_request(ChunksMutex &chunks_mutex);
+        void cancel_request();
 
     public:
         BlockType blocks[NUM_BLOCKS_PER_AXIS][NUM_BLOCKS_PER_AXIS][NUM_BLOCKS_PER_AXIS];

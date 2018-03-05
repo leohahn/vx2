@@ -7,3 +7,4 @@ build/
 /deferred-renderer.creator
 /deferred-renderer.config
 /CMakeLists.txt.user
+/build-release

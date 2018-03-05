@@ -48,12 +48,14 @@ Landscape::Landscape(Memory &memory, i32 seed, f64 amplitude,
 Landscape::~Landscape()
 {
     stop_threads();
+    open_simplex_noise_free(m_simplex_ctx);
 }
 
 Vec3f
 Landscape::get_chunk_origin(i32 cx, i32 cy, i32 cz)
 {
-    return origin + Vec3f(cx*Chunk::SIZE, cy*Chunk::SIZE, cz*Chunk::SIZE);
+    const Vec3f new_origin = origin + Vec3f(cx*Chunk::SIZE, cy*Chunk::SIZE, cz*Chunk::SIZE);
+    return new_origin;
 }
 
 void
@@ -62,7 +64,7 @@ Landscape::update(const Camera &camera)
     // See which chunks where already loaded by the different threads and
     // pass the vertex data to the gpu if so happened.
     {
-        const i32 MAX_CHUNKS_TO_LOAD = 4;
+        const i32 MAX_CHUNKS_TO_LOAD = 5;
 
         i32 chunks_loaded = 0;
         std::shared_ptr<QueueRequest> request = nullptr;
@@ -70,18 +72,26 @@ Landscape::update(const Camera &camera)
                (request = m_chunks_processed_queue.take_next_request()))
         {
             LT_Assert(request->processed);
-            LT_Assert(request->chunk);
 
             chunks_mutex.lock_high_priority(); // LOCK
+
+            if (!request->chunk)
+            {
+                // If chunk is nullptr, it means that it was cancelled by the main thread,
+                // therefore the results can be ignored.
+                chunks_mutex.unlock_high_priority(); // LOCK
+                continue;
+            }
 
             request->chunk->outdated = false;
             auto &entry = vao_array.vaos[request->chunk->entry_index];
             entry.num_vertices_used = request->vertexes.size();
 
+            chunks_mutex.unlock_high_priority(); // UNLOCK
+
             if (entry.num_vertices_used > 0)
                 pass_chunk_buffer_to_gpu(entry, request->vertexes);
 
-            chunks_mutex.unlock_high_priority(); // UNLOCK
         }
     }
 
@@ -93,16 +103,17 @@ Landscape::update(const Camera &camera)
 
     if (x_distance_to_center > chosen_distance) // positive x
     {
+        chunks_mutex.lock_high_priority(); // LOCK
         origin.x += chosen_distance;
 
         for (i32 cx = 0; cx < NUM_CHUNKS_X; cx++)
             for (i32 cy = 0; cy < NUM_CHUNKS_Y; cy++)
                 for (i32 cz = 0; cz < NUM_CHUNKS_Z; cz++)
                 {
-                    chunks_mutex.lock_low_priority(); // LOCK
                     if (cx > 0)
                     {
                         chunk_ptrs[cx-1][cy][cz] = std::move(chunk_ptrs[cx][cy][cz]);
+                        LT_Assert(chunk_ptrs[cx-1][cy][cz]);
 
                         if (cx == NUM_CHUNKS_X-1)
                         {
@@ -111,13 +122,11 @@ Landscape::update(const Camera &camera)
                             Chunk *chunk = memory::allocate_and_construct<Chunk>(
                                 m_chunks_allocator, chunk_origin, &vao_array
                             );
-                            // Chunk *chunk = new Chunk(chunk_origin, &vao_array);
+                            LT_Assert(chunk);
                             chunk_ptrs[cx][cy][cz] = ChunkPtr(
                                 chunk, std::bind(&Landscape::chunk_deleter, this, _1)
                             );
-                            // chunk_ptrs[cx][cy][cz] = ChunkPtr(
-                            //     chunk
-                            //     );
+                            LT_Assert(chunk_ptrs[cx][cy][cz]);
 
                             do_chunk_generation_work(chunk);
 
@@ -130,23 +139,25 @@ Landscape::update(const Camera &camera)
                         // Remove chunks that are outside of the landscape boundary.
                         // TODO: In the future such chunks should be persisted to disk
                         // or something similar.
+                        chunk_ptrs[cx][cy][cz]->cancel_request();
                         chunk_ptrs[cx][cy][cz].reset();
                     }
-                    chunks_mutex.unlock_low_priority(); // UNLOCK
                 }
+        chunks_mutex.unlock_high_priority(); // UNLOCK
     }
     else if (x_distance_to_center < -chosen_distance) // negative x
     {
+        chunks_mutex.lock_high_priority(); // LOCK
         origin.x -= chosen_distance;
 
         for (i32 cx = NUM_CHUNKS_X-1; cx >= 0; cx--)
             for (i32 cy = 0; cy < NUM_CHUNKS_Y; cy++)
                 for (i32 cz = 0; cz < NUM_CHUNKS_Z; cz++)
                 {
-                    chunks_mutex.lock_low_priority(); // LOCK
                     if (cx < NUM_CHUNKS_X-1)
                     {
                         chunk_ptrs[cx+1][cy][cz] = std::move(chunk_ptrs[cx][cy][cz]);
+                        LT_Assert(chunk_ptrs[cx+1][cy][cz]);
 
                         if (cx == 0)
                         {
@@ -158,6 +169,7 @@ Landscape::update(const Camera &camera)
                             chunk_ptrs[cx][cy][cz] = ChunkPtr(
                                 chunk, std::bind(&Landscape::chunk_deleter, this, _1)
                             );
+                            LT_Assert(chunk_ptrs[cx][cy][cz]);
 
                             do_chunk_generation_work(chunk);
                             chunk->create_request();
@@ -169,24 +181,26 @@ Landscape::update(const Camera &camera)
                         // Remove chunks that are outside of the landscape boundary.
                         // TODO: In the future such chunks should be persisted to disk
                         // or something similar.
+                        chunk_ptrs[cx][cy][cz]->cancel_request();
                         chunk_ptrs[cx][cy][cz].reset();
                     }
-                    chunks_mutex.unlock_low_priority(); // UNLOCK
                 }
+        chunks_mutex.unlock_high_priority(); // UNLOCK
     }
 
     if (z_distance_to_center > chosen_distance) // positive z
     {
+        chunks_mutex.lock_high_priority(); // LOCK
         origin.z += chosen_distance;
 
         for (i32 cz = 0; cz < NUM_CHUNKS_Z; cz++)
             for (i32 cx = 0; cx < NUM_CHUNKS_X; cx++)
                 for (i32 cy = 0; cy < NUM_CHUNKS_Y; cy++)
                 {
-                    chunks_mutex.lock_low_priority(); // LOCK
                     if (cz > 0)
                     {
                         chunk_ptrs[cx][cy][cz-1] = std::move(chunk_ptrs[cx][cy][cz]);
+                        LT_Assert(chunk_ptrs[cx][cy][cz-1]);
 
                         if (cz == NUM_CHUNKS_Z-1)
                         {
@@ -196,7 +210,8 @@ Landscape::update(const Camera &camera)
                             );
                             chunk_ptrs[cx][cy][cz] = ChunkPtr(
                                 chunk, std::bind(&Landscape::chunk_deleter, this, _1)
-                                );
+                            );
+                            LT_Assert(chunk_ptrs[cx][cy][cz]);
 
                             do_chunk_generation_work(chunk);
                             chunk->create_request();
@@ -208,23 +223,25 @@ Landscape::update(const Camera &camera)
                         // Remove chunks that are outside of the landscape boundary.
                         // TODO: In the future such chunks should be persisted to disk
                         // or something similar.
+                        chunk_ptrs[cx][cy][cz]->cancel_request();
                         chunk_ptrs[cx][cy][cz].reset();
                     }
-                    chunks_mutex.unlock_low_priority(); // UNLOCK
                 }
+        chunks_mutex.unlock_high_priority(); // UNLOCK
     }
     else if (z_distance_to_center < -chosen_distance) // negative z
     {
+        chunks_mutex.lock_high_priority(); // LOCK
         origin.z -= chosen_distance;
 
         for (i32 cz = NUM_CHUNKS_Z-1; cz >= 0; cz--)
             for (i32 cx = 0; cx < NUM_CHUNKS_X; cx++)
                 for (i32 cy = 0; cy < NUM_CHUNKS_Y; cy++)
                 {
-                    chunks_mutex.lock_low_priority(); // LOCK
                     if (cz < NUM_CHUNKS_Z-1)
                     {
                         chunk_ptrs[cx][cy][cz+1] = std::move(chunk_ptrs[cx][cy][cz]);
+                        LT_Assert(chunk_ptrs[cx][cy][cz+1]);
 
                         if (cz == 0)
                         {
@@ -235,6 +252,7 @@ Landscape::update(const Camera &camera)
                             chunk_ptrs[cx][cy][cz] = ChunkPtr(
                                 chunk, std::bind(&Landscape::chunk_deleter, this, _1)
                             );
+                            LT_Assert(chunk_ptrs[cx][cy][cz]);
 
                             do_chunk_generation_work(chunk);
                             chunk->create_request();
@@ -246,19 +264,17 @@ Landscape::update(const Camera &camera)
                         // Remove chunks that are outside of the landscape boundary.
                         // TODO: In the future such chunks should be persisted to disk
                         // or something similar.
+                        chunk_ptrs[cx][cy][cz]->cancel_request();
                         chunk_ptrs[cx][cy][cz].reset();
                     }
-                    chunks_mutex.unlock_low_priority(); // UNLOCK
                 }
+        chunks_mutex.unlock_high_priority(); // UNLOCK
     }
 }
 
 bool
 Landscape::block_exists(i32 abs_block_xi, i32 abs_block_yi, i32 abs_block_zi)
 {
-    // NOTE: An assumption is made that this function is called with already a lock of chunks_mutex.
-    // std::lock_guard<decltype(chunks_mutex)> lock(chunks_mutex);
-
     const i32 bx = abs_block_xi % Chunk::NUM_BLOCKS_PER_AXIS;
     const i32 by = abs_block_yi % Chunk::NUM_BLOCKS_PER_AXIS;
     const i32 bz = abs_block_zi % Chunk::NUM_BLOCKS_PER_AXIS;
@@ -269,7 +285,15 @@ Landscape::block_exists(i32 abs_block_xi, i32 abs_block_yi, i32 abs_block_zi)
 
     // NOTE: the pointer to the chunk should be available. This is necessary in order to
     // optimize the chunk generation.
-    LT_Assert(chunk_ptrs[cx][cy][cz]);
+    LT_Assert(cx < NUM_CHUNKS_X);
+    LT_Assert(cy < NUM_CHUNKS_Y);
+    LT_Assert(cz < NUM_CHUNKS_Z);
+
+    if (!chunk_ptrs[cx][cy][cz])
+    {
+        logger.log("CHUNK IS NULL: cx = ", cx, ", cy = ", cy, ", cz = ", cz);
+        LT_Panic("AHAHAHAH");
+    }
 
     return chunk_ptrs[cx][cy][cz]->blocks[bx][by][bz] != BlockType_Air;
 }
@@ -286,21 +310,16 @@ Landscape::initialize_chunks()
                 const Vec3f chunk_origin = get_chunk_origin(cx, cy, cz);
                 Chunk *chunk = memory::allocate_and_construct<Chunk>(m_chunks_allocator,
                                                                      chunk_origin, &vao_array);
-                // Chunk *chunk = new Chunk(chunk_origin, &vao_array);
+                chunk_ptrs[cx][cy][cz] = ChunkPtr(
+                    chunk, std::bind(&Landscape::chunk_deleter, this, _1)
+                );
                 do_chunk_generation_work(chunk);
-
-                chunk_ptrs[cx][cy][cz] = ChunkPtr(chunk,
-                                                  std::bind(&Landscape::chunk_deleter, this, _1));
-                // chunk_ptrs[cx][cy][cz] = ChunkPtr(chunk);
-
             }
 }
 
 std::vector<Vertex_PLN>
 Landscape::update_chunk_buffer(Chunk *chunk)
 {
-    // std::lock_guard<decltype(chunks_mutex)> chunks_lock(chunks_mutex);
-
     LT_Assert(chunk);
 
     const i32 cx = (i32)(chunk->origin.x - origin.x) / Chunk::SIZE;
@@ -358,13 +377,13 @@ Landscape::update_chunk_buffer(Chunk *chunk)
                         (aby == TOTAL_BLOCKS_Y-1) ||
                         !block_exists(abx, aby+1, abz);
 
-                    const bool should_render_front_face =
-                        (abz == TOTAL_BLOCKS_Z-1) ||
-                        !block_exists(abx, aby, abz+1);
-
                     const bool should_render_bottom_face =
                         (aby == 0) ||
                         !block_exists(abx, aby-1, abz);
+
+                    const bool should_render_front_face =
+                        (abz == TOTAL_BLOCKS_Z-1) ||
+                        !block_exists(abx, aby, abz+1);
 
                     const bool should_render_back_face =
                         (abz == 0) ||
@@ -644,7 +663,7 @@ ChunkNoise *
 Landscape::fill_noise_map_for_chunk_column(f32 origin_x, f32 origin_z)
 {
     //
-    // TODO: remove heap allocated buffer for better performance.
+    // PERFORMANCE: remove heap allocated buffer for better performance.
     //
     auto chunk_noise = new ChunkNoise();
     LT_Assert(chunk_noise);
@@ -711,7 +730,7 @@ Landscape::generate()
     for (i32 cx = 0; cx < NUM_CHUNKS_X; cx++)
         for (i32 cz = 0; cz < NUM_CHUNKS_Z; cz++)
         {
-            chunks_mutex.lock_low_priority(); // LOCK
+            chunks_mutex.lock_high_priority(); // LOCK
 
             Chunk *chunk = chunk_ptrs[cx][0][cz].get();
             LT_Assert(chunk);
@@ -732,7 +751,7 @@ Landscape::generate()
                     }
                 }
 
-            chunks_mutex.unlock_low_priority(); // UNLOCK
+            chunks_mutex.unlock_high_priority(); // UNLOCK
             delete[] chunk_noise;
         }
 
@@ -740,13 +759,13 @@ Landscape::generate()
         for (i32 cy = 0; cy < NUM_CHUNKS_Y; cy++)
             for (i32 cz = 0; cz < NUM_CHUNKS_Z; cz++)
             {
-                chunks_mutex.lock_low_priority(); // LOCK
+                chunks_mutex.lock_high_priority(); // LOCK
 
                 Chunk *chunk = chunk_ptrs[cx][cy][cz].get();
                 chunk->create_request();
                 m_chunks_to_process_queue.insert(chunk->request);
 
-                chunks_mutex.unlock_low_priority(); // UNLOCK
+                chunks_mutex.unlock_high_priority(); // UNLOCK
             }
 }
 
@@ -795,7 +814,7 @@ Landscape::run_worker_thread()
             if (!request->chunk)
             {
                 // TODO: If chunk is null, it means the request was cancelled, so it should be ignored.
-                LT_Panic("THIS SHOULD NOT HAPPEN YET");
+                chunks_mutex.unlock_low_priority(); // UNLOCK
                 continue;
             }
 
@@ -869,12 +888,10 @@ Landscape::Chunk::create_request()
 }
 
 void
-Landscape::Chunk::cancel_request(ChunksMutex &chunks_mutex)
+Landscape::Chunk::cancel_request()
 {
-    chunks_mutex.lock_low_priority(); // LOCK
     if (request && request->chunk)
         request->chunk = nullptr;
-    chunks_mutex.unlock_low_priority(); // UNLOCK
 }
 
 // ----------------------------------------------------------------------------------------------

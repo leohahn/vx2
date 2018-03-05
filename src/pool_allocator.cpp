@@ -52,6 +52,7 @@ memory::PoolAllocator::allocate(usize size)
     if (!m_free_list)
     {
         LT_Panic("Memory not available.");
+        return nullptr;
     }
 
     // Take first element of the list.

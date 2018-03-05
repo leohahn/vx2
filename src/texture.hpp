@@ -38,7 +38,7 @@ enum TextureType
 struct Texture
 {
     Texture(TextureType type, TextureFormat tf, PixelFormat pf)
-        : id(0), type(type), texture_format(tf), pixel_format(pf)
+        : id(0), type(type), texture_format(tf), pixel_format(pf) , m_is_loaded(false)
     {}
     virtual ~Texture() {}
 
