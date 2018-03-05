@@ -167,7 +167,6 @@ public:
         BlockType blocks[NUM_BLOCKS_PER_AXIS][NUM_BLOCKS_PER_AXIS][NUM_BLOCKS_PER_AXIS];
         Vec3f     origin;
         isize     entry_index;
-        std::atomic_bool outdated; // Signals that the chunk's buffer must be updated.
         std::shared_ptr<QueueRequest> request;
     private:
         VAOArray *m_vao_array;

@@ -61,11 +61,6 @@ Landscape::get_chunk_origin(i32 cx, i32 cy, i32 cz)
 void
 Landscape::update(const Camera &camera)
 {
-    // ===============================================================================
-    // TODO: The walls on the borders of the map should not be rendered.
-    // When a new section of the map is rendered, theses walls should be created again.
-    // ===============================================================================
-
     // See which chunks where already loaded by the different threads and
     // pass the vertex data to the gpu if so happened.
     {
@@ -88,7 +83,6 @@ Landscape::update(const Camera &camera)
                 continue;
             }
 
-            request->chunk->outdated = false;
             auto &entry = vao_array.vaos[request->chunk->entry_index];
             entry.num_vertices_used = request->vertexes.size();
 
@@ -137,6 +131,9 @@ Landscape::update(const Camera &camera)
 
                             chunk->create_request();
                             m_chunks_to_process_queue.insert(chunk->request);
+
+                            chunk_ptrs[cx-1][cy][cz]->create_request();
+                            m_chunks_to_process_queue.insert(chunk_ptrs[cx-1][cy][cz]->request);
                         }
                     }
                     else
@@ -179,6 +176,9 @@ Landscape::update(const Camera &camera)
                             do_chunk_generation_work(chunk);
                             chunk->create_request();
                             m_chunks_to_process_queue.insert(chunk->request);
+
+                            chunk_ptrs[cx+1][cy][cz]->create_request();
+                            m_chunks_to_process_queue.insert(chunk_ptrs[cx+1][cy][cz]->request);
                         }
                     }
                     else
@@ -221,6 +221,9 @@ Landscape::update(const Camera &camera)
                             do_chunk_generation_work(chunk);
                             chunk->create_request();
                             m_chunks_to_process_queue.insert(chunk->request);
+
+                            chunk_ptrs[cx][cy][cz-1]->create_request();
+                            m_chunks_to_process_queue.insert(chunk_ptrs[cx][cy][cz-1]->request);
                         }
                     }
                     else
@@ -262,6 +265,9 @@ Landscape::update(const Camera &camera)
                             do_chunk_generation_work(chunk);
                             chunk->create_request();
                             m_chunks_to_process_queue.insert(chunk->request);
+
+                            chunk_ptrs[cx][cy][cz+1]->create_request();
+                            m_chunks_to_process_queue.insert(chunk_ptrs[cx][cy][cz+1]->request);
                         }
                     }
                     else
@@ -337,327 +343,324 @@ Landscape::update_chunk_buffer(Chunk *chunk)
     std::vector<Vertex_PLN> chunk_vertices;
 
     // If chunk is not outdated, avoid updating the vertexes.
-    if (chunk->outdated)
-    {
-        const Vec3f pos_x_offset(Chunk::BLOCK_SIZE, 0, 0);
-        const Vec3f pos_y_offset(0, Chunk::BLOCK_SIZE, 0);
-        const Vec3f pos_z_offset(0, 0, Chunk::BLOCK_SIZE);
+    const Vec3f pos_x_offset(Chunk::BLOCK_SIZE, 0, 0);
+    const Vec3f pos_y_offset(0, Chunk::BLOCK_SIZE, 0);
+    const Vec3f pos_z_offset(0, 0, Chunk::BLOCK_SIZE);
 
-        for (i32 bx = 0; bx < Chunk::NUM_BLOCKS_PER_AXIS; bx++)
-            for (i32 by = 0; by < Chunk::NUM_BLOCKS_PER_AXIS; by++)
-                for (i32 bz = 0; bz < Chunk::NUM_BLOCKS_PER_AXIS; bz++)
+    for (i32 bx = 0; bx < Chunk::NUM_BLOCKS_PER_AXIS; bx++)
+        for (i32 by = 0; by < Chunk::NUM_BLOCKS_PER_AXIS; by++)
+            for (i32 bz = 0; bz < Chunk::NUM_BLOCKS_PER_AXIS; bz++)
+            {
+                // Absolute indexes for the block.
+                const i32 abx = cx*Chunk::NUM_BLOCKS_PER_AXIS + bx;
+                const i32 aby = cy*Chunk::NUM_BLOCKS_PER_AXIS + by;
+                const i32 abz = cz*Chunk::NUM_BLOCKS_PER_AXIS + bz;
+
+                const BlockType block_type = chunk->blocks[bx][by][bz];
+                if (block_type == BlockType_Air)
+                    continue;
+
+                // Where the block is located in world space.
+                const Vec3f block_origin = get_world_coords(*chunk, bx, by, bz);
+
+                // All possible vertices of the block.
+                const Vec3f left_bottom_back = block_origin;
+                const Vec3f left_bottom_front = left_bottom_back + pos_z_offset;
+                const Vec3f left_top_front = left_bottom_front + pos_y_offset;
+                const Vec3f left_top_back = left_top_front - pos_z_offset;
+                const Vec3f right_bottom_back = left_bottom_back + pos_x_offset;
+                const Vec3f right_top_back = right_bottom_back + pos_y_offset;
+                const Vec3f right_top_front = right_top_back + pos_z_offset;
+                const Vec3f right_bottom_front = right_top_front - pos_y_offset;
+
+                // Check faces to render
+                const bool should_render_left_face =
+                    (abx == 0) ||
+                    !block_exists(abx-1, aby, abz);
+
+                const bool should_render_right_face =
+                    (abx == TOTAL_BLOCKS_X-1) ||
+                    !block_exists(abx+1, aby, abz);
+
+                const bool should_render_top_face =
+                    (aby == TOTAL_BLOCKS_Y-1) ||
+                    !block_exists(abx, aby+1, abz);
+
+                const bool should_render_bottom_face =
+                    (aby == 0) ||
+                    !block_exists(abx, aby-1, abz);
+
+                const bool should_render_front_face =
+                    (abz == TOTAL_BLOCKS_Z-1) ||
+                    !block_exists(abx, aby, abz+1);
+
+                const bool should_render_back_face =
+                    (abz == 0) ||
+                    !block_exists(abx, aby, abz-1);
+
+                // TODO: Figure out a better way of mixing and matching different
+                // block textures.
+                i32 sides_layer = -1;
+                i32 top_layer = -1;
+                i32 bottom_layer = -1;
+                if (aby > Landscape::TOTAL_BLOCKS_Y - 30)
                 {
-                    // Absolute indexes for the block.
-                    const i32 abx = cx*Chunk::NUM_BLOCKS_PER_AXIS + bx;
-                    const i32 aby = cy*Chunk::NUM_BLOCKS_PER_AXIS + by;
-                    const i32 abz = cz*Chunk::NUM_BLOCKS_PER_AXIS + bz;
-
-                    const BlockType block_type = chunk->blocks[bx][by][bz];
-                    if (block_type == BlockType_Air)
-                        continue;
-
-                    // Where the block is located in world space.
-                    const Vec3f block_origin = get_world_coords(*chunk, bx, by, bz);
-
-                    // All possible vertices of the block.
-                    const Vec3f left_bottom_back = block_origin;
-                    const Vec3f left_bottom_front = left_bottom_back + pos_z_offset;
-                    const Vec3f left_top_front = left_bottom_front + pos_y_offset;
-                    const Vec3f left_top_back = left_top_front - pos_z_offset;
-                    const Vec3f right_bottom_back = left_bottom_back + pos_x_offset;
-                    const Vec3f right_top_back = right_bottom_back + pos_y_offset;
-                    const Vec3f right_top_front = right_top_back + pos_z_offset;
-                    const Vec3f right_bottom_front = right_top_front - pos_y_offset;
-
-                    // Check faces to render
-                    const bool should_render_left_face =
-                        (abx == 0) ||
-                        !block_exists(abx-1, aby, abz);
-
-                    const bool should_render_right_face =
-                        (abx == TOTAL_BLOCKS_X-1) ||
-                        !block_exists(abx+1, aby, abz);
-
-                    const bool should_render_top_face =
-                        (aby == TOTAL_BLOCKS_Y-1) ||
-                        !block_exists(abx, aby+1, abz);
-
-                    const bool should_render_bottom_face =
-                        (aby == 0) ||
-                        !block_exists(abx, aby-1, abz);
-
-                    const bool should_render_front_face =
-                        (abz == TOTAL_BLOCKS_Z-1) ||
-                        !block_exists(abx, aby, abz+1);
-
-                    const bool should_render_back_face =
-                        (abz == 0) ||
-                        !block_exists(abx, aby, abz-1);
-
-                    // TODO: Figure out a better way of mixing and matching different
-                    // block textures.
-                    i32 sides_layer = -1;
-                    i32 top_layer = -1;
-                    i32 bottom_layer = -1;
-                    if (aby > Landscape::TOTAL_BLOCKS_Y - 30)
-                    {
-                        sides_layer = (should_render_top_face)
-                            ? BlocksTextureInfo::Snow_Sides_Top
-                            : BlocksTextureInfo::Snow_Sides;
-                        top_layer = BlocksTextureInfo::Snow_Top;
-                        bottom_layer = BlocksTextureInfo::Snow_Bottom;
-                    }
-                    else
-                    {
-                        sides_layer = (should_render_top_face)
-                            ? BlocksTextureInfo::Earth_Sides_Top
-                            : BlocksTextureInfo::Earth_Sides;
-                        top_layer = BlocksTextureInfo::Earth_Top;
-                        bottom_layer = BlocksTextureInfo::Earth_Bottom;
-                    }
-
-                    // Left face ------------------------------------------------------
-                    if (should_render_left_face)
-                    {
-                        Vertex_PLN v1 = {};
-                        v1.position   = left_bottom_back;
-                        v1.tex_coords_layer = Vec3f(0, 0, sides_layer);
-                        v1.normal   = Vec3f(-1, 0, 0);
-
-                        Vertex_PLN v2 = {};
-                        v2.position   = left_bottom_front;
-                        v2.tex_coords_layer = Vec3f(1, 0, sides_layer);
-                        v2.normal   = Vec3f(-1, 0, 0);
-
-                        Vertex_PLN v3 = {};
-                        v3.position   = left_top_front;
-                        v3.tex_coords_layer = Vec3f(1, 1, sides_layer);
-                        v3.normal   = Vec3f(-1, 0, 0);
-
-                        Vertex_PLN v4 = {};
-                        v4.position   = left_top_front;
-                        v4.tex_coords_layer = Vec3f(1, 1, sides_layer);
-                        v4.normal   = Vec3f(-1, 0, 0);
-
-                        Vertex_PLN v5 = {};
-                        v5.position   = left_top_back;
-                        v5.tex_coords_layer = Vec3f(0, 1, sides_layer);
-                        v5.normal   = Vec3f(-1, 0, 0);
-
-                        Vertex_PLN v6 = {};
-                        v6.position   = left_bottom_back;
-                        v6.tex_coords_layer = Vec3f(0, 0, sides_layer);
-                        v6.normal   = Vec3f(-1, 0, 0);
-
-                        chunk_vertices.push_back(v1);
-                        chunk_vertices.push_back(v2);
-                        chunk_vertices.push_back(v3);
-                        chunk_vertices.push_back(v4);
-                        chunk_vertices.push_back(v5);
-                        chunk_vertices.push_back(v6);
-                    }
-                    // Right face -----------------------------------------------------
-                    if (should_render_right_face)
-                    {
-                        Vertex_PLN v1 = {};
-                        v1.position   = right_bottom_back;
-                        v1.tex_coords_layer = Vec3f(0, 0, sides_layer);
-                        v1.normal   = Vec3f(1, 0, 0);
-
-                        Vertex_PLN v2 = {};
-                        v2.position   = right_top_back;
-                        v2.tex_coords_layer = Vec3f(0, 1, sides_layer);
-                        v2.normal   = Vec3f(1, 0, 0);
-
-                        Vertex_PLN v3 = {};
-                        v3.position   = right_top_front;
-                        v3.tex_coords_layer = Vec3f(1, 1, sides_layer);
-                        v3.normal     = Vec3f(1, 0, 0);
-
-                        Vertex_PLN v4 = {};
-                        v4.position   = right_top_front;
-                        v4.tex_coords_layer = Vec3f(1, 1, sides_layer);
-                        v4.normal     = Vec3f(1, 0, 0);
-
-                        Vertex_PLN v5 = {};
-                        v5.position   = right_bottom_front;
-                        v5.tex_coords_layer = Vec3f(1, 0, sides_layer);
-                        v5.normal   = Vec3f(1, 0, 0);
-
-                        Vertex_PLN v6 = {};
-                        v6.position   = right_bottom_back;
-                        v6.tex_coords_layer = Vec3f(0, 0, sides_layer);
-                        v6.normal   = Vec3f(1, 0, 0);
-
-                        chunk_vertices.push_back(v1);
-                        chunk_vertices.push_back(v2);
-                        chunk_vertices.push_back(v3);
-                        chunk_vertices.push_back(v4);
-                        chunk_vertices.push_back(v5);
-                        chunk_vertices.push_back(v6);
-                    }
-                    // Top face --------------------------------------------------------
-                    if (should_render_top_face)
-                    {
-                        Vertex_PLN v1 = {};
-                        v1.position   = left_top_front;
-                        v1.tex_coords_layer = Vec3f(0, 0, top_layer);
-                        v1.normal   = Vec3f(0, 1, 0);
-
-                        Vertex_PLN v2 = {};
-                        v2.position   = right_top_front;
-                        v2.tex_coords_layer = Vec3f(1, 0, top_layer);
-                        v2.normal   = Vec3f(0, 1, 0);
-
-                        Vertex_PLN v3 = {};
-                        v3.position   = right_top_back;
-                        v3.tex_coords_layer = Vec3f(1, 1, top_layer);
-                        v3.normal   = Vec3f(0, 1, 0);
-
-                        Vertex_PLN v4 = {};
-                        v4.position   = right_top_back;
-                        v4.tex_coords_layer = Vec3f(1, 1, top_layer);
-                        v4.normal   = Vec3f(0, 1, 0);
-
-                        Vertex_PLN v5 = {};
-                        v5.position   = left_top_back;
-                        v5.tex_coords_layer = Vec3f(0, 1, top_layer);
-                        v5.normal   = Vec3f(0, 1, 0);
-
-                        Vertex_PLN v6 = {};
-                        v6.position   = left_top_front;
-                        v6.tex_coords_layer = Vec3f(0, 0, top_layer);
-                        v6.normal   = Vec3f(0, 1, 0);
-
-                        chunk_vertices.push_back(v1);
-                        chunk_vertices.push_back(v2);
-                        chunk_vertices.push_back(v3);
-                        chunk_vertices.push_back(v4);
-                        chunk_vertices.push_back(v5);
-                        chunk_vertices.push_back(v6);
-                    }
-                    // Bottom face -----------------------------------------------------
-                    if (should_render_bottom_face)
-                    {
-                        Vertex_PLN v1 = {};
-                        v1.position   = left_bottom_back;
-                        v1.tex_coords_layer = Vec3f(0, 0, bottom_layer);
-                        v1.normal   = Vec3f(0, -1, 0);
-
-                        Vertex_PLN v2 = {};
-                        v2.position   = right_bottom_back;
-                        v2.tex_coords_layer = Vec3f(1, 0, bottom_layer);
-                        v2.normal   = Vec3f(0, -1, 0);
-
-                        Vertex_PLN v3 = {};
-                        v3.position   = right_bottom_front;
-                        v3.tex_coords_layer = Vec3f(1, 1, bottom_layer);
-                        v3.normal   = Vec3f(0, -1, 0);
-
-                        Vertex_PLN v4 = {};
-                        v4.position   = right_bottom_front;
-                        v4.tex_coords_layer = Vec3f(1, 1, bottom_layer);
-                        v4.normal   = Vec3f(0, -1, 0);
-
-                        Vertex_PLN v5 = {};
-                        v5.position   = left_bottom_front;
-                        v5.tex_coords_layer = Vec3f(0, 1, bottom_layer);
-                        v5.normal   = Vec3f(0, -1, 0);
-
-                        Vertex_PLN v6 = {};
-                        v6.position   = left_bottom_back;
-                        v6.tex_coords_layer = Vec3f(0, 0, bottom_layer);
-                        v6.normal   = Vec3f(0, -1, 0);
-
-                        chunk_vertices.push_back(v1);
-                        chunk_vertices.push_back(v2);
-                        chunk_vertices.push_back(v3);
-                        chunk_vertices.push_back(v4);
-                        chunk_vertices.push_back(v5);
-                        chunk_vertices.push_back(v6);
-                    }
-                    // Front face -------------------------------------------------------
-                    if (should_render_front_face)
-                    {
-                        Vertex_PLN v1 = {};
-                        v1.position   = left_bottom_front;
-                        v1.tex_coords_layer = Vec3f(0, 0, sides_layer);
-                        v1.normal   = Vec3f(0, 0, 1);
-
-                        Vertex_PLN v2 = {};
-                        v2.position   = right_bottom_front;
-                        v2.tex_coords_layer = Vec3f(1, 0, sides_layer);
-                        v2.normal   = Vec3f(0, 0, 1);
-
-                        Vertex_PLN v3 = {};
-                        v3.position   = right_top_front;
-                        v3.tex_coords_layer = Vec3f(1, 1, sides_layer);
-                        v3.normal   = Vec3f(0, 0, 1);
-
-                        Vertex_PLN v4 = {};
-                        v4.position   = right_top_front;
-                        v4.tex_coords_layer = Vec3f(1, 1, sides_layer);
-                        v4.normal   = Vec3f(0, 0, 1);
-
-                        Vertex_PLN v5 = {};
-                        v5.position   = left_top_front;
-                        v5.tex_coords_layer = Vec3f(0, 1, sides_layer);
-                        v5.normal   = Vec3f(0, 0, 1);
-
-                        Vertex_PLN v6 = {};
-                        v6.position   = left_bottom_front;
-                        v6.tex_coords_layer = Vec3f(0, 0, sides_layer);
-                        v6.normal   = Vec3f(0, 0, 1);
-
-                        chunk_vertices.push_back(v1);
-                        chunk_vertices.push_back(v2);
-                        chunk_vertices.push_back(v3);
-                        chunk_vertices.push_back(v4);
-                        chunk_vertices.push_back(v5);
-                        chunk_vertices.push_back(v6);
-                    }
-                    // Back face --------------------------------------------------------
-                    if (should_render_back_face)
-                    {
-                        Vertex_PLN v1 = {};
-                        v1.position   = right_bottom_back;
-                        v1.tex_coords_layer = Vec3f(0, 0, sides_layer);
-                        v1.normal   = Vec3f(0, 0, -1);
-
-                        Vertex_PLN v2 = {};
-                        v2.position   = left_bottom_back;
-                        v2.tex_coords_layer = Vec3f(1, 0, sides_layer);
-                        v2.normal   = Vec3f(0, 0, -1);
-
-                        Vertex_PLN v3 = {};
-                        v3.position   = left_top_back;
-                        v3.tex_coords_layer = Vec3f(1, 1, sides_layer);
-                        v3.normal   = Vec3f(0, 0, -1);
-
-                        Vertex_PLN v4 = {};
-                        v4.position   = left_top_back;
-                        v4.tex_coords_layer = Vec3f(1, 1, sides_layer);
-                        v4.normal   = Vec3f(0, 0, -1);
-
-                        Vertex_PLN v5 = {};
-                        v5.position   = right_top_back;
-                        v5.tex_coords_layer = Vec3f(0, 1, sides_layer);
-                        v5.normal   = Vec3f(0, 0, -1);
-
-                        Vertex_PLN v6 = {};
-                        v6.position   = right_bottom_back;
-                        v6.tex_coords_layer = Vec3f(0, 0, sides_layer);
-                        v6.normal   = Vec3f(0, 0, -1);
-
-                        chunk_vertices.push_back(v1);
-                        chunk_vertices.push_back(v2);
-                        chunk_vertices.push_back(v3);
-                        chunk_vertices.push_back(v4);
-                        chunk_vertices.push_back(v5);
-                        chunk_vertices.push_back(v6);
-                    }
+                    sides_layer = (should_render_top_face)
+                        ? BlocksTextureInfo::Snow_Sides_Top
+                        : BlocksTextureInfo::Snow_Sides;
+                    top_layer = BlocksTextureInfo::Snow_Top;
+                    bottom_layer = BlocksTextureInfo::Snow_Bottom;
                 }
-    }
+                else
+                {
+                    sides_layer = (should_render_top_face)
+                        ? BlocksTextureInfo::Earth_Sides_Top
+                        : BlocksTextureInfo::Earth_Sides;
+                    top_layer = BlocksTextureInfo::Earth_Top;
+                    bottom_layer = BlocksTextureInfo::Earth_Bottom;
+                }
+
+                // Left face ------------------------------------------------------
+                if (should_render_left_face)
+                {
+                    Vertex_PLN v1 = {};
+                    v1.position   = left_bottom_back;
+                    v1.tex_coords_layer = Vec3f(0, 0, sides_layer);
+                    v1.normal   = Vec3f(-1, 0, 0);
+
+                    Vertex_PLN v2 = {};
+                    v2.position   = left_bottom_front;
+                    v2.tex_coords_layer = Vec3f(1, 0, sides_layer);
+                    v2.normal   = Vec3f(-1, 0, 0);
+
+                    Vertex_PLN v3 = {};
+                    v3.position   = left_top_front;
+                    v3.tex_coords_layer = Vec3f(1, 1, sides_layer);
+                    v3.normal   = Vec3f(-1, 0, 0);
+
+                    Vertex_PLN v4 = {};
+                    v4.position   = left_top_front;
+                    v4.tex_coords_layer = Vec3f(1, 1, sides_layer);
+                    v4.normal   = Vec3f(-1, 0, 0);
+
+                    Vertex_PLN v5 = {};
+                    v5.position   = left_top_back;
+                    v5.tex_coords_layer = Vec3f(0, 1, sides_layer);
+                    v5.normal   = Vec3f(-1, 0, 0);
+
+                    Vertex_PLN v6 = {};
+                    v6.position   = left_bottom_back;
+                    v6.tex_coords_layer = Vec3f(0, 0, sides_layer);
+                    v6.normal   = Vec3f(-1, 0, 0);
+
+                    chunk_vertices.push_back(v1);
+                    chunk_vertices.push_back(v2);
+                    chunk_vertices.push_back(v3);
+                    chunk_vertices.push_back(v4);
+                    chunk_vertices.push_back(v5);
+                    chunk_vertices.push_back(v6);
+                }
+                // Right face -----------------------------------------------------
+                if (should_render_right_face)
+                {
+                    Vertex_PLN v1 = {};
+                    v1.position   = right_bottom_back;
+                    v1.tex_coords_layer = Vec3f(0, 0, sides_layer);
+                    v1.normal   = Vec3f(1, 0, 0);
+
+                    Vertex_PLN v2 = {};
+                    v2.position   = right_top_back;
+                    v2.tex_coords_layer = Vec3f(0, 1, sides_layer);
+                    v2.normal   = Vec3f(1, 0, 0);
+
+                    Vertex_PLN v3 = {};
+                    v3.position   = right_top_front;
+                    v3.tex_coords_layer = Vec3f(1, 1, sides_layer);
+                    v3.normal     = Vec3f(1, 0, 0);
+
+                    Vertex_PLN v4 = {};
+                    v4.position   = right_top_front;
+                    v4.tex_coords_layer = Vec3f(1, 1, sides_layer);
+                    v4.normal     = Vec3f(1, 0, 0);
+
+                    Vertex_PLN v5 = {};
+                    v5.position   = right_bottom_front;
+                    v5.tex_coords_layer = Vec3f(1, 0, sides_layer);
+                    v5.normal   = Vec3f(1, 0, 0);
+
+                    Vertex_PLN v6 = {};
+                    v6.position   = right_bottom_back;
+                    v6.tex_coords_layer = Vec3f(0, 0, sides_layer);
+                    v6.normal   = Vec3f(1, 0, 0);
+
+                    chunk_vertices.push_back(v1);
+                    chunk_vertices.push_back(v2);
+                    chunk_vertices.push_back(v3);
+                    chunk_vertices.push_back(v4);
+                    chunk_vertices.push_back(v5);
+                    chunk_vertices.push_back(v6);
+                }
+                // Top face --------------------------------------------------------
+                if (should_render_top_face)
+                {
+                    Vertex_PLN v1 = {};
+                    v1.position   = left_top_front;
+                    v1.tex_coords_layer = Vec3f(0, 0, top_layer);
+                    v1.normal   = Vec3f(0, 1, 0);
+
+                    Vertex_PLN v2 = {};
+                    v2.position   = right_top_front;
+                    v2.tex_coords_layer = Vec3f(1, 0, top_layer);
+                    v2.normal   = Vec3f(0, 1, 0);
+
+                    Vertex_PLN v3 = {};
+                    v3.position   = right_top_back;
+                    v3.tex_coords_layer = Vec3f(1, 1, top_layer);
+                    v3.normal   = Vec3f(0, 1, 0);
+
+                    Vertex_PLN v4 = {};
+                    v4.position   = right_top_back;
+                    v4.tex_coords_layer = Vec3f(1, 1, top_layer);
+                    v4.normal   = Vec3f(0, 1, 0);
+
+                    Vertex_PLN v5 = {};
+                    v5.position   = left_top_back;
+                    v5.tex_coords_layer = Vec3f(0, 1, top_layer);
+                    v5.normal   = Vec3f(0, 1, 0);
+
+                    Vertex_PLN v6 = {};
+                    v6.position   = left_top_front;
+                    v6.tex_coords_layer = Vec3f(0, 0, top_layer);
+                    v6.normal   = Vec3f(0, 1, 0);
+
+                    chunk_vertices.push_back(v1);
+                    chunk_vertices.push_back(v2);
+                    chunk_vertices.push_back(v3);
+                    chunk_vertices.push_back(v4);
+                    chunk_vertices.push_back(v5);
+                    chunk_vertices.push_back(v6);
+                }
+                // Bottom face -----------------------------------------------------
+                if (should_render_bottom_face)
+                {
+                    Vertex_PLN v1 = {};
+                    v1.position   = left_bottom_back;
+                    v1.tex_coords_layer = Vec3f(0, 0, bottom_layer);
+                    v1.normal   = Vec3f(0, -1, 0);
+
+                    Vertex_PLN v2 = {};
+                    v2.position   = right_bottom_back;
+                    v2.tex_coords_layer = Vec3f(1, 0, bottom_layer);
+                    v2.normal   = Vec3f(0, -1, 0);
+
+                    Vertex_PLN v3 = {};
+                    v3.position   = right_bottom_front;
+                    v3.tex_coords_layer = Vec3f(1, 1, bottom_layer);
+                    v3.normal   = Vec3f(0, -1, 0);
+
+                    Vertex_PLN v4 = {};
+                    v4.position   = right_bottom_front;
+                    v4.tex_coords_layer = Vec3f(1, 1, bottom_layer);
+                    v4.normal   = Vec3f(0, -1, 0);
+
+                    Vertex_PLN v5 = {};
+                    v5.position   = left_bottom_front;
+                    v5.tex_coords_layer = Vec3f(0, 1, bottom_layer);
+                    v5.normal   = Vec3f(0, -1, 0);
+
+                    Vertex_PLN v6 = {};
+                    v6.position   = left_bottom_back;
+                    v6.tex_coords_layer = Vec3f(0, 0, bottom_layer);
+                    v6.normal   = Vec3f(0, -1, 0);
+
+                    chunk_vertices.push_back(v1);
+                    chunk_vertices.push_back(v2);
+                    chunk_vertices.push_back(v3);
+                    chunk_vertices.push_back(v4);
+                    chunk_vertices.push_back(v5);
+                    chunk_vertices.push_back(v6);
+                }
+                // Front face -------------------------------------------------------
+                if (should_render_front_face)
+                {
+                    Vertex_PLN v1 = {};
+                    v1.position   = left_bottom_front;
+                    v1.tex_coords_layer = Vec3f(0, 0, sides_layer);
+                    v1.normal   = Vec3f(0, 0, 1);
+
+                    Vertex_PLN v2 = {};
+                    v2.position   = right_bottom_front;
+                    v2.tex_coords_layer = Vec3f(1, 0, sides_layer);
+                    v2.normal   = Vec3f(0, 0, 1);
+
+                    Vertex_PLN v3 = {};
+                    v3.position   = right_top_front;
+                    v3.tex_coords_layer = Vec3f(1, 1, sides_layer);
+                    v3.normal   = Vec3f(0, 0, 1);
+
+                    Vertex_PLN v4 = {};
+                    v4.position   = right_top_front;
+                    v4.tex_coords_layer = Vec3f(1, 1, sides_layer);
+                    v4.normal   = Vec3f(0, 0, 1);
+
+                    Vertex_PLN v5 = {};
+                    v5.position   = left_top_front;
+                    v5.tex_coords_layer = Vec3f(0, 1, sides_layer);
+                    v5.normal   = Vec3f(0, 0, 1);
+
+                    Vertex_PLN v6 = {};
+                    v6.position   = left_bottom_front;
+                    v6.tex_coords_layer = Vec3f(0, 0, sides_layer);
+                    v6.normal   = Vec3f(0, 0, 1);
+
+                    chunk_vertices.push_back(v1);
+                    chunk_vertices.push_back(v2);
+                    chunk_vertices.push_back(v3);
+                    chunk_vertices.push_back(v4);
+                    chunk_vertices.push_back(v5);
+                    chunk_vertices.push_back(v6);
+                }
+                // Back face --------------------------------------------------------
+                if (should_render_back_face)
+                {
+                    Vertex_PLN v1 = {};
+                    v1.position   = right_bottom_back;
+                    v1.tex_coords_layer = Vec3f(0, 0, sides_layer);
+                    v1.normal   = Vec3f(0, 0, -1);
+
+                    Vertex_PLN v2 = {};
+                    v2.position   = left_bottom_back;
+                    v2.tex_coords_layer = Vec3f(1, 0, sides_layer);
+                    v2.normal   = Vec3f(0, 0, -1);
+
+                    Vertex_PLN v3 = {};
+                    v3.position   = left_top_back;
+                    v3.tex_coords_layer = Vec3f(1, 1, sides_layer);
+                    v3.normal   = Vec3f(0, 0, -1);
+
+                    Vertex_PLN v4 = {};
+                    v4.position   = left_top_back;
+                    v4.tex_coords_layer = Vec3f(1, 1, sides_layer);
+                    v4.normal   = Vec3f(0, 0, -1);
+
+                    Vertex_PLN v5 = {};
+                    v5.position   = right_top_back;
+                    v5.tex_coords_layer = Vec3f(0, 1, sides_layer);
+                    v5.normal   = Vec3f(0, 0, -1);
+
+                    Vertex_PLN v6 = {};
+                    v6.position   = right_bottom_back;
+                    v6.tex_coords_layer = Vec3f(0, 0, sides_layer);
+                    v6.normal   = Vec3f(0, 0, -1);
+
+                    chunk_vertices.push_back(v1);
+                    chunk_vertices.push_back(v2);
+                    chunk_vertices.push_back(v3);
+                    chunk_vertices.push_back(v4);
+                    chunk_vertices.push_back(v5);
+                    chunk_vertices.push_back(v6);
+                }
+            }
     return chunk_vertices;
 }
 
@@ -884,7 +887,6 @@ Landscape::chunk_deleter(Chunk *chunk)
 
 Landscape::Chunk::Chunk(Vec3f origin, VAOArray *va, BlockType fill_type)
     : origin(origin)
-    , outdated(true) // starts outdated so it can be initially rendered as the game starts.
     , request(nullptr)
     , m_vao_array(va)
 {
