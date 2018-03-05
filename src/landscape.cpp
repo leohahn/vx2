@@ -61,6 +61,11 @@ Landscape::get_chunk_origin(i32 cx, i32 cy, i32 cz)
 void
 Landscape::update(const Camera &camera)
 {
+    // ===============================================================================
+    // TODO: The walls on the borders of the map should not be rendered.
+    // When a new section of the map is rendered, theses walls should be created again.
+    // ===============================================================================
+
     // See which chunks where already loaded by the different threads and
     // pass the vertex data to the gpu if so happened.
     {
@@ -389,9 +394,27 @@ Landscape::update_chunk_buffer(Chunk *chunk)
                         (abz == 0) ||
                         !block_exists(abx, aby, abz-1);
 
-                    const i32 sides_layer = (should_render_top_face)
-                        ? BlocksTextureInfo::Snow_Sides_Top
-                        : BlocksTextureInfo::Snow_Sides;
+                    // TODO: Figure out a better way of mixing and matching different
+                    // block textures.
+                    i32 sides_layer = -1;
+                    i32 top_layer = -1;
+                    i32 bottom_layer = -1;
+                    if (aby > Landscape::TOTAL_BLOCKS_Y - 30)
+                    {
+                        sides_layer = (should_render_top_face)
+                            ? BlocksTextureInfo::Snow_Sides_Top
+                            : BlocksTextureInfo::Snow_Sides;
+                        top_layer = BlocksTextureInfo::Snow_Top;
+                        bottom_layer = BlocksTextureInfo::Snow_Bottom;
+                    }
+                    else
+                    {
+                        sides_layer = (should_render_top_face)
+                            ? BlocksTextureInfo::Earth_Sides_Top
+                            : BlocksTextureInfo::Earth_Sides;
+                        top_layer = BlocksTextureInfo::Earth_Top;
+                        bottom_layer = BlocksTextureInfo::Earth_Bottom;
+                    }
 
                     // Left face ------------------------------------------------------
                     if (should_render_left_face)
@@ -476,7 +499,6 @@ Landscape::update_chunk_buffer(Chunk *chunk)
                     // Top face --------------------------------------------------------
                     if (should_render_top_face)
                     {
-                        const i32 top_layer = BlocksTextureInfo::Snow_Top;
                         Vertex_PLN v1 = {};
                         v1.position   = left_top_front;
                         v1.tex_coords_layer = Vec3f(0, 0, top_layer);
@@ -517,7 +539,6 @@ Landscape::update_chunk_buffer(Chunk *chunk)
                     // Bottom face -----------------------------------------------------
                     if (should_render_bottom_face)
                     {
-                        const i32 bottom_layer = BlocksTextureInfo::Snow_Bottom;
                         Vertex_PLN v1 = {};
                         v1.position   = left_bottom_back;
                         v1.tex_coords_layer = Vec3f(0, 0, bottom_layer);
