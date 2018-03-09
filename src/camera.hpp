@@ -58,19 +58,12 @@ public:
     f32     move_speed;
     f32     rotation_speed;
     Vec3f   curr_direction;
-    Vec3f   curr_rotation_axis;
 
 private:
     void add_frame_movement(Direction dir);
-    void add_frame_rotation(RotationAxis axis);
 
-    inline void reset()
-    {
-        curr_direction = Vec3f(0);
-        curr_rotation_axis = Vec3f(0);
-    }
     inline void move() { frustum.position += (curr_direction * move_speed); }
-    void rotate();
+    void rotate(Vec3f axis, i32 times);
 };
 
 #endif // CAMERA_HPP

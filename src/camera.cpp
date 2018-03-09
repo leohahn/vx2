@@ -68,30 +68,9 @@ Camera::add_frame_movement(Direction dir)
 }
 
 void
-Camera::add_frame_rotation(RotationAxis axis)
-{
-    switch (axis)
-    {
-    case RotationAxis::Up:
-        curr_rotation_axis = lt::normalize(curr_rotation_axis + frustum.up.v);
-        break;
-    case RotationAxis::Down:
-        curr_rotation_axis = lt::normalize(curr_rotation_axis - frustum.up.v);
-        break;
-    case RotationAxis::Right:
-        curr_rotation_axis = lt::normalize(curr_rotation_axis + frustum.right.v);
-        break;
-    case RotationAxis::Left:
-        curr_rotation_axis = lt::normalize(curr_rotation_axis - frustum.right.v);
-        break;
-    default: LT_Assert(false);
-    }
-}
-
-void
 Camera::update(Input &input)
 {
-    reset();
+    curr_direction = Vec3f(0.0f);
 
     // Register the camera movements from buttons.
     if (input.keys[GLFW_KEY_A].is_pressed)
@@ -103,32 +82,42 @@ Camera::update(Input &input)
     if (input.keys[GLFW_KEY_W].is_pressed)
         add_frame_movement(Direction::Forwards);
 
-    // Register the camera rotation axis from the buttons
     if (input.keys[GLFW_KEY_S].is_pressed)
         add_frame_movement(Direction::Backwards);
 
-    if (input.keys[GLFW_KEY_RIGHT].is_pressed)
-        add_frame_rotation(RotationAxis::Down);
+    move();
 
-    if (input.keys[GLFW_KEY_LEFT].is_pressed)
-        add_frame_rotation(RotationAxis::Up);
+    const i32 xoffset = floor(input.mouse_state.xoffset);
+    const i32 yoffset = floor(input.mouse_state.yoffset);
 
-    if (input.keys[GLFW_KEY_UP].is_pressed)
-        add_frame_rotation(RotationAxis::Right);
+    if (xoffset < 0) // move left
+    {
+        rotate(frustum.up.v, -xoffset);
+    }
+    else if (xoffset > 0) // move right
+    {
+        rotate(-frustum.up.v, xoffset);
+    }
 
-    if (input.keys[GLFW_KEY_DOWN].is_pressed)
-        add_frame_rotation(RotationAxis::Left);
+    if (yoffset < 0) // move up
+    {
+        rotate(frustum.right.v, -yoffset);
+    }
+    else if (yoffset > 0) // move down
+    {
+        rotate(-frustum.right.v, yoffset);
+    }
 
     // Finally move and rotate the camera based on the previous added frame data.
-    move();
-    rotate();
     update_frustum_points(frustum);
 }
 
 void
-Camera::rotate()
+Camera::rotate(Vec3f axis, i32 times)
 {
-    const Quatf rotated_front = lt::rotate(frustum.front, rotation_speed, Quatf(0, curr_rotation_axis));
+    LT_Assert(times > 0);
+    const Quatf rotated_front = lt::rotate(frustum.front,
+                                           rotation_speed*times, Quatf(0, axis));
     frustum.front = rotated_front;
     update_frustum_right_and_up(frustum, up_world);
 }
@@ -140,10 +129,7 @@ Camera::interpolate(const Camera &previous, const Camera &current, f32 alpha)
     interpolated.frustum.position = previous.frustum.position +
         alpha*(current.frustum.position - previous.frustum.position);
 
-    if (previous.frustum.front == current.frustum.front)
-        interpolated.frustum.front = previous.frustum.front;
-    else
-        interpolated.frustum.front = lt::slerp(previous.frustum.front, current.frustum.front, alpha);
+    interpolated.frustum.front = lt::slerp(previous.frustum.front, current.frustum.front, alpha);
 
     update_frustum_right_and_up(interpolated.frustum, previous.up_world);
 

@@ -210,8 +210,10 @@ main()
                 min_frame_time = std::chrono::duration_cast<std::chrono::milliseconds>(frame_time);
         }
 
+        app.process_input();
+
         // Check if the window should close.
-        if (glfwWindowShouldClose(app.window))
+        if (app.should_close())
         {
             running = false;
             continue;
@@ -219,8 +221,6 @@ main()
 
         while (lag >= TIMESTEP)
         {
-            app.process_input();
-
             previous_world = current_world;
             current_world.update(app.input);
 

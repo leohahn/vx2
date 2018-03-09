@@ -40,6 +40,8 @@ struct Application
         return (f32)screen_width/(f32)screen_height;
     }
 
+    bool should_close() const;
+
 public:
     GLFWwindow *window;
     const char *title;
@@ -48,6 +50,9 @@ public:
     Mesh        render_quad;
     Memory      memory;
     Input       input;
+
+private:
+    void reset_mouse_position();
 };
 
 void dump_opengl_errors(const char *func, const char *file = nullptr);

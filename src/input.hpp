@@ -2,6 +2,7 @@
 #define __INPUT_HPP__
 
 #include "lt_core.hpp"
+#include <cmath>
 
 #define NUM_KEYBOARD_KEYS 1024
 
@@ -22,16 +23,16 @@ struct Key
 
 struct MouseState
 {
-    f64 xoffset;
-    f64 yoffset;
-    f64 prev_xpos;
-    f64 prev_ypos;
+    i32 xoffset;
+    i32 yoffset;
+    i32 prev_xpos;
+    i32 prev_ypos;
 
     MouseState(i32 screen_width, i32 screen_height)
-        : xoffset(0.0)
-        , yoffset(0.0)
-        , prev_xpos(screen_width/2.0)
-        , prev_ypos(screen_height/2.0)
+        : xoffset(0)
+        , yoffset(0)
+        , prev_xpos(floor(screen_width/2.0))
+        , prev_ypos(floor(screen_height/2.0))
     {}
 };
 

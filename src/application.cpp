@@ -101,6 +101,8 @@ Application::Application(const char *title, i32 width, i32 height)
     }
 
     glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_HIDDEN);
+    glfwSetInputMode(window, GLFW_STICKY_KEYS, 1);
+
     glfwMakeContextCurrent(window);
     glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
 
@@ -138,6 +140,22 @@ update_key_state(i32 key_code, Key *kb, GLFWwindow *win)
 }
 
 void
+Application::reset_mouse_position()
+{
+    const f64 xpos = screen_width/2.0;
+    const f64 ypos = screen_height/2.0;
+    input.mouse_state.prev_xpos = xpos;
+    input.mouse_state.prev_ypos = ypos;
+    glfwSetCursorPos(window, xpos, ypos);
+}
+
+bool
+Application::should_close() const
+{
+    return glfwWindowShouldClose(window);
+}
+
+void
 Application::process_input()
 {
     if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS ||
@@ -157,8 +175,18 @@ Application::process_input()
     // Process mouse input
     f64 xpos, ypos;
     glfwGetCursorPos(window, &xpos, &ypos);
-    input.mouse_state.xoffset = xpos - input.mouse_state.prev_xpos;
-    input.mouse_state.yoffset = ypos - input.mouse_state.prev_ypos;
-    input.mouse_state.prev_xpos = xpos;
-    input.mouse_state.prev_ypos = ypos;
+
+    const i32 ixpos = floor(xpos), iypos = floor(ypos);
+    input.mouse_state.xoffset = ixpos - input.mouse_state.prev_xpos;
+    input.mouse_state.yoffset = iypos - input.mouse_state.prev_ypos;
+    input.mouse_state.prev_xpos = ixpos;
+    input.mouse_state.prev_ypos = iypos;
+
+    // Check if the cursor is moving outside of the window boundaries.
+    const i32 padding = 50;
+    if (ixpos >= (screen_width-padding) || ixpos <= padding ||
+        iypos >= (screen_height-padding) || iypos <= padding)
+    {
+        reset_mouse_position();
+    }
 }
