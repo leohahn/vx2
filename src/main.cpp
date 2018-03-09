@@ -70,7 +70,7 @@ main_render(const Application &app, World &world, ResourceManager &resource_mana
             basic_shader->set_matrix("view", world.camera.view_matrix());
             basic_shader->set3f("view_position", world.camera.frustum.position);
             glActiveTexture(GL_TEXTURE0 + basic_shader->texture_unit("texture_array_blocks"));
-            glBindTexture(GL_TEXTURE_2D_ARRAY, world.blocks_texture_info.texture_id());
+            glBindTexture(GL_TEXTURE_2D_ARRAY, world.textures_16x16->id);
             render_world(world); // render world to the gbuffer
         }
 
@@ -81,7 +81,7 @@ main_render(const Application &app, World &world, ResourceManager &resource_mana
         // dump_opengl_errors("After render_skybox", __FILE__);
 
         lt_local_persist char text_buffer[256] = {};
-        snprintf(text_buffer, sizeof(text_buffer),
+        snprintf(text_buffer, LT_Count(text_buffer),
                  "FPS: %d, UPS: %d -- Frame time: %.2f min | %.2f max\n"
                  "Camera: (%.2f, %.2f, %.2f) -- Front: (%.2f, %.2f, %.2f)",
                  g_debug_context.fps,
@@ -129,7 +129,7 @@ main()
             "font.shader",
         };
         const char *textures_to_load[] = {
-            "skybox.texture", "blocks.texture",
+            "skybox.texture", "textures_16x16.texture",
         };
         const char *fonts_to_load[] = {
             "dejavu/ttf/DejaVuSansMono.ttf",
@@ -145,8 +145,8 @@ main()
             resource_manager.load_from_font_file(name);
     }
 
-    const i32 seed = -123;
-    World world(app, seed, "blocks.texture", resource_manager, app.aspect_ratio());
+    const i32 seed = 12123153;
+    World world(app, seed, "textures_16x16.texture", resource_manager, app.aspect_ratio());
 
     Shader *basic_shader = resource_manager.get_shader("basic.shader");
     basic_shader->load();

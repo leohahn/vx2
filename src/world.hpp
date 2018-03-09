@@ -14,6 +14,7 @@ struct osn_context;
 struct TextureAtlas;
 struct Application;
 struct Input;
+struct TextureAtlas;
 
 struct Sun
 {
@@ -33,6 +34,21 @@ enum WorldStatus
 struct WorldState
 {
     Frustum camera_frustum;
+};
+
+enum Textures16x16 : u16
+{
+    Earth_Sides = 0,
+    Earth_Sides_Top = 1,
+    Earth_Top = 2,
+    Earth_Bottom = 3,
+
+    Snow_Sides = 4,
+    Snow_Sides_Top = 5,
+    Snow_Top = 6,
+    Snow_Bottom = 7,
+
+    Crosshair = 8,
 };
 
 struct World
@@ -55,11 +71,11 @@ public:
     // NOTE: Different world instances only differ in values that are interpolated
     // based on the framerate. The chunks are not one of these.
     Skybox                 skybox;
-    BlocksTextureInfo      blocks_texture_info;
     Sun                    sun;
     Vec3f                  origin;
     WorldStatus            state = WorldStatus_InitialLoad;
     bool                   render_wireframe = false;
+    TextureAtlas          *textures_16x16;
 
 private:
     Camera create_camera(Vec3f position, f32 aspect_ratio);

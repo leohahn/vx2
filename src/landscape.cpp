@@ -6,7 +6,7 @@
 #include "resource_manager.hpp"
 #include "application.hpp"
 #include "camera.hpp"
-//#include "pool_allocator.hpp"
+#include "world.hpp"
 
 using std::placeholders::_1;
 
@@ -400,24 +400,24 @@ Landscape::update_chunk_buffer(Chunk *chunk)
 
                 // TODO: Figure out a better way of mixing and matching different
                 // block textures.
-                i32 sides_layer = -1;
-                i32 top_layer = -1;
-                i32 bottom_layer = -1;
+                u16 sides_layer = -1;
+                u16 top_layer = -1;
+                u16 bottom_layer = -1;
                 if (aby > Landscape::TOTAL_BLOCKS_Y - 30)
                 {
                     sides_layer = (should_render_top_face)
-                        ? BlocksTextureInfo::Snow_Sides_Top
-                        : BlocksTextureInfo::Snow_Sides;
-                    top_layer = BlocksTextureInfo::Snow_Top;
-                    bottom_layer = BlocksTextureInfo::Snow_Bottom;
+                        ? Textures16x16::Snow_Sides_Top
+                        : Textures16x16::Snow_Sides;
+                    top_layer = Textures16x16::Snow_Top;
+                    bottom_layer = Textures16x16::Snow_Bottom;
                 }
                 else
                 {
                     sides_layer = (should_render_top_face)
-                        ? BlocksTextureInfo::Earth_Sides_Top
-                        : BlocksTextureInfo::Earth_Sides;
-                    top_layer = BlocksTextureInfo::Earth_Top;
-                    bottom_layer = BlocksTextureInfo::Earth_Bottom;
+                        ? Textures16x16::Earth_Sides_Top
+                        : Textures16x16::Earth_Sides;
+                    top_layer = Textures16x16::Earth_Top;
+                    bottom_layer = Textures16x16::Earth_Bottom;
                 }
 
                 // Left face ------------------------------------------------------
@@ -916,21 +916,6 @@ Landscape::Chunk::cancel_request()
     if (request && request->chunk)
         request->chunk = nullptr;
 }
-
-// ----------------------------------------------------------------------------------------------
-// Blocks Texture Info
-// ----------------------------------------------------------------------------------------------
-
-BlocksTextureInfo::BlocksTextureInfo(const char *texture_name, const ResourceManager &manager)
-    : m_texture(manager.get_texture<TextureAtlas>(texture_name))
-{
-    if (!m_texture)
-        logger.error("Failed to get texture ", texture_name);
-}
-
-bool BlocksTextureInfo::load() { return m_texture->load(); }
-
-u32 BlocksTextureInfo::texture_id() const { return m_texture->id; }
 
 // ----------------------------------------------------------------------------------------------
 // VBOArray, Chunk Queue and Queue Entry

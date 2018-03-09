@@ -24,12 +24,12 @@ World::create_camera(Vec3f position, f32 aspect_ratio)
                   FIELD_OF_VIEW, aspect_ratio, MOVE_SPEED, ROTATION_SPEED);
 }
 
-World::World(Application &app, i32 seed, const char *blocks_texture,
+World::World(Application &app, i32 seed, const char *textures_16x16,
              const ResourceManager &manager, f32 aspect_ratio)
     : landscape(nullptr)
     , skybox("skybox.texture", "skybox.shader", manager)
-    , blocks_texture_info(blocks_texture, manager)
     , sun()
+    , textures_16x16(manager.get_texture<TextureAtlas>(textures_16x16))
 {
     const f64 amplitude = 0.70;
     const f64 frequency = 0.02;
@@ -37,7 +37,8 @@ World::World(Application &app, i32 seed, const char *blocks_texture,
     const f64 lacunarity = 2.0f;
     const f64 gain = 0.5f;
 
-    landscape = std::make_shared<Landscape>(app.memory, seed, amplitude, frequency, num_octaves, lacunarity, gain);
+    landscape = std::make_shared<Landscape>(app.memory, seed, amplitude,
+                                            frequency, num_octaves, lacunarity, gain);
     landscape->generate();
 
     camera = create_camera(landscape->center(), aspect_ratio);
@@ -51,7 +52,7 @@ World::World(Application &app, i32 seed, const char *blocks_texture,
 void
 World::update(Input &input)
 {
-    if (skybox.load() && blocks_texture_info.load())
+    if (skybox.load() && textures_16x16->load())
     {
         state = WorldStatus_Running;
 

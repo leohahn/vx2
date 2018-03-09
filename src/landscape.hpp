@@ -12,7 +12,6 @@
 #include "semaphore.hpp"
 #include "vertex.hpp"
 
-struct TextureAtlas;
 struct Camera;
 struct ResourceManager;
 struct osn_context;
@@ -25,31 +24,6 @@ enum BlockType
     BlockType_Terrain,
     BlockType_Count,
 };
-
-struct BlocksTextureInfo
-{
-    enum Layer
-    {
-        Earth_Sides = 0,
-        Earth_Sides_Top = 1,
-        Earth_Top = 2,
-        Earth_Bottom = 3,
-
-        Snow_Sides = 4,
-        Snow_Sides_Top = 5,
-        Snow_Top = 6,
-        Snow_Bottom = 7,
-    };
-
-    BlocksTextureInfo(const char *texture_name, const ResourceManager &manager);
-    bool load();
-    u32 texture_id() const;
-
-private:
-    TextureAtlas *m_texture;
-};
-
-typedef i32 ChunkIndex;
 
 static_assert(std::atomic<bool>::is_always_lock_free);
 static_assert(std::atomic<i32>::is_always_lock_free);
