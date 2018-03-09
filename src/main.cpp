@@ -16,6 +16,10 @@
 #include "font.hpp"
 #include "gl_resources.hpp"
 
+#ifdef LT_DEBUG
+#include <fenv.h>
+#endif
+
 struct DebugContext
 {
     i32 fps;
@@ -103,6 +107,11 @@ main_render(const Application &app, World &world, ResourceManager &resource_mana
 int
 main()
 {
+#ifdef LT_DEBUG
+    // Allow the program to crash if a nan value is computed.
+    feenableexcept(FE_INVALID | FE_OVERFLOW);
+#endif
+
     // --------------------------------------------------------------
     // TODO:
     //   1. Add frustum culling
