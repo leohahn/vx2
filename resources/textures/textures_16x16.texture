@@ -2,6 +2,6 @@ texture_type = atlas;
 texture_format = srgba;
 pixel_format = rgba;
 texture_location = textures_16x16.tga;
-num_layers = 8;
+num_layers = 9;
 layer_width = 16;
 layer_height = 16;

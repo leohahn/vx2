@@ -60,7 +60,7 @@ uniform sampler2DArray texture_array_blocks;
 uniform vec3 view_position;
 uniform Sun sun;
 
-#define NUM_LAYERS 8
+#define NUM_LAYERS 9
 
 vec3
 apply_gamma_correction(vec3 color)
