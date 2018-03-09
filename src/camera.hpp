@@ -5,6 +5,7 @@
 
 struct Key;
 struct Chunk;
+struct Input;
 
 struct Frustum
 {
@@ -45,7 +46,7 @@ struct Camera
     Camera(Vec3f position, Vec3f front_vec, Vec3f up_world,
            f32 fovy, f32 ratio, f32 move_speed, f32 rotation_speed);
 
-    void update(Key *kb);
+    void update(Input &input);
     void interpolate_frustum(f64 lag_offset);
     inline Vec3f position() const { return frustum.position; }
 

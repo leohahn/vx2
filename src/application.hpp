@@ -4,6 +4,7 @@
 #include "lt_core.hpp"
 #include "mesh.hpp"
 #include "landscape.hpp"
+#include "input.hpp"
 
 struct GLFWwindow;
 struct Resources;
@@ -26,13 +27,13 @@ public:
     void *chunks_memory;
 };
 
-
 struct Application
 {
     Application(const char *title, i32 width, i32 height);
     ~Application();
 
     void bind_default_framebuffer() const;
+    void process_input();
 
     inline f32 aspect_ratio() const
     {
@@ -46,6 +47,7 @@ public:
     i32         screen_height;
     Mesh        render_quad;
     Memory      memory;
+    Input       input;
 };
 
 void dump_opengl_errors(const char *func, const char *file = nullptr);

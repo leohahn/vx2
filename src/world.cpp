@@ -49,19 +49,19 @@ World::World(Application &app, i32 seed, const char *blocks_texture,
 }
 
 void
-World::update(Key *kb)
+World::update(Input &input)
 {
     if (skybox.load() && blocks_texture_info.load())
     {
         state = WorldStatus_Running;
+
+        camera.update(input);
+
+        if (input.keys[GLFW_KEY_T].last_transition == Key::Transition_Down)
+            render_wireframe = !render_wireframe;
+
+        landscape->update(camera);
     }
-
-    camera.update(kb);
-
-    if (kb[GLFW_KEY_T].last_transition == Key::Transition_Down)
-        render_wireframe = !render_wireframe;
-
-    landscape->update(camera);
 }
 
 World

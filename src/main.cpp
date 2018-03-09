@@ -27,7 +27,6 @@ struct DebugContext
 using namespace std::chrono_literals;
 
 lt_global_variable lt::Logger logger("main");
-lt_global_variable Key g_keyboard[NUM_KEYBOARD_KEYS] = {};
 lt_global_variable DebugContext g_debug_context = {};
 
 lt_internal void
@@ -106,11 +105,9 @@ main()
 {
     // --------------------------------------------------------------
     // TODO:
-    //   1. Load new chunks in separate threads.
-    //   2. Add frustum culling
-    //   3. Reduce number of polygons needed to render the world!!
+    //   1. Add frustum culling
+    //   2. Reduce number of polygons needed to render the world!!
     // --------------------------------------------------------------
-
     Application app("Deferred renderer", 1680, 1050);
     IOTaskManager io_task_manager;
 
@@ -213,10 +210,10 @@ main()
 
         while (lag >= TIMESTEP)
         {
-            process_input(app.window, g_keyboard);
+            app.process_input();
 
             previous_world = current_world;
-            current_world.update(g_keyboard);
+            current_world.update(app.input);
 
             num_updates++;
             lag -= TIMESTEP;

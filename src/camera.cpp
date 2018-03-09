@@ -3,6 +3,7 @@
 #include "input.hpp"
 #include <GLFW/glfw3.h>
 #include "world.hpp"
+#include "input.hpp"
 
 static lt::Logger logger("camera");
 
@@ -88,34 +89,34 @@ Camera::add_frame_rotation(RotationAxis axis)
 }
 
 void
-Camera::update(Key *kb)
+Camera::update(Input &input)
 {
     reset();
 
     // Register the camera movements from buttons.
-    if (kb[GLFW_KEY_A].is_pressed)
+    if (input.keys[GLFW_KEY_A].is_pressed)
         add_frame_movement(Direction::Left);
 
-    if (kb[GLFW_KEY_D].is_pressed)
+    if (input.keys[GLFW_KEY_D].is_pressed)
         add_frame_movement(Direction::Right);
 
-    if (kb[GLFW_KEY_W].is_pressed)
+    if (input.keys[GLFW_KEY_W].is_pressed)
         add_frame_movement(Direction::Forwards);
 
     // Register the camera rotation axis from the buttons
-    if (kb[GLFW_KEY_S].is_pressed)
+    if (input.keys[GLFW_KEY_S].is_pressed)
         add_frame_movement(Direction::Backwards);
 
-    if (kb[GLFW_KEY_RIGHT].is_pressed)
+    if (input.keys[GLFW_KEY_RIGHT].is_pressed)
         add_frame_rotation(RotationAxis::Down);
 
-    if (kb[GLFW_KEY_LEFT].is_pressed)
+    if (input.keys[GLFW_KEY_LEFT].is_pressed)
         add_frame_rotation(RotationAxis::Up);
 
-    if (kb[GLFW_KEY_UP].is_pressed)
+    if (input.keys[GLFW_KEY_UP].is_pressed)
         add_frame_rotation(RotationAxis::Right);
 
-    if (kb[GLFW_KEY_DOWN].is_pressed)
+    if (input.keys[GLFW_KEY_DOWN].is_pressed)
         add_frame_rotation(RotationAxis::Left);
 
     // Finally move and rotate the camera based on the previous added frame data.

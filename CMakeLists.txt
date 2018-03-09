@@ -36,7 +36,6 @@ add_executable(dr
   src/gl_resources.cpp
   src/resource_file.cpp
   src/skybox.cpp
-  src/input.cpp
   src/stb_rect_pack.cpp
   src/stb_truetype.cpp
   src/stb_image.cpp

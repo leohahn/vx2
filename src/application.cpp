@@ -60,39 +60,6 @@ dump_opengl_errors(const char *func, const char *file)
 #endif
 }
 
-// lt_internal void
-// setup_mesh_buffers_pu(Mesh &m)
-// {
-//     // Temporary vertex buffer to be deallocated at the end of the function.
-//     std::vector<Vertex_PU> vertexes_buf(m.vertices.size());
-//     for (usize i = 0; i < m.vertices.size(); i++)
-//     {
-//         vertexes_buf[i].position = m.vertices[i];
-//         vertexes_buf[i].tex_coords = m.tex_coords[i];
-//     }
-
-//     glGenVertexArrays(1, &m.vao);
-//     glGenBuffers(1, &m.vbo);
-//     glGenBuffers(1, &m.ebo);
-
-//     glBindVertexArray(m.vao);
-
-//     glBindBuffer(GL_ARRAY_BUFFER, m.vbo);
-//     glBufferData(GL_ARRAY_BUFFER, vertexes_buf.size() * sizeof(Vertex_PU), &vertexes_buf[0], GL_STATIC_DRAW);
-
-//     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m.ebo);
-//     glBufferData(GL_ELEMENT_ARRAY_BUFFER, m.faces.size() * sizeof(Face), &m.faces[0], GL_STATIC_DRAW);
-
-//     // vertex positions
-//     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex_PU), (void*)offsetof(Vertex_PU, position));
-//     glEnableVertexAttribArray(0);
-//     // vertex texture coords
-//     glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex_PU), (void*)offsetof(Vertex_PU, tex_coords));
-//     glEnableVertexAttribArray(1);
-
-//     glBindVertexArray(0);
-// }
-
 Application::~Application()
 {
     logger.log("Releasing application resources.");
@@ -111,6 +78,8 @@ Application::Application(const char *title, i32 width, i32 height)
     : title(title)
     , screen_width(width)
     , screen_height(height)
+    , input(width, height)
+
 {
     logger.log("Creating the application.");
 
@@ -124,12 +93,14 @@ Application::Application(const char *title, i32 width, i32 height)
     glfwSwapInterval(0); // Set vsync off
 
     window = glfwCreateWindow(width, height, title, nullptr, nullptr);
+
     if (!window)
     {
         glfwTerminate();
         LT_Panic("Failed to create glfw window.\n");
     }
 
+    glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_HIDDEN);
     glfwMakeContextCurrent(window);
     glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
 
@@ -142,4 +113,52 @@ Application::Application(const char *title, i32 width, i32 height)
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_STENCIL_TEST);
     glViewport(0, 0, width, height);
+}
+
+lt_internal void
+update_key_state(i32 key_code, Key *kb, GLFWwindow *win)
+{
+    const bool key_pressed = glfwGetKey(win, key_code);
+    Key &key = kb[key_code];
+
+    if ((key_pressed && key.is_pressed) || (!key_pressed && !key.is_pressed))
+    {
+        key.last_transition = Key::Transition_None;
+    }
+    else if (key_pressed && !key.is_pressed)
+    {
+        key.is_pressed = true;
+        key.last_transition = Key::Transition_Down;
+    }
+    else if (!key_pressed && key.is_pressed)
+    {
+        key.is_pressed = false;
+        key.last_transition = Key::Transition_Up;
+    }
+}
+
+void
+Application::process_input()
+{
+    if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS ||
+        glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS)
+    {
+        glfwSetWindowShouldClose(window, true);
+    }
+
+    const i32 key_codes[] = {
+        GLFW_KEY_W, GLFW_KEY_S, GLFW_KEY_A, GLFW_KEY_D, GLFW_KEY_UP,
+        GLFW_KEY_DOWN, GLFW_KEY_LEFT, GLFW_KEY_RIGHT, GLFW_KEY_T,
+    };
+
+    for (auto key_code : key_codes)
+        update_key_state(key_code, input.keys, window);
+
+    // Process mouse input
+    f64 xpos, ypos;
+    glfwGetCursorPos(window, &xpos, &ypos);
+    input.mouse_state.xoffset = xpos - input.mouse_state.prev_xpos;
+    input.mouse_state.yoffset = ypos - input.mouse_state.prev_ypos;
+    input.mouse_state.prev_xpos = xpos;
+    input.mouse_state.prev_ypos = ypos;
 }

@@ -13,6 +13,7 @@ struct Key;
 struct osn_context;
 struct TextureAtlas;
 struct Application;
+struct Input;
 
 struct Sun
 {
@@ -41,7 +42,7 @@ struct World
 
     static World interpolate(const World &pevious, const World &current, f32 alpha);
 
-    void update(Key *kb);
+    void update(Input &input);
     void generate_landscape(f64 amplitude, f64 frequency, i32 num_octaves, f64 lacunarity, f64 gain);
 
     void update_chunk_buffer(i32 cx, i32 cy, i32 cz);
