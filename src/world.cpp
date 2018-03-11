@@ -18,7 +18,7 @@ World::create_camera(Vec3f position, f32 aspect_ratio)
 {
     const f32 FIELD_OF_VIEW = 60.0f;
     const f32 MOVE_SPEED = 0.43f;
-    const f32 ROTATION_SPEED = 0.003f;
+    const f32 ROTATION_SPEED = 0.002f;
     const Vec3f CAMERA_FRONT(0, 0, -1);
     const Vec3f UP_WORLD(0.0f, 1.0f, 0.0f);
     return Camera(position + Vec3f(0, 40, 0), CAMERA_FRONT, UP_WORLD,
@@ -96,7 +96,7 @@ Crosshair::Crosshair(const char *shader_name, const ResourceManager &manager, u3
     // Add all only the positions
     for (usize i = 0; i < NUM_VERTICES; i++)
     {
-        quad.vertices[i] = UNIT_PLANE_VERTICES[i] * 0.03f;
+        quad.vertices[i] = UNIT_PLANE_VERTICES[i] * 0.02f;
         quad.tex_coords[i] = UNIT_PLANE_TEX_COORDS[i];
     }
 

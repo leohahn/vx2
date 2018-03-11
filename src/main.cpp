@@ -34,7 +34,20 @@ lt_global_variable lt::Logger logger("main");
 lt_global_variable DebugContext g_debug_context = {};
 
 lt_internal void
-main_render(const Application &app, World &world, ResourceManager &resource_manager)
+main_render_loading(const Application &app, ResourceManager &resource_manager)
+{
+    AsciiFontAtlas *font_atlas = resource_manager.get_font("dejavu/ttf/DejaVuSansMono.ttf");
+    Shader *font_shader = resource_manager.get_shader("font.shader");
+
+    render_loading_screen(app, font_atlas, font_shader);
+    dump_opengl_errors("After loading screen", __FILE__);
+
+    glfwPollEvents();
+    glfwSwapBuffers(app.window);
+}
+
+lt_internal void
+main_render_running(const Application &app, World &world, ResourceManager &resource_manager)
 {
     Shader *basic_shader = resource_manager.get_shader("basic.shader");
     Shader *wireframe_shader = resource_manager.get_shader("wireframe.shader");
@@ -42,78 +55,81 @@ main_render(const Application &app, World &world, ResourceManager &resource_mana
     AsciiFontAtlas *font_atlas = resource_manager.get_font("dejavu/ttf/DejaVuSansMono.ttf");
 
     glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
-
-    app.bind_default_framebuffer();
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-    if (world.state == WorldStatus_InitialLoad)
+    if (world.render_wireframe)
     {
-        render_loading_screen(app, font_atlas, font_shader);
-        dump_opengl_errors("After loading screen", __FILE__);
+        // Wireframe rendering
+        glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+
+        wireframe_shader->use();
+        wireframe_shader->set_matrix("view", world.camera.view_matrix());
+        render_world(world);
+
+        glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
     }
     else
     {
-        if (world.render_wireframe)
-        {
-            // Wireframe rendering
-            glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-
-            wireframe_shader->use();
-            wireframe_shader->set_matrix("view", world.camera.view_matrix());
-            render_world(world);
-
-            glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-        }
-        else
-        {
-            basic_shader->use();
-            basic_shader->set_matrix("view", world.camera.view_matrix());
-            basic_shader->set3f("view_position", world.camera.frustum.position);
-            glActiveTexture(GL_TEXTURE0 + basic_shader->texture_unit("texture_array"));
-            glBindTexture(GL_TEXTURE_2D_ARRAY, world.textures_16x16->id);
-            render_world(world);
-        }
-
-        // Draw the skybox
-        world.skybox.shader->use();
-        world.skybox.shader->set_matrix("view", world.camera.view_matrix());
-        render_skybox(world.skybox);
-        // dump_opengl_errors("After render_skybox", __FILE__);
-
-        // Add blending and remove depth test.
-        glDisable(GL_DEPTH_TEST);
-        glEnable(GL_BLEND);
-        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-
-        // Draw the crosshair
-        world.crosshair.shader->use();
-        render_mesh(world.crosshair.quad, world.crosshair.shader);
-
-        lt_local_persist char text_buffer[256] = {};
-        snprintf(text_buffer, LT_Count(text_buffer),
-                 "FPS: %d, UPS: %d -- Frame time: %.2f min | %.2f max\n"
-                 "Camera: (%.2f, %.2f, %.2f) -- Front: (%.2f, %.2f, %.2f)",
-                 g_debug_context.fps,
-                 g_debug_context.ups,
-                 (f32)g_debug_context.min_frame_time,
-                 (f32)g_debug_context.max_frame_time,
-                 world.camera.position().x,
-                 world.camera.position().y,
-                 world.camera.position().z,
-                 world.camera.frustum.front.v.x,
-                 world.camera.frustum.front.v.y,
-                 world.camera.frustum.front.v.z);
-
-        render_text(font_atlas, text_buffer, 30.5f, 30.5f, font_shader);
-
-        glDisable(GL_BLEND);
-        glEnable(GL_DEPTH_TEST);
-
-        dump_opengl_errors("After font", __FILE__);
+        basic_shader->use();
+        basic_shader->set_matrix("view", world.camera.view_matrix());
+        basic_shader->set3f("view_position", world.camera.frustum.position);
+        glActiveTexture(GL_TEXTURE0 + basic_shader->texture_unit("texture_array"));
+        glBindTexture(GL_TEXTURE_2D_ARRAY, world.textures_16x16->id);
+        render_world(world);
     }
+
+    // Draw the skybox
+    world.skybox.shader->use();
+    world.skybox.shader->set_matrix("view", world.camera.view_matrix());
+    render_skybox(world.skybox);
+    // dump_opengl_errors("After render_skybox", __FILE__);
+
+    // Add blending and remove depth test.
+    glDisable(GL_DEPTH_TEST);
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+    // Draw the crosshair
+    world.crosshair.shader->use();
+    render_mesh(world.crosshair.quad, world.crosshair.shader);
+
+    lt_local_persist char text_buffer[256] = {};
+    snprintf(text_buffer, LT_Count(text_buffer),
+             "FPS: %d, UPS: %d -- Frame time: %.2f min | %.2f max\n"
+             "Camera: (%.2f, %.2f, %.2f) -- Front: (%.2f, %.2f, %.2f)",
+             g_debug_context.fps,
+             g_debug_context.ups,
+             (f32)g_debug_context.min_frame_time,
+             (f32)g_debug_context.max_frame_time,
+             world.camera.position().x,
+             world.camera.position().y,
+             world.camera.position().z,
+             world.camera.frustum.front.v.x,
+             world.camera.frustum.front.v.y,
+             world.camera.frustum.front.v.z);
+
+    render_text(font_atlas, text_buffer, 30.5f, 30.5f, font_shader);
+
+    glDisable(GL_BLEND);
+    glEnable(GL_DEPTH_TEST);
+
+    dump_opengl_errors("After font", __FILE__);
 
     glfwPollEvents();
     glfwSwapBuffers(app.window);
+}
+
+lt_internal void
+main_render(const Application &app, World &world, ResourceManager &resource_manager)
+{
+    if (world.state == WorldStatus_InitialLoad)
+    {
+        main_render_loading(app, resource_manager);
+    }
+    else
+    {
+        main_render_running(app, world, resource_manager);
+    }
 }
 
 int
@@ -127,7 +143,7 @@ main()
     // --------------------------------------------------------------
     // TODO:
     //   1. Add frustum culling
-    //   2. Reduce number of polygons needed to render the world!!
+    //   2. Reduce number of polygons needed to render the world!! (is it worth it?)
     // --------------------------------------------------------------
     Application app("Deferred renderer", 1680, 1050);
     IOTaskManager io_task_manager;
@@ -161,18 +177,6 @@ main()
             resource_manager.load_from_font_file(name);
     }
 
-    const i32 seed = 12123153;
-    World world(app, seed, "textures_16x16.texture", resource_manager, app.aspect_ratio());
-
-    Shader *basic_shader = resource_manager.get_shader("basic.shader");
-    basic_shader->load();
-    basic_shader->setup_perspective_matrix(app.aspect_ratio());
-    basic_shader->use();
-    basic_shader->set3f("sun.direction", world.sun.direction);
-    basic_shader->set3f("sun.ambient", world.sun.ambient);
-    basic_shader->set3f("sun.diffuse", world.sun.diffuse);
-    basic_shader->set3f("sun.specular", world.sun.specular);
-
     Shader *wireframe_shader = resource_manager.get_shader("wireframe.shader");
     wireframe_shader->load();
     wireframe_shader->setup_perspective_matrix(app.aspect_ratio());
@@ -186,6 +190,22 @@ main()
     AsciiFontAtlas *font_atlas = resource_manager.get_font("dejavu/ttf/DejaVuSansMono.ttf");
     LT_Assert(font_atlas);
     font_atlas->load(18.0f);
+
+    // NOTE: Call loading screen before creating the world instance, since it takes some time before
+    // it is initialized.
+    main_render_loading(app, resource_manager);
+
+    const i32 seed = 12123153;
+    World world(app, seed, "textures_16x16.texture", resource_manager, app.aspect_ratio());
+
+    Shader *basic_shader = resource_manager.get_shader("basic.shader");
+    basic_shader->load();
+    basic_shader->setup_perspective_matrix(app.aspect_ratio());
+    basic_shader->use();
+    basic_shader->set3f("sun.direction", world.sun.direction);
+    basic_shader->set3f("sun.ambient", world.sun.ambient);
+    basic_shader->set3f("sun.diffuse", world.sun.diffuse);
+    basic_shader->set3f("sun.specular", world.sun.specular);
 
     //
     // Here starts the setup for the main loop
