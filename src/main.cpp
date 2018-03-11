@@ -134,6 +134,9 @@ main()
 
     ResourceManager resource_manager(&io_task_manager);
     {
+        // TODO: Consider moving these raw strings into constants in a file, that way when
+        // changing its value it is not necessary to rename it throughout the project but only
+        // in one place.
         const char *shaders_to_load[] = {
             "basic.shader",
             "wireframe.shader",
