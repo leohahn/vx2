@@ -39,6 +39,7 @@ add_executable(dr
   src/stb_rect_pack.cpp
   src/stb_truetype.cpp
   src/stb_image.cpp
+  src/vertex_buffer.cpp
   lt/src/lt_math.cpp
   lt/src/lt_fs.cpp
   thirdparty/glad/glad.cpp
