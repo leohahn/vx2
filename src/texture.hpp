@@ -37,10 +37,8 @@ enum TextureType
 
 struct Texture
 {
-    Texture(TextureType type, TextureFormat tf, PixelFormat pf)
-        : id(0), type(type), texture_format(tf), pixel_format(pf) , m_is_loaded(false)
-    {}
-    virtual ~Texture() {}
+    Texture(TextureType type, TextureFormat tf, PixelFormat pf);
+    virtual ~Texture();
 
     virtual bool load() = 0;
     inline bool is_loaded() const { return m_is_loaded; }

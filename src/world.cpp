@@ -9,6 +9,7 @@
 #include "texture.hpp"
 #include "application.hpp"
 #include "vertex.hpp"
+#include "vertex_buffer.hpp"
 
 lt_global_variable lt::Logger logger("world");
 
@@ -24,12 +25,13 @@ World::create_camera(Vec3f position, f32 aspect_ratio)
                   FIELD_OF_VIEW, aspect_ratio, MOVE_SPEED, ROTATION_SPEED);
 }
 
-World::World(Application &app, i32 seed, const char *textures_16x16,
+World::World(Application &app, i32 seed, const char *textures_16x16_name,
              const ResourceManager &manager, f32 aspect_ratio)
     : landscape(nullptr)
     , skybox("skybox.texture", "skybox.shader", manager)
     , sun()
-    , textures_16x16(manager.get_texture<TextureAtlas>(textures_16x16))
+    , textures_16x16(manager.get_texture<TextureAtlas>(textures_16x16_name))
+    , crosshair("crosshair.shader", manager, textures_16x16->id)
 {
     const f64 amplitude = 0.70;
     const f64 frequency = 0.02;
@@ -74,4 +76,44 @@ World::interpolate(const World &previous, const World &current, f32 alpha)
     interpolated.camera = Camera::interpolate(previous.camera, current.camera, alpha);
 
     return interpolated;
+}
+
+// ======================================================================================
+// Crosshair
+// ======================================================================================
+
+Crosshair::Crosshair(const char *shader_name, const ResourceManager &manager, u32 texture_id)
+    : shader(manager.get_shader(shader_name))
+{
+    LT_Assert(texture_id != 0);
+
+    const isize NUM_VERTICES = LT_Count(UNIT_PLANE_VERTICES);
+    const isize NUM_INDICES = LT_Count(UNIT_PLANE_INDICES);
+
+    quad.vertices = std::vector<Vec3f>(NUM_VERTICES);
+    quad.tex_coords = std::vector<Vec2f>(NUM_VERTICES);
+
+    // Add all only the positions
+    for (usize i = 0; i < NUM_VERTICES; i++)
+    {
+        quad.vertices[i] = UNIT_PLANE_VERTICES[i] * 0.03f;
+        quad.tex_coords[i] = UNIT_PLANE_TEX_COORDS[i];
+    }
+
+    for (usize i = 0; i < NUM_INDICES; i+=3)
+    {
+        Face face = {};
+        face.val[0] = UNIT_PLANE_INDICES[i];
+        face.val[1] = UNIT_PLANE_INDICES[i+1];
+        face.val[2] = UNIT_PLANE_INDICES[i+2];
+        quad.faces.push_back(face);
+    }
+
+    Submesh sm = {};
+    sm.start_index = 0;
+    sm.num_indices = quad.num_indices();
+    sm.textures.push_back(TextureInfo(texture_id, "texture_array", GL_TEXTURE_2D_ARRAY));
+    quad.submeshes.push_back(sm);
+
+    VertexBuffer::setup_pl(quad, Textures16x16_Crosshair);
 }

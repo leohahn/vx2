@@ -406,18 +406,18 @@ Landscape::update_chunk_buffer(Chunk *chunk)
                 if (aby > Landscape::TOTAL_BLOCKS_Y - 30)
                 {
                     sides_layer = (should_render_top_face)
-                        ? Textures16x16::Snow_Sides_Top
-                        : Textures16x16::Snow_Sides;
-                    top_layer = Textures16x16::Snow_Top;
-                    bottom_layer = Textures16x16::Snow_Bottom;
+                        ? Textures16x16_Snow_Sides_Top
+                        : Textures16x16_Snow_Sides;
+                    top_layer = Textures16x16_Snow_Top;
+                    bottom_layer = Textures16x16_Snow_Bottom;
                 }
                 else
                 {
                     sides_layer = (should_render_top_face)
-                        ? Textures16x16::Earth_Sides_Top
-                        : Textures16x16::Earth_Sides;
-                    top_layer = Textures16x16::Earth_Top;
-                    bottom_layer = Textures16x16::Earth_Bottom;
+                        ? Textures16x16_Earth_Sides_Top
+                        : Textures16x16_Earth_Sides;
+                    top_layer = Textures16x16_Earth_Top;
+                    bottom_layer = Textures16x16_Earth_Bottom;
                 }
 
                 // Left face ------------------------------------------------------

@@ -63,10 +63,6 @@ dump_opengl_errors(const char *func, const char *file)
 Application::~Application()
 {
     logger.log("Releasing application resources.");
-    // free mesh resources
-    glDeleteVertexArrays(1, &render_quad.vao);
-    glDeleteBuffers(1, &render_quad.vbo);
-    glDeleteBuffers(1, &render_quad.ebo);
     // free GLFW resources
     glfwDestroyWindow(window);
     glfwTerminate();

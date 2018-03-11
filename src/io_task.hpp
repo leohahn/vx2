@@ -33,11 +33,9 @@ struct LoadedImage
 
 enum IOTaskStatus
 {
-    // An assumption is made that whenever the status is Complete its resources are thread safe.
+    // NOTE, TODO: An assumption is made that whenever the status is Complete its resources are thread safe.
     // However when the status is on Processing, another thread may be working on the task's resources,
-    // therefore accessing them is considered unsafe. This avoid the need for a mutex.
-    // TODO: Evalueate if this is a good idea.
-
+    // therefore accessing them is considered unsafe. This avoids the need for a mutex.
     TaskStatus_Processing,
     TaskStatus_Complete,
 };

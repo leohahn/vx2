@@ -7,6 +7,21 @@
 
 lt_global_variable lt::Logger logger("texture");
 
+Texture::Texture(TextureType type, TextureFormat tf, PixelFormat pf)
+    : id(0)
+    , type(type)
+    , texture_format(tf)
+    , pixel_format(pf)
+    , m_is_loaded(false)
+{
+    glGenTextures(1, &id);
+}
+
+Texture::~Texture()
+{
+    glDeleteTextures(1, &id);
+}
+
 // -----------------------------------------------------------------------------
 // Cubemap
 // -----------------------------------------------------------------------------
@@ -16,6 +31,7 @@ TextureCubemap::TextureCubemap(TextureFormat tf, PixelFormat pf, std::string *pa
     , m_task(nullptr)
     , m_io_task_manager(manager)
 {
+    LT_Assert(id != 0);
     for (i32 i = 0; i < NUM_CUBEMAP_FACES; i++)
         filepaths[i] = paths[i];
 
@@ -25,24 +41,20 @@ TextureCubemap::TextureCubemap(TextureFormat tf, PixelFormat pf, std::string *pa
 bool
 TextureCubemap::load()
 {
-    if (!m_task && id == 0)
+    if (!m_task && !m_is_loaded)
     {
         logger.log("Adding task to queue.");
         m_task = std::make_unique<LoadImagesTask>(filepaths, NUM_CUBEMAP_FACES);
         m_io_task_manager->add_to_queue(m_task.get());
     }
 
-    if (m_task)
-        m_is_loaded = (m_task->status() == TaskStatus_Complete);
-
-    if (m_is_loaded && id == 0)
+    if (m_task && m_task->status() == TaskStatus_Complete)
     {
         logger.log("Creating texture");
         {
             const std::vector<std::unique_ptr<LoadedImage>> &loaded_images = m_task->view_loaded_images();
             LT_Assert(loaded_images.size() == 6);
 
-            glGenTextures(1, &id);
             glBindTexture(GL_TEXTURE_CUBE_MAP, id);
 
             for (u32 i = 0; i < loaded_images.size(); i++)
@@ -65,6 +77,7 @@ TextureCubemap::load()
         }
         logger.log("id ", id);
         m_task.reset(); // destroy task object and free its resources.
+        m_is_loaded = true;
     }
 
     return m_is_loaded;
@@ -84,23 +97,21 @@ TextureAtlas::TextureAtlas(TextureFormat tf, PixelFormat pf, const std::string &
     , m_task(nullptr)
     , m_io_task_manager(manager)
 {
+    LT_Assert(id != 0);
     logger.log("Creating texture atlas ", filepath);
 }
 
 bool
 TextureAtlas::load()
 {
-    if (!m_task && id == 0)
+    if (!m_task && !m_is_loaded)
     {
         logger.log("Adding task to queue.");
         m_task = std::make_unique<LoadImagesTask>(&filepath, 1);
         m_io_task_manager->add_to_queue(m_task.get());
     }
 
-    if (m_task)
-        m_is_loaded = (m_task->status() == TaskStatus_Complete);
-
-    if (m_is_loaded && id == 0)
+    if (m_task && m_task->status() == TaskStatus_Complete)
     {
         logger.log("Creating texture");
         {
@@ -116,7 +127,6 @@ TextureAtlas::load()
             LT_Assert(width == layer_width);
             LT_Assert(height == num_layers*layer_height);
 
-            glGenTextures(1, &id);
             glBindTexture(GL_TEXTURE_2D_ARRAY, id);
             const i32 mipmap_level = 0;
 
@@ -134,6 +144,7 @@ TextureAtlas::load()
         }
         logger.log(filepath, ": id ", id);
         m_task.reset(); // destroy task object and free its resources.
+        m_is_loaded = true;
     }
 
     return m_is_loaded;

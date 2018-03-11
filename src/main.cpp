@@ -69,9 +69,9 @@ main_render(const Application &app, World &world, ResourceManager &resource_mana
             basic_shader->use();
             basic_shader->set_matrix("view", world.camera.view_matrix());
             basic_shader->set3f("view_position", world.camera.frustum.position);
-            glActiveTexture(GL_TEXTURE0 + basic_shader->texture_unit("texture_array_blocks"));
+            glActiveTexture(GL_TEXTURE0 + basic_shader->texture_unit("texture_array"));
             glBindTexture(GL_TEXTURE_2D_ARRAY, world.textures_16x16->id);
-            render_world(world); // render world to the gbuffer
+            render_world(world);
         }
 
         // Draw the skybox
@@ -79,6 +79,15 @@ main_render(const Application &app, World &world, ResourceManager &resource_mana
         world.skybox.shader->set_matrix("view", world.camera.view_matrix());
         render_skybox(world.skybox);
         // dump_opengl_errors("After render_skybox", __FILE__);
+
+        // Add blending and remove depth test.
+        glDisable(GL_DEPTH_TEST);
+        glEnable(GL_BLEND);
+        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+        // Draw the crosshair
+        world.crosshair.shader->use();
+        render_mesh(world.crosshair.quad, world.crosshair.shader);
 
         lt_local_persist char text_buffer[256] = {};
         snprintf(text_buffer, LT_Count(text_buffer),
@@ -96,6 +105,9 @@ main_render(const Application &app, World &world, ResourceManager &resource_mana
                  world.camera.frustum.front.v.z);
 
         render_text(font_atlas, text_buffer, 30.5f, 30.5f, font_shader);
+
+        glDisable(GL_BLEND);
+        glEnable(GL_DEPTH_TEST);
 
         dump_opengl_errors("After font", __FILE__);
     }
@@ -127,6 +139,7 @@ main()
             "wireframe.shader",
             "skybox.shader",
             "font.shader",
+            "crosshair.shader",
         };
         const char *textures_to_load[] = {
             "skybox.texture", "textures_16x16.texture",

@@ -17,6 +17,7 @@ void render_world(World &world);
 void render_skybox(const Skybox &skybox);
 void render_text(AsciiFontAtlas *atlas, const std::string &text, f32 posx, f32 posy, Shader *shader);
 void render_loading_screen(const Application &app, AsciiFontAtlas *atlas, Shader *font_shader);
+void render_mesh(const Mesh &mesh, Shader *shader);
 
 // Mesh layouts
 void render_setup_mesh_buffers_p(Mesh *m);

@@ -38,17 +38,25 @@ struct WorldState
 
 enum Textures16x16 : u16
 {
-    Earth_Sides = 0,
-    Earth_Sides_Top = 1,
-    Earth_Top = 2,
-    Earth_Bottom = 3,
+    Textures16x16_Earth_Sides = 0,
+    Textures16x16_Earth_Sides_Top = 1,
+    Textures16x16_Earth_Top = 2,
+    Textures16x16_Earth_Bottom = 3,
 
-    Snow_Sides = 4,
-    Snow_Sides_Top = 5,
-    Snow_Top = 6,
-    Snow_Bottom = 7,
+    Textures16x16_Snow_Sides = 4,
+    Textures16x16_Snow_Sides_Top = 5,
+    Textures16x16_Snow_Top = 6,
+    Textures16x16_Snow_Bottom = 7,
 
-    Crosshair = 8,
+    Textures16x16_Crosshair = 8,
+};
+
+struct Crosshair
+{
+    Mesh quad;
+    Shader *shader;
+
+    Crosshair(const char *shader_name, const ResourceManager &manager, u32 texture_id);
 };
 
 struct World
@@ -76,6 +84,7 @@ public:
     WorldStatus            state = WorldStatus_InitialLoad;
     bool                   render_wireframe = false;
     TextureAtlas          *textures_16x16;
+    Crosshair              crosshair;
 
 private:
     Camera create_camera(Vec3f position, f32 aspect_ratio);

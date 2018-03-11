@@ -47,7 +47,6 @@ public:
     const char *title;
     i32         screen_width;
     i32         screen_height;
-    Mesh        render_quad;
     Memory      memory;
     Input       input;
 

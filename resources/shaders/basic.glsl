@@ -55,7 +55,7 @@ struct Sun
     vec3 specular;
 };
 
-uniform sampler2DArray texture_array_blocks;
+uniform sampler2DArray texture_array;
 
 uniform vec3 view_position;
 uniform Sun sun;
@@ -94,7 +94,7 @@ main()
 {
     float layer = max(0, min(NUM_LAYERS-1, floor(vs_out.frag_tex_coords_layer.z + 0.5)));
 
-    vec3 albedo = texture(texture_array_blocks, vec3(vs_out.frag_tex_coords_layer.xy, layer)).rgb;
+    vec3 albedo = texture(texture_array, vec3(vs_out.frag_tex_coords_layer.xy, layer)).rgb;
     vec3 sun_contribution = calc_directional_light(sun, albedo, 0.3, vs_out.frag_normal);
 
     vec3 color = sun_contribution;

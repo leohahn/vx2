@@ -14,7 +14,7 @@
 
 lt_global_variable lt::Logger logger("renderer");
 
-lt_internal void
+void
 render_mesh(const Mesh &mesh, Shader *shader)
 {
     for (usize i = 0; i < mesh.submeshes.size(); i++)
@@ -114,14 +114,8 @@ render_text(AsciiFontAtlas *atlas, const std::string &text, f32 posx, f32 posy, 
     glActiveTexture(GL_TEXTURE0 + shader->texture_unit("font_atlas"));
     glBindTexture(GL_TEXTURE_2D, atlas->id);
 
-    glDisable(GL_DEPTH_TEST);
-    glEnable(GL_BLEND);
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-
     glDrawArrays(GL_TRIANGLES, 0, text_buf.size());
 
-    glDisable(GL_BLEND);
-    glEnable(GL_DEPTH_TEST);
     glBindVertexArray(0);
 }
 

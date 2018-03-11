@@ -7,6 +7,7 @@
 
 #include "lt_core.hpp"
 #include "lt_math.hpp"
+#include "unit_plane_data.hpp"
 
 struct TextureInfo
 {
@@ -43,7 +44,6 @@ struct Mesh
     // std::vector<Texture>            textures;
 
     inline bool is_invalid() { return vao == 0; }
-
     inline isize num_indices() const {return faces.size() * 3;}
 };
 
