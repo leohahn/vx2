@@ -39,7 +39,16 @@ main_render_loading(const Application &app, ResourceManager &resource_manager)
     AsciiFontAtlas *font_atlas = resource_manager.get_font("dejavu/ttf/DejaVuSansMono.ttf");
     Shader *font_shader = resource_manager.get_shader("font.shader");
 
+    // Add blending and remove depth test.
+    glDisable(GL_DEPTH_TEST);
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
     render_loading_screen(app, font_atlas, font_shader);
+
+    glDisable(GL_BLEND);
+    glEnable(GL_DEPTH_TEST);
+
     dump_opengl_errors("After loading screen", __FILE__);
 
     glfwPollEvents();
