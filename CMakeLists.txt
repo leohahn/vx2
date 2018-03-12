@@ -19,6 +19,10 @@ if(CMAKE_BUILD_TYPE MATCHES Debug)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fno-omit-frame-pointer")
 endif(CMAKE_BUILD_TYPE MATCHES Debug)
 
+if(CMAKE_BUILD_TYPE MATCHES Release)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3")
+endif(CMAKE_BUILD_TYPE MATCHES Release)
+
 add_executable(dr
   src/main.cpp
   src/application.cpp
