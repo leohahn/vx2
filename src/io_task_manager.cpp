@@ -11,6 +11,12 @@ IOTaskManager::IOTaskManager()
 {
 }
 
+IOTaskManager::~IOTaskManager()
+{
+    stop();
+    m_task_thread.join();
+}
+
 void
 IOTaskManager::run()
 {

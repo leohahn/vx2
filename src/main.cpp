@@ -296,7 +296,4 @@ main()
             start_second = clock::now();
         }
     }
-
-    io_task_manager.stop();
-    io_task_manager.join_thread();
 }

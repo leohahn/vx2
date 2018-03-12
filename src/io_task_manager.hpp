@@ -17,9 +17,7 @@ struct IOTaskManager
     void add_to_queue(IOTask *task);
 
     IOTaskManager();
-
-    void stop();
-    void join_thread() { m_task_thread.join(); }
+    ~IOTaskManager();
 
 private:
     std::atomic<bool> m_thread_running;
@@ -32,6 +30,7 @@ private:
     std::thread m_task_thread;
 
     void run();
+    void stop();
 };
 
 #endif // __IO_TASK_MANAGER_HPP__
