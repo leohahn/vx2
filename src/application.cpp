@@ -16,7 +16,7 @@ framebuffer_size_callback(GLFWwindow *w, i32 width, i32 height)
 }
 
 void
-dump_opengl_errors(const char *func, const char *file)
+_dump_opengl_errors(const char *func, const char *file)
 {
 #ifdef LT_DEBUG
     GLenum err;
@@ -115,6 +115,28 @@ Application::Application(const char *title, i32 width, i32 height)
 }
 
 lt_internal void
+update_mouse_button_state(GLFWwindow *win, MouseState &mouse_state)
+{
+    const bool mouse_left_pressed = glfwGetMouseButton(win, GLFW_MOUSE_BUTTON_LEFT);
+
+    if ((mouse_left_pressed && mouse_state.left_button_pressed) ||
+        (!mouse_left_pressed && !mouse_state.left_button_pressed))
+    {
+        mouse_state.left_button_transition = Transition_None;
+    }
+    else if (mouse_left_pressed && !mouse_state.left_button_pressed)
+    {
+        mouse_state.left_button_pressed = true;
+        mouse_state.left_button_transition = Transition_Down;
+    }
+    else if (!mouse_left_pressed && mouse_state.left_button_pressed)
+    {
+        mouse_state.left_button_pressed = false;
+        mouse_state.left_button_transition = Transition_Up;
+    }
+}
+
+lt_internal void
 update_key_state(i32 key_code, Key *kb, GLFWwindow *win)
 {
     const bool key_pressed = glfwGetKey(win, key_code);
@@ -122,17 +144,17 @@ update_key_state(i32 key_code, Key *kb, GLFWwindow *win)
 
     if ((key_pressed && key.is_pressed) || (!key_pressed && !key.is_pressed))
     {
-        key.last_transition = Key::Transition_None;
+        key.last_transition = Transition_None;
     }
     else if (key_pressed && !key.is_pressed)
     {
         key.is_pressed = true;
-        key.last_transition = Key::Transition_Down;
+        key.last_transition = Transition_Down;
     }
     else if (!key_pressed && key.is_pressed)
     {
         key.is_pressed = false;
-        key.last_transition = Key::Transition_Up;
+        key.last_transition = Transition_Up;
     }
 }
 
@@ -186,4 +208,6 @@ Application::process_input()
     {
         reset_mouse_position();
     }
+
+    update_mouse_button_state(window, input.mouse_state);
 }

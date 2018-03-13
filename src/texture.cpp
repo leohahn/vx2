@@ -73,7 +73,7 @@ TextureCubemap::load()
             glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
             glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
 
-            dump_opengl_errors("After cubemap creation", __FILE__);
+            dump_opengl_errors("After cubemap creation");
         }
         logger.log("id ", id);
         m_task.reset(); // destroy task object and free its resources.
@@ -140,7 +140,7 @@ TextureAtlas::load()
             glTexParameteri(GL_TEXTURE_2D_ARRAY,GL_TEXTURE_WRAP_S,GL_CLAMP_TO_EDGE);
             glTexParameteri(GL_TEXTURE_2D_ARRAY,GL_TEXTURE_WRAP_T,GL_CLAMP_TO_EDGE);
 
-            dump_opengl_errors("After texture 2D array creation", __FILE__);
+            dump_opengl_errors("After texture 2D array creation");
         }
         logger.log(filepath, ": id ", id);
         m_task.reset(); // destroy task object and free its resources.

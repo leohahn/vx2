@@ -49,7 +49,7 @@ main_render_loading(const Application &app, ResourceManager &resource_manager)
     glDisable(GL_BLEND);
     glEnable(GL_DEPTH_TEST);
 
-    dump_opengl_errors("After loading screen", __FILE__);
+    dump_opengl_errors("After loading screen");
 
     glfwPollEvents();
     glfwSwapBuffers(app.window);
@@ -122,7 +122,7 @@ main_render_running(const Application &app, World &world, ResourceManager &resou
     glDisable(GL_BLEND);
     glEnable(GL_DEPTH_TEST);
 
-    dump_opengl_errors("After font", __FILE__);
+    dump_opengl_errors("After font");
 
     glfwPollEvents();
     glfwSwapBuffers(app.window);
@@ -200,8 +200,11 @@ main()
     LT_Assert(font_atlas);
     font_atlas->load(18.0f);
 
-    // NOTE: Call loading screen before creating the world instance, since it takes some time before
-    // it is initialized.
+    // NOTE, REFACTOR:
+    // Call loading screen before creating the world instance, since it takes some time before
+    // it is initialized. This looks ugly, maybe implement a loop only for the initial loading?
+    // The world struct could also be initialized inside the loop, therefore, removing the need for this
+    // function call.
     main_render_loading(app, resource_manager);
 
     const i32 seed = 12123153;
@@ -221,7 +224,7 @@ main()
     //
     bool running = true;
 
-    dump_opengl_errors("Before loop", __FILE__);
+    dump_opengl_errors("Before loop");
 
     // Define variables to control time
     using clock = std::chrono::high_resolution_clock;

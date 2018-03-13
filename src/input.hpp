@@ -8,15 +8,15 @@
 
 struct Application;
 
-struct Key
+enum Transition
 {
-	enum Transition
-	{
 		Transition_None = 0,
 		Transition_Up = 1,
 		Transition_Down = 2,
-	};
+};
 
+struct Key
+{
 	bool is_pressed;
 	Transition last_transition;
 };
@@ -27,6 +27,9 @@ struct MouseState
     i32 yoffset;
     i32 prev_xpos;
     i32 prev_ypos;
+
+    Transition left_button_transition;
+    bool left_button_pressed;
 
     MouseState(i32 screen_width, i32 screen_height)
         : xoffset(0)

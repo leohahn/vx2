@@ -54,7 +54,11 @@ private:
     void reset_mouse_position();
 };
 
-void dump_opengl_errors(const char *func, const char *file = nullptr);
+#ifndef dump_opengl_errors
+#define dump_opengl_errors(str) _dump_opengl_errors(str, __FILE__)
+#endif
+
+void _dump_opengl_errors(const char *func, const char *file = nullptr);
 
 
 #endif // __APPLICATION_HPP__

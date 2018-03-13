@@ -150,7 +150,7 @@ Shader::add_texture(const char *name)
 
     m_next_texture_unit++;
 
-    dump_opengl_errors("add_texture", __FILE__);
+    dump_opengl_errors("add_texture");
 }
 
 u32

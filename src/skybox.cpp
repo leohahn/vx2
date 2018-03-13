@@ -74,7 +74,7 @@ Skybox::create_mesh()
         glBindVertexArray(0);
     }
 
-    dump_opengl_errors("create_mesh", __FILE__);
+    dump_opengl_errors("create_mesh");
     return mesh;
 }
 
