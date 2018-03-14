@@ -1076,7 +1076,48 @@ Landscape::remove_block(Vec3f ray_origin, Vec3f ray_direction)
         {
             chunk->blocks[bx][by][bz] = BlockType_Air;
             chunk->create_request();
+
+            // Regenerate the current chunk mesh.
             m_chunks_to_process_queue.insert(chunk->request);
+
+            // If the block changed is in the boundary of another chunk,
+            // update the neighboring chunk as well.
+            if (bx == 0)
+            {
+                Chunk *left_chunk = chunk_ptrs[cx-1][cy][cz].get();
+                left_chunk->create_request();
+                m_chunks_to_process_queue.insert(left_chunk->request);
+            }
+            if (bx == Chunk::NUM_BLOCKS_PER_AXIS-1)
+            {
+                Chunk *right_chunk = chunk_ptrs[cx+1][cy][cz].get();
+                right_chunk->create_request();
+                m_chunks_to_process_queue.insert(right_chunk->request);
+            }
+            if (by == 0)
+            {
+                Chunk *bottom_chunk = chunk_ptrs[cx][cy-1][cz].get();
+                bottom_chunk->create_request();
+                m_chunks_to_process_queue.insert(bottom_chunk->request);
+            }
+            if (by == Chunk::NUM_BLOCKS_PER_AXIS-1)
+            {
+                Chunk *top_chunk = chunk_ptrs[cx][cy+1][cz].get();
+                top_chunk->create_request();
+                m_chunks_to_process_queue.insert(top_chunk->request);
+            }
+            if (bz == 0)
+            {
+                Chunk *back_chunk = chunk_ptrs[cx][cy][cz-1].get();
+                back_chunk->create_request();
+                m_chunks_to_process_queue.insert(back_chunk->request);
+            }
+            if (bz == Chunk::NUM_BLOCKS_PER_AXIS-1)
+            {
+                Chunk *front_chunk = chunk_ptrs[cx][cy][cz+1].get();
+                front_chunk->create_request();
+                m_chunks_to_process_queue.insert(front_chunk->request);
+            }
             break;
         }
 
