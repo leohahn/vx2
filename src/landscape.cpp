@@ -32,7 +32,6 @@ Landscape::Landscape(Memory &memory, i32 seed, f64 amplitude,
     , m_num_octaves(num_octaves)
     , m_lacunarity(lacunarity)
     , m_gain(gain)
-    , m_threads(std::thread::hardware_concurrency())
     , m_threads_should_run(false)
     , m_chunks_allocator(memory.chunks_memory, memory.chunks_memory_size,
                          sizeof(Chunk), alignof(Chunk))
