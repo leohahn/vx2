@@ -51,7 +51,6 @@ main_render_loading(const Application &app, ResourceManager &resource_manager)
 
     dump_opengl_errors("After loading screen");
 
-    glfwPollEvents();
     glfwSwapBuffers(app.window);
 }
 
@@ -124,7 +123,6 @@ main_render_running(const Application &app, World &world, ResourceManager &resou
 
     dump_opengl_errors("After font");
 
-    glfwPollEvents();
     glfwSwapBuffers(app.window);
 }
 
@@ -258,8 +256,6 @@ main()
                 min_frame_time = std::chrono::duration_cast<std::chrono::milliseconds>(frame_time);
         }
 
-        app.process_input();
-
         // Check if the window should close.
         if (app.should_close())
         {
@@ -269,6 +265,9 @@ main()
 
         while (lag >= TIMESTEP)
         {
+            glfwPollEvents();
+            app.process_input();
+
             previous_world = current_world;
             current_world.update(app.input);
 
