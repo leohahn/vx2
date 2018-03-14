@@ -7,6 +7,7 @@
 #include "application.hpp"
 #include "camera.hpp"
 #include "world.hpp"
+#include "input.hpp"
 
 using std::placeholders::_1;
 
@@ -59,7 +60,7 @@ Landscape::get_chunk_origin(i32 cx, i32 cy, i32 cz)
 }
 
 void
-Landscape::update(const Camera &camera)
+Landscape::update(const Camera &camera, const Input &input)
 {
     // See which chunks where already loaded by the different threads and
     // pass the vertex data to the gpu if so happened.
@@ -281,6 +282,11 @@ Landscape::update(const Camera &camera)
                 }
         chunks_mutex.unlock_high_priority(); // UNLOCK
     }
+
+    if (input.mouse_state.left_button_transition == Transition_Down)
+    {
+        remove_block(camera.position(), camera.front());
+    }
 }
 
 bool
@@ -299,12 +305,7 @@ Landscape::block_exists(i32 abs_block_xi, i32 abs_block_yi, i32 abs_block_zi)
     LT_Assert(cx < NUM_CHUNKS_X);
     LT_Assert(cy < NUM_CHUNKS_Y);
     LT_Assert(cz < NUM_CHUNKS_Z);
-
-    if (!chunk_ptrs[cx][cy][cz])
-    {
-        logger.log("CHUNK IS NULL: cx = ", cx, ", cy = ", cy, ", cz = ", cz);
-        LT_Panic("AHAHAHAH");
-    }
+    LT_Assert(chunk_ptrs[cx][cy][cz]);
 
     return chunk_ptrs[cx][cy][cz]->blocks[bx][by][bz] != BlockType_Air;
 }
@@ -981,4 +982,108 @@ Landscape::ChunkQueue::take_next_request()
     {
         return nullptr;
     }
+}
+
+void
+Landscape::remove_block(Vec3f ray_origin, Vec3f ray_direction)
+{
+    // NOTE: This function implements the Fast Voxel Traversal algorithm with some changes added to
+    // work with negative directions.
+    // http://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.42.3443&rep=rep1&type=pdf
+
+    chunks_mutex.lock_high_priority(); // LOCK
+    // Find the block where the ray starts.
+    const Vec3f offset_from_origin = ray_origin - origin;
+    LT_Assert(offset_from_origin.x >= 0 && offset_from_origin.y >= 0 && offset_from_origin.z >= 0);
+
+    i32 abx = std::floor(offset_from_origin.x / Chunk::BLOCK_SIZE);
+    i32 aby = std::floor(offset_from_origin.y / Chunk::BLOCK_SIZE);
+    i32 abz = std::floor(offset_from_origin.z / Chunk::BLOCK_SIZE);
+
+    const i32 step_x = lt::sign_float(ray_direction.x);
+    const i32 step_y = lt::sign_float(ray_direction.y);
+    const i32 step_z = lt::sign_float(ray_direction.z);
+
+    // How much we can travel with t until we encounter a voxel boundary in each axis.
+    const f32 t_delta_x = (step_x != 0)
+        ? (f32)Chunk::BLOCK_SIZE / ray_direction.x
+        : std::numeric_limits<f32>::max();
+
+    const f32 t_delta_y = (step_y != 0)
+        ? (f32)Chunk::BLOCK_SIZE / ray_direction.y
+        : std::numeric_limits<f32>::max();
+
+    const f32 t_delta_z = (step_z != 0)
+        ? (f32)Chunk::BLOCK_SIZE / ray_direction.z
+        : std::numeric_limits<f32>::max();
+
+    auto fraction_pos = [](f32 x) -> f32 { // fraction when direction is positive
+        return (x - std::floor(x));
+    };
+
+    // Maximum amount we can advance (in t) in order to meet one of the axis boundaries.
+    // f32 t_max_x = t_delta_x * (1 - fraction_pos(offset_from_origin.x / Chunk::BLOCK_SIZE));
+    f32 t_max_x = (step_x > 0)
+        ? t_delta_x * (1 - fraction_pos(offset_from_origin.x / Chunk::BLOCK_SIZE))
+        : t_delta_x * fraction_pos(offset_from_origin.x / Chunk::BLOCK_SIZE);
+
+    f32 t_max_y = (step_y > 0)
+        ? t_delta_y * (1 - fraction_pos(offset_from_origin.y / Chunk::BLOCK_SIZE))
+        : t_delta_y * fraction_pos(offset_from_origin.y / Chunk::BLOCK_SIZE);
+
+    f32 t_max_z = (step_z > 0)
+        ? t_delta_z * (1 - fraction_pos(offset_from_origin.z / Chunk::BLOCK_SIZE))
+        : t_delta_z * fraction_pos(offset_from_origin.z / Chunk::BLOCK_SIZE);
+
+    logger.log("Current Block:");
+    logger.log("abx = ", abx, " aby = ", aby, " abz = ", abz);
+    logger.log("t_max_x = ", t_max_x, " t_max_y = ", t_max_y, " t_max_z = ", t_max_z);
+    logger.log();
+
+    i32 blocks_traversed = 0;
+    for (;;) {
+        if (std::abs(t_max_x) < std::abs(t_max_y)) {
+            if (std::abs(t_max_x) < std::abs(t_max_z)) {
+                abx += step_x;
+                t_max_x += t_delta_x;
+            } else {
+                abz += step_z;
+                t_max_z += t_delta_z;
+            }
+        } else {
+            if (std::abs(t_max_y) < std::abs(t_max_z)) {
+                aby += step_y;
+                t_max_y += t_delta_y;
+            } else {
+                abz += step_z;
+                t_max_z += t_delta_z;
+            }
+        }
+
+        const i32 bx = abx % Chunk::NUM_BLOCKS_PER_AXIS;
+        const i32 by = aby % Chunk::NUM_BLOCKS_PER_AXIS;
+        const i32 bz = abz % Chunk::NUM_BLOCKS_PER_AXIS;
+
+        const i32 cx = abx / Chunk::NUM_BLOCKS_PER_AXIS;
+        const i32 cy = aby / Chunk::NUM_BLOCKS_PER_AXIS;
+        const i32 cz = abz / Chunk::NUM_BLOCKS_PER_AXIS;
+
+        Chunk *chunk = chunk_ptrs[cx][cy][cz].get();
+        if (chunk->blocks[bx][by][bz] != BlockType_Air)
+        {
+            chunk->blocks[bx][by][bz] = BlockType_Air;
+            chunk->create_request();
+            m_chunks_to_process_queue.insert(chunk->request);
+
+            logger.log("Adding to request.");
+            logger.log("abx = ", abx, " aby = ", aby, " abz = ", abz);
+            logger.log();
+            break;
+        }
+
+        blocks_traversed++;
+        if (blocks_traversed == 6) break;
+    }
+
+    chunks_mutex.unlock_high_priority(); // UNLOCK
 }

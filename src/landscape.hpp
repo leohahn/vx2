@@ -17,6 +17,7 @@ struct ResourceManager;
 struct osn_context;
 struct ChunkNoise;
 struct Memory;
+struct Input;
 
 enum BlockType
 {
@@ -170,7 +171,7 @@ public:
 
     std::vector<Vertex_PLN> update_chunk_buffer(Chunk *chunk);
     bool block_exists(i32 abs_block_xi, i32 abs_block_yi, i32 abs_block_zi);
-    void update(const Camera &camera);
+    void update(const Camera &camera, const Input &input);
     void generate();
 
     inline Vec3f center() const
@@ -220,8 +221,11 @@ private:
     void run_worker_thread();
     void stop_threads();
     void pass_chunk_buffer_to_gpu(const VAOArray::Entry &entry, const std::vector<Vertex_PLN> &buf);
+    void remove_block(Vec3f raw_origin, Vec3f ray_direction);
 
-    // // Queue that contains the chunks that need to be loaded by the threads.
+    // Queue that contains the chunks that need to be loaded by the threads.
+    // TODO, PERFORMANCE: Consider creating a high priority queue to load chunks that for some reason
+    // need to be loaded faster than others (This may be helpful when loading chunks closer to the player).
     ChunkQueue m_chunks_to_process_queue;
     ChunkQueue m_chunks_processed_queue;
 };

@@ -60,10 +60,10 @@ World::update(Input &input)
 
         camera.update(input);
 
-        if (input.keys[GLFW_KEY_T].last_transition == Key::Transition_Down)
+        if (input.keys[GLFW_KEY_T].last_transition == Transition_Down)
             render_wireframe = !render_wireframe;
 
-        landscape->update(camera);
+        landscape->update(camera, input);
     }
 }
 

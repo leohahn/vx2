@@ -54,9 +54,10 @@ render_world(World &world) // TODO: maybe change this to render_landscape??
         if (entry.is_used && entry.num_vertices_used > 0)
         {
             LT_Assert(entry.vao != 0); // The vao should already be created.
-            LT_Assert(entry.vbo != 0); // The vbo should already be created.
+
 
             glBindVertexArray(entry.vao);
+            // glDrawArrays(GL_TRIANGLES, 0, entry.num_vertices_used);
             glDrawArrays(GL_TRIANGLES, 0, entry.num_vertices_used);
             glBindBuffer(GL_ARRAY_BUFFER, 0);
         }

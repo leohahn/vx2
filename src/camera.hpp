@@ -49,6 +49,7 @@ struct Camera
     void update(Input &input);
     void interpolate_frustum(f64 lag_offset);
     inline Vec3f position() const { return frustum.position; }
+    inline Vec3f front() const { return frustum.front.v; }
 
     Mat4f view_matrix() const;
 
