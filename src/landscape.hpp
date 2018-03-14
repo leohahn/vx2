@@ -203,11 +203,8 @@ private:
     const f64           m_lacunarity;
     const f64           m_gain;
 
-    // TODO: Instead of hardcoding the number of threads, decide this at runtime
-    // which number is the best.
-    static constexpr i32 M_NUM_THREADS = 4;
-    std::thread          m_threads[M_NUM_THREADS];
-    std::atomic<bool>    m_threads_should_run;
+    std::vector<std::thread> m_threads;
+    std::atomic<bool>        m_threads_should_run;
 
     osn_context  *m_simplex_ctx;
 

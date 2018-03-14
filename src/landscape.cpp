@@ -32,15 +32,24 @@ Landscape::Landscape(Memory &memory, i32 seed, f64 amplitude,
     , m_num_octaves(num_octaves)
     , m_lacunarity(lacunarity)
     , m_gain(gain)
+    , m_threads(std::thread::hardware_concurrency())
     , m_threads_should_run(false)
     , m_chunks_allocator(memory.chunks_memory, memory.chunks_memory_size,
                          sizeof(Chunk), alignof(Chunk))
 {
-    if (open_simplex_noise(seed, &m_simplex_ctx))
+    const u32 num_cpu_cores = std::thread::hardware_concurrency();
+    if (num_cpu_cores == 0)
+        LT_Panic("Could not find the number of cores in this computer.");
+    else if (num_cpu_cores == 1)
+        LT_Panic("This computer only has one core.");
+    else
     {
-        logger.error("Failed to initialize context for noise generation.");
-        return;
+        // NOTE: One thread should be reserved for the main thread.
+        m_threads = std::vector<std::thread>(num_cpu_cores-1);
     }
+
+    if (open_simplex_noise(seed, &m_simplex_ctx))
+        LT_Panic("Failed to initialize context for noise generation.");
 
     initialize_chunks();
     initialize_threads();
@@ -860,8 +869,8 @@ Landscape::stop_threads()
     logger.log("Stopping threads...");
     // Notify all threads that they should not run anymore.
     m_threads_should_run = false;
-    m_chunks_to_process_queue.semaphore.notify_all(M_NUM_THREADS);
-    for (i32 i = 0; i < M_NUM_THREADS; i++) m_threads[i].join();
+    m_chunks_to_process_queue.semaphore.notify_all(m_threads.size());
+    for (auto &thread : m_threads) thread.join();
 }
 
 void
@@ -869,9 +878,9 @@ Landscape::initialize_threads()
 {
     logger.log("Initializing threads...");
     m_threads_should_run = true;
-    for (i32 i = 0; i < M_NUM_THREADS; i++)
+    for (auto &thread : m_threads)
     {
-        m_threads[i] = std::thread(std::bind(&Landscape::run_worker_thread, _1), this);
+        thread = std::thread(std::bind(&Landscape::run_worker_thread, _1), this);
     }
 }
 
@@ -1035,11 +1044,6 @@ Landscape::remove_block(Vec3f ray_origin, Vec3f ray_direction)
         ? t_delta_z * (1 - fraction_pos(offset_from_origin.z / Chunk::BLOCK_SIZE))
         : t_delta_z * fraction_pos(offset_from_origin.z / Chunk::BLOCK_SIZE);
 
-    logger.log("Current Block:");
-    logger.log("abx = ", abx, " aby = ", aby, " abz = ", abz);
-    logger.log("t_max_x = ", t_max_x, " t_max_y = ", t_max_y, " t_max_z = ", t_max_z);
-    logger.log();
-
     i32 blocks_traversed = 0;
     for (;;) {
         if (std::abs(t_max_x) < std::abs(t_max_y)) {
@@ -1074,15 +1078,11 @@ Landscape::remove_block(Vec3f ray_origin, Vec3f ray_direction)
             chunk->blocks[bx][by][bz] = BlockType_Air;
             chunk->create_request();
             m_chunks_to_process_queue.insert(chunk->request);
-
-            logger.log("Adding to request.");
-            logger.log("abx = ", abx, " aby = ", aby, " abz = ", abz);
-            logger.log();
             break;
         }
 
         blocks_traversed++;
-        if (blocks_traversed == 6) break;
+        if (blocks_traversed == 6) break; // TODO: remove hardcoded number of blocks.
     }
 
     chunks_mutex.unlock_high_priority(); // UNLOCK
