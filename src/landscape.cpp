@@ -76,30 +76,27 @@ Landscape::update(const Camera &camera, const Input &input)
         const i32 MAX_CHUNKS_TO_LOAD = 5;
 
         i32 chunks_loaded = 0;
-        std::shared_ptr<QueueRequest> request = nullptr;
-        while (chunks_loaded++ < MAX_CHUNKS_TO_LOAD &&
-               (request = m_chunks_processed_queue.take_next_request()))
+
+        for (auto &queue : m_chunks_processed_queues)
         {
-            LT_Assert(request->processed);
-
-            chunks_mutex.lock_high_priority(); // LOCK
-
-            if (!request->chunk)
+            std::shared_ptr<QueueRequest> request = nullptr;
+            while (chunks_loaded++ < MAX_CHUNKS_TO_LOAD && (request = queue.take_next_request()))
             {
-                // If chunk is nullptr, it means that it was cancelled by the main thread,
-                // therefore the results can be ignored.
-                chunks_mutex.unlock_high_priority(); // LOCK
-                continue;
+                LT_Assert(request->processed);
+
+                if (request->chunk)
+                {
+                    chunks_mutex.lock_high_priority(); // LOCK
+
+                    auto &entry = vao_array.vaos[request->chunk->entry_index];
+                    entry.num_vertices_used = request->vertexes.size();
+
+                    chunks_mutex.unlock_high_priority(); // UNLOCK
+
+                    if (entry.num_vertices_used > 0)
+                        pass_chunk_buffer_to_gpu(entry, request->vertexes);
+                }
             }
-
-            auto &entry = vao_array.vaos[request->chunk->entry_index];
-            entry.num_vertices_used = request->vertexes.size();
-
-            chunks_mutex.unlock_high_priority(); // UNLOCK
-
-            if (entry.num_vertices_used > 0)
-                pass_chunk_buffer_to_gpu(entry, request->vertexes);
-
         }
     }
 
@@ -139,10 +136,12 @@ Landscape::update(const Camera &camera, const Input &input)
                             do_chunk_generation_work(chunk);
 
                             chunk->create_request();
-                            m_chunks_to_process_queue.insert(chunk->request);
+                            m_chunks_to_process_queues[QP_Low].insert(chunk->request,
+                                                                      &m_chunks_to_process_semaphore);
 
                             chunk_ptrs[cx-1][cy][cz]->create_request();
-                            m_chunks_to_process_queue.insert(chunk_ptrs[cx-1][cy][cz]->request);
+                            m_chunks_to_process_queues[QP_Low].insert(chunk_ptrs[cx-1][cy][cz]->request,
+                                                                      &m_chunks_to_process_semaphore);
                         }
                     }
                     else
@@ -184,10 +183,12 @@ Landscape::update(const Camera &camera, const Input &input)
 
                             do_chunk_generation_work(chunk);
                             chunk->create_request();
-                            m_chunks_to_process_queue.insert(chunk->request);
+                            m_chunks_to_process_queues[QP_Low].insert(chunk->request,
+                                                                      &m_chunks_to_process_semaphore);
 
                             chunk_ptrs[cx+1][cy][cz]->create_request();
-                            m_chunks_to_process_queue.insert(chunk_ptrs[cx+1][cy][cz]->request);
+                            m_chunks_to_process_queues[QP_Low].insert(chunk_ptrs[cx+1][cy][cz]->request,
+                                                                      &m_chunks_to_process_semaphore);
                         }
                     }
                     else
@@ -229,10 +230,12 @@ Landscape::update(const Camera &camera, const Input &input)
 
                             do_chunk_generation_work(chunk);
                             chunk->create_request();
-                            m_chunks_to_process_queue.insert(chunk->request);
+                            m_chunks_to_process_queues[QP_Low].insert(chunk->request,
+                                                                      &m_chunks_to_process_semaphore);
 
                             chunk_ptrs[cx][cy][cz-1]->create_request();
-                            m_chunks_to_process_queue.insert(chunk_ptrs[cx][cy][cz-1]->request);
+                            m_chunks_to_process_queues[QP_Low].insert(chunk_ptrs[cx][cy][cz-1]->request,
+                                                                      &m_chunks_to_process_semaphore);
                         }
                     }
                     else
@@ -273,10 +276,12 @@ Landscape::update(const Camera &camera, const Input &input)
 
                             do_chunk_generation_work(chunk);
                             chunk->create_request();
-                            m_chunks_to_process_queue.insert(chunk->request);
+                            m_chunks_to_process_queues[QP_Low].insert(chunk->request,
+                                                                      &m_chunks_to_process_semaphore);
 
                             chunk_ptrs[cx][cy][cz+1]->create_request();
-                            m_chunks_to_process_queue.insert(chunk_ptrs[cx][cy][cz+1]->request);
+                            m_chunks_to_process_queues[QP_Low].insert(chunk_ptrs[cx][cy][cz+1]->request,
+                                                                      &m_chunks_to_process_semaphore);
                         }
                     }
                     else
@@ -796,7 +801,7 @@ Landscape::generate()
 
                 Chunk *chunk = chunk_ptrs[cx][cy][cz].get();
                 chunk->create_request();
-                m_chunks_to_process_queue.insert(chunk->request);
+                m_chunks_to_process_queues[QP_Low].insert(chunk->request, &m_chunks_to_process_semaphore);
 
                 chunks_mutex.unlock_high_priority(); // UNLOCK
             }
@@ -838,27 +843,33 @@ Landscape::run_worker_thread()
     logger.log("Thread ", std::this_thread::get_id(), " started");
     while (m_threads_should_run)
     {
-        // Process while there are entries on the queue.
-        auto request = m_chunks_to_process_queue.take_next_request();
-        if (request)
+        for (i32 i = 0; i < QP_Count; i++)
         {
-            chunks_mutex.lock_low_priority(); // LOCK
+            auto &queue = m_chunks_to_process_queues[i];
+            auto request = queue.take_next_request();
 
-            if (!request->chunk)
+            if (request) // there is a request to process.
             {
-                // TODO: If chunk is null, it means the request was cancelled, so it should be ignored.
+                chunks_mutex.lock_low_priority(); // LOCK
+
+                if (request->chunk)
+                {
+                    request->vertexes = update_chunk_buffer(request->chunk);
+                    request->processed = true;
+                    m_chunks_processed_queues[i].insert(request, nullptr);
+                }
+                else
+                {
+                    // NOTE: If chunk is null, it means the request was cancelled, so it should be ignored.
+                }
+
                 chunks_mutex.unlock_low_priority(); // UNLOCK
-                continue;
+                break;
             }
-
-            request->vertexes = update_chunk_buffer(request->chunk);
-            request->processed = true;
-            m_chunks_processed_queue.insert(request);
-
-            chunks_mutex.unlock_low_priority(); // UNLOCK
         }
+
         // Wait for more work to be added to the queue.
-        m_chunks_to_process_queue.semaphore.wait();
+        m_chunks_to_process_semaphore.wait();
     }
 }
 
@@ -868,7 +879,7 @@ Landscape::stop_threads()
     logger.log("Stopping threads...");
     // Notify all threads that they should not run anymore.
     m_threads_should_run = false;
-    m_chunks_to_process_queue.semaphore.notify_all(m_threads.size());
+    m_chunks_to_process_semaphore.notify_all(m_threads.size());
     for (auto &thread : m_threads) thread.join();
 }
 
@@ -962,7 +973,7 @@ Landscape::VAOArray::free_entry(isize index)
 }
 
 void
-Landscape::ChunkQueue::insert(const std::shared_ptr<QueueRequest> &request)
+Landscape::ChunkQueue::insert(const std::shared_ptr<QueueRequest> &request, Semaphore *semaphore)
 {
     std::lock_guard<decltype(mutex)> lock(mutex);
 
@@ -972,7 +983,7 @@ Landscape::ChunkQueue::insert(const std::shared_ptr<QueueRequest> &request)
 
     requests[write_index] = request;
     write_index = next_write_index;
-    semaphore.notify();
+    if (semaphore) semaphore->notify();
 }
 
 std::shared_ptr<Landscape::QueueRequest>
@@ -1078,7 +1089,7 @@ Landscape::remove_block(Vec3f ray_origin, Vec3f ray_direction)
             chunk->create_request();
 
             // Regenerate the current chunk mesh.
-            m_chunks_to_process_queue.insert(chunk->request);
+            m_chunks_to_process_queues[QP_High].insert(chunk->request, &m_chunks_to_process_semaphore);
 
             // If the block changed is in the boundary of another chunk,
             // update the neighboring chunk as well.
@@ -1086,37 +1097,43 @@ Landscape::remove_block(Vec3f ray_origin, Vec3f ray_direction)
             {
                 Chunk *left_chunk = chunk_ptrs[cx-1][cy][cz].get();
                 left_chunk->create_request();
-                m_chunks_to_process_queue.insert(left_chunk->request);
+                m_chunks_to_process_queues[QP_High].insert(left_chunk->request,
+                                                          &m_chunks_to_process_semaphore);
             }
             if (bx == Chunk::NUM_BLOCKS_PER_AXIS-1)
             {
                 Chunk *right_chunk = chunk_ptrs[cx+1][cy][cz].get();
                 right_chunk->create_request();
-                m_chunks_to_process_queue.insert(right_chunk->request);
+                m_chunks_to_process_queues[QP_High].insert(right_chunk->request,
+                                                          &m_chunks_to_process_semaphore);
             }
             if (by == 0)
             {
                 Chunk *bottom_chunk = chunk_ptrs[cx][cy-1][cz].get();
                 bottom_chunk->create_request();
-                m_chunks_to_process_queue.insert(bottom_chunk->request);
+                m_chunks_to_process_queues[QP_High].insert(bottom_chunk->request,
+                                                          &m_chunks_to_process_semaphore);
             }
             if (by == Chunk::NUM_BLOCKS_PER_AXIS-1)
             {
                 Chunk *top_chunk = chunk_ptrs[cx][cy+1][cz].get();
                 top_chunk->create_request();
-                m_chunks_to_process_queue.insert(top_chunk->request);
+                m_chunks_to_process_queues[QP_High].insert(top_chunk->request,
+                                                          &m_chunks_to_process_semaphore);
             }
             if (bz == 0)
             {
                 Chunk *back_chunk = chunk_ptrs[cx][cy][cz-1].get();
                 back_chunk->create_request();
-                m_chunks_to_process_queue.insert(back_chunk->request);
+                m_chunks_to_process_queues[QP_High].insert(back_chunk->request,
+                                                          &m_chunks_to_process_semaphore);
             }
             if (bz == Chunk::NUM_BLOCKS_PER_AXIS-1)
             {
                 Chunk *front_chunk = chunk_ptrs[cx][cy][cz+1].get();
                 front_chunk->create_request();
-                m_chunks_to_process_queue.insert(front_chunk->request);
+                m_chunks_to_process_queues[QP_High].insert(front_chunk->request,
+                                                          &m_chunks_to_process_semaphore);
             }
             break;
         }

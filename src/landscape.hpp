@@ -61,16 +61,14 @@ private:
             Chunk *chunk;
         };
 
-        void insert(const std::shared_ptr<QueueRequest> &request);
-        inline bool is_empty() const { return read_index == write_index; }
+        void insert(const std::shared_ptr<QueueRequest> &request, Semaphore *semaphore);
         std::shared_ptr<QueueRequest> take_next_request();
-        std::mutex mutex;
 
         // The entries array is a circular FIFO queue.
         std::shared_ptr<QueueRequest> requests[MAX_ENTRIES];
+        std::mutex mutable mutex;
         std::atomic<i32> read_index = 0;
         std::atomic<i32> write_index = 0;
-        Semaphore        semaphore;
     };
 
 public:
@@ -220,11 +218,17 @@ private:
     void pass_chunk_buffer_to_gpu(const VAOArray::Entry &entry, const std::vector<Vertex_PLN> &buf);
     void remove_block(Vec3f raw_origin, Vec3f ray_direction);
 
-    // Queue that contains the chunks that need to be loaded by the threads.
-    // TODO, PERFORMANCE: Consider creating a high priority queue to load chunks that for some reason
-    // need to be loaded faster than others (This may be helpful when loading chunks closer to the player).
-    ChunkQueue m_chunks_to_process_queue;
-    ChunkQueue m_chunks_processed_queue;
+    // Queues that contains the chunks that need to be loaded by the threads.
+    // The queues are ordered by priority. The initial queue has more priority than the others.
+    enum QueuePriority
+    {
+        QP_High = 0,
+        QP_Low = 1,
+        QP_Count = 2,
+    };
+    ChunkQueue m_chunks_to_process_queues[QP_Count];
+    Semaphore  m_chunks_to_process_semaphore;
+    ChunkQueue m_chunks_processed_queues[QP_Count];
 };
 
 #endif // __LANDSCAPE_HPP__
