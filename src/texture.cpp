@@ -204,3 +204,9 @@ ShadowMap::~ShadowMap()
     glDeleteFramebuffers(1, &fbo);
     glDeleteTextures(1, &texture);
 }
+
+void
+ShadowMap::bind_framebuffer() const
+{
+    glBindFramebuffer(GL_FRAMEBUFFER, fbo);
+}

@@ -105,6 +105,8 @@ struct ShadowMap
     ShadowMap(ShadowMap&&);
     ~ShadowMap();
 
+    void bind_framebuffer() const;
+
     ShadowMap(const ShadowMap&) = delete;
     ShadowMap &operator=(const ShadowMap&) = delete;
     ShadowMap &operator=(const ShadowMap&&) = delete;

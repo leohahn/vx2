@@ -55,7 +55,8 @@ main_render_loading(const Application &app, ResourceManager &resource_manager)
 }
 
 lt_internal void
-main_render_running(const Application &app, World &world, ResourceManager &resource_manager)
+main_render_running(const Application &app, World &world,
+                    const ShadowMap &shadow_map, ResourceManager &resource_manager)
 {
     Shader *basic_shader = resource_manager.get_shader("basic.shader");
     Shader *wireframe_shader = resource_manager.get_shader("wireframe.shader");
@@ -78,19 +79,30 @@ main_render_running(const Application &app, World &world, ResourceManager &resou
     }
     else
     {
+        // Render world to the shadow map texture
+        shadow_map.bind_framebuffer();
+        shadow_map.shader->use();
+        shadow_map.shader->debug_validate();
+        render_world(world);
+
+        // Render world to the default framebuffer
+        app.bind_default_framebuffer();
         basic_shader->use();
         basic_shader->set_matrix("view", world.camera.view_matrix());
         basic_shader->set3f("view_position", world.camera.frustum.position);
-        glActiveTexture(GL_TEXTURE0 + basic_shader->texture_unit("texture_array"));
-        glBindTexture(GL_TEXTURE_2D_ARRAY, world.textures_16x16->id);
+        basic_shader->activate_and_bind_texture("texture_array", GL_TEXTURE_2D_ARRAY, world.textures_16x16->id);
+        basic_shader->activate_and_bind_texture("texture_shadow_map", GL_TEXTURE_2D, shadow_map.texture);
+
+        basic_shader->debug_validate();
         render_world(world);
+
+        // dump_opengl_errors("oqiwjdoiqwdoid");
     }
 
     // Draw the skybox
     world.skybox.shader->use();
     world.skybox.shader->set_matrix("view", world.camera.view_matrix());
     render_skybox(world.skybox);
-    // dump_opengl_errors("After render_skybox", __FILE__);
 
     // Add blending and remove depth test.
     glDisable(GL_DEPTH_TEST);
@@ -127,7 +139,7 @@ main_render_running(const Application &app, World &world, ResourceManager &resou
 }
 
 lt_internal void
-main_render(const Application &app, World &world, ResourceManager &resource_manager)
+main_render(const Application &app, World &world, const ShadowMap &shadow_map, ResourceManager &resource_manager)
 {
     if (world.state == WorldStatus_InitialLoad)
     {
@@ -135,7 +147,7 @@ main_render(const Application &app, World &world, ResourceManager &resource_mana
     }
     else
     {
-        main_render_running(app, world, resource_manager);
+        main_render_running(app, world, shadow_map, resource_manager);
     }
 }
 
@@ -213,15 +225,19 @@ main()
 
     Shader *shadow_map_shader = resource_manager.get_shader("shadow_map.shader");
     shadow_map_shader->load();
+		const Mat4f light_projection = lt::orthographic(-50, 50, -50, 50, 1, 1000);
+		const Mat4f light_space = light_projection * world.sun.view_matrix();
+    shadow_map_shader->use();
+    shadow_map_shader->set_matrix("light_space", light_space);
 
     Shader *basic_shader = resource_manager.get_shader("basic.shader");
-    basic_shader->load();
     basic_shader->setup_perspective_matrix(app.aspect_ratio());
     basic_shader->use();
     basic_shader->set3f("sun.direction", world.sun.direction);
     basic_shader->set3f("sun.ambient", world.sun.ambient);
     basic_shader->set3f("sun.diffuse", world.sun.diffuse);
     basic_shader->set3f("sun.specular", world.sun.specular);
+    basic_shader->set_matrix("light_space", light_space);
 
     //
     // Here starts the setup for the main loop
@@ -286,7 +302,7 @@ main()
         World interpolated_world = World::interpolate(previous_world, current_world, lag_offset);
 
         // Render the interpolated state.
-        main_render(app, interpolated_world, resource_manager);
+        main_render(app, interpolated_world, shadow_map, resource_manager);
         num_frames++;
 
         // Update debug information after one second.
