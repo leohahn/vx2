@@ -13,7 +13,7 @@ struct Memory
 {
     Memory()
         // This memory is used with a pool allocator.
-        : chunks_memory_size(sizeof(Landscape::Chunk) * 1575)
+        : chunks_memory_size(sizeof(Landscape::Chunk) * Landscape::NUM_CHUNKS)
         , chunks_memory(calloc(1, chunks_memory_size))
     {}
 
