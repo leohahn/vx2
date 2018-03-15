@@ -31,9 +31,9 @@ static_assert(std::atomic<i32>::is_always_lock_free);
 
 struct Landscape
 {
-    constexpr static i32 NUM_CHUNKS_X = 14;
+    constexpr static i32 NUM_CHUNKS_X = 18;
     constexpr static i32 NUM_CHUNKS_Y = 7;
-    constexpr static i32 NUM_CHUNKS_Z = 14;
+    constexpr static i32 NUM_CHUNKS_Z = 18;
     constexpr static i32 NUM_CHUNKS = NUM_CHUNKS_X*NUM_CHUNKS_Y*NUM_CHUNKS_Z;
 
     struct Chunk;
@@ -54,7 +54,9 @@ private:
 
     struct ChunkQueue
     {
-        static constexpr i32 MAX_ENTRIES = 1600; // TODO: figure out the best number here.
+        // FIXME: Having multiple queues, some queues may not need such number of entries,
+        // so this can be a waste of space.
+        static constexpr i32 MAX_ENTRIES = NUM_CHUNKS;
 
         struct Request
         {
