@@ -5,7 +5,6 @@
 #include <string>
 #include <unordered_map>
 
-#include "glad/glad.h"
 #include "lt_fs.hpp"
 #include "lt_utils.hpp"
 #include "camera.hpp"
@@ -128,7 +127,7 @@ Shader::~Shader()
 void
 Shader::load()
 {
-    program = make_program(filepath);
+    if (!program) program = make_program(filepath);
 }
 
 void
