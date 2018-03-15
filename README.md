@@ -1,1 +1,2 @@
-[Dynamically loading the landscape.](https://www.youtube.com/watch?v=kNtDuyCNX14)
+- [Dynamically loading the landscape.](https://www.youtube.com/watch?v=kNtDuyCNX14)
+- [Removing blocks with the mouse](https://www.youtube.com/watch?v=jbDEUyFM6O4&feature=youtu.be)
