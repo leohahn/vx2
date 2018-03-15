@@ -2,7 +2,7 @@
 #include "lt_utils.hpp"
 #include "application.hpp"
 #include "io_task_manager.hpp"
-
+#include "resource_manager.hpp"
 #include "stb_image_write.h"
 
 lt_global_variable lt::Logger logger("texture");
@@ -148,4 +148,59 @@ TextureAtlas::load()
     }
 
     return m_is_loaded;
+}
+
+// -----------------------------------------------------------------------------
+// Shadow Map
+// -----------------------------------------------------------------------------
+
+ShadowMap::ShadowMap(i32 width, i32 height, const char *shader_name, const ResourceManager &manager)
+    : shader(manager.get_shader(shader_name))
+    , width(width)
+    , height(height)
+{
+    LT_Assert(shader);
+
+    // Create the texture
+    glGenTextures(1, &texture);
+    glBindTexture(GL_TEXTURE_2D, texture);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, width, height, 0, GL_DEPTH_COMPONENT, GL_FLOAT, nullptr);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    const Vec4f border_color(1.0f, 1.0f, 1.0f, 1.0f);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
+    glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, &border_color.val[0]);
+
+    // Attach texture to the framebuffer
+    glGenFramebuffers(1, &fbo);
+    glBindFramebuffer(GL_FRAMEBUFFER, fbo);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, texture, 0);
+    glDrawBuffer(GL_NONE);
+    glReadBuffer(GL_NONE);
+
+    if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
+        LT_Panic("framebuffer not complete");
+
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+}
+
+ShadowMap::ShadowMap(ShadowMap&& sm)
+    : shader(sm.shader)
+    , fbo(sm.fbo)
+    , texture(sm.texture)
+    , width(sm.width)
+    , height(sm.height)
+{
+    sm.fbo = 0;
+    sm.texture = 0;
+    sm.shader = nullptr;
+    sm.width = -1;
+    sm.height = -1;
+}
+
+ShadowMap::~ShadowMap()
+{
+    glDeleteFramebuffers(1, &fbo);
+    glDeleteTextures(1, &texture);
 }

@@ -166,6 +166,7 @@ main()
             "skybox.shader",
             "font.shader",
             "crosshair.shader",
+            "shadow_map.shader",
         };
         const char *textures_to_load[] = {
             "skybox.texture", "textures_16x16.texture",
@@ -207,6 +208,11 @@ main()
 
     const i32 seed = 12123153;
     World world(app, seed, "textures_16x16.texture", resource_manager, app.aspect_ratio());
+
+    ShadowMap shadow_map(app.screen_width, app.screen_height, "shadow_map.shader", resource_manager);
+
+    Shader *shadow_map_shader = resource_manager.get_shader("shadow_map.shader");
+    shadow_map_shader->load();
 
     Shader *basic_shader = resource_manager.get_shader("basic.shader");
     basic_shader->load();

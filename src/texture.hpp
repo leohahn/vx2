@@ -11,7 +11,6 @@
 #include "io_task.hpp"
 
 struct IOTaskManager;
-// struct LoadImagesTask;
 
 enum TextureFormat
 {
@@ -88,6 +87,27 @@ public:
 private:
     std::unique_ptr<LoadImagesTask> m_task;
     IOTaskManager *m_io_task_manager;
+};
+
+////////////////
+
+struct Shader;
+struct ResourceManager;
+
+struct ShadowMap
+{
+    Shader *shader;
+    u32 fbo;
+    u32 texture;
+    i32 width, height;
+
+    ShadowMap(i32 width, i32 height, const char *shader_name, const ResourceManager &manager);
+    ShadowMap(ShadowMap&&);
+    ~ShadowMap();
+
+    ShadowMap(const ShadowMap&) = delete;
+    ShadowMap &operator=(const ShadowMap&) = delete;
+    ShadowMap &operator=(const ShadowMap&&) = delete;
 };
 
 #endif // __TEXTURE_HPP__

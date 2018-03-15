@@ -36,12 +36,6 @@ render_mesh(const Mesh &mesh, Shader *shader)
     }
 }
 
-// void
-// render_final_quad(const Application &app, const Camera &camera, Shader *shader)
-// {
-//     render_mesh(app.render_quad, shader);
-// }
-
 void
 render_world(World &world) // TODO: maybe change this to render_landscape??
 {
@@ -104,10 +98,12 @@ render_text(AsciiFontAtlas *atlas, const std::string &text, f32 posx, f32 posy, 
     glBindBuffer(GL_ARRAY_BUFFER, atlas->vbo);
     glBufferData(GL_ARRAY_BUFFER, sizeof(Vertex_PU)*text_buf.size(), &text_buf[0], GL_STATIC_DRAW);
 
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex_PU), (void*)offsetof(Vertex_PU, position));
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex_PU),
+                          (void*)offsetof(Vertex_PU, position));
     glEnableVertexAttribArray(0);
 
-    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex_PU), (void*)offsetof(Vertex_PU, tex_coords));
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex_PU),
+                          (void*)offsetof(Vertex_PU, tex_coords));
     glEnableVertexAttribArray(1);
 
     shader->use();
