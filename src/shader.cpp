@@ -146,7 +146,10 @@ Shader::add_texture(const char *name)
         glUseProgram(0);
     }
     else
+    {
         logger.error("Shader ", filepath, " is not yet loaded.");
+        LT_Assert(false);
+    }
 
     m_next_texture_unit++;
 
@@ -219,4 +222,26 @@ Shader::get_location(const char *name)
     }
 
     return m_locations.at(name);
+}
+
+void
+Shader::debug_validate() const
+{
+    glValidateProgram(program);
+    int validate_status;
+    glGetProgramiv(program, GL_VALIDATE_STATUS, &validate_status);
+    if(validate_status == GL_FALSE)
+    {
+        char infolog[1024];
+        glGetProgramInfoLog(program, 1024, NULL, infolog);
+        logger.error("Shader validation failed:");
+        printf("%s\n", infolog);
+    }
+}
+
+void
+Shader::activate_and_bind_texture(const char *name, GLenum texture_type, u32 texture)
+{
+    glActiveTexture(GL_TEXTURE0 + texture_unit(name));
+    glBindTexture(texture_type, texture);
 }
