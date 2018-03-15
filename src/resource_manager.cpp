@@ -176,7 +176,6 @@ ResourceManager::load_from_shader_file(const std::string &filename)
 
     if (shader_file.has("textures"))
     {
-        // logger.log("Shader ", filename, " has textures entr, adding them.");
         auto array_val = shader_file.cast_get<ResourceFile::ArrayVal>("textures");
 
         new_shader->load();

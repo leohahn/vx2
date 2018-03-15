@@ -24,9 +24,7 @@ render_mesh(const Mesh &mesh, Shader *shader)
 				for (usize t = 0; t < sm.textures.size(); t++)
 				{
             const std::string &name = sm.textures[t].name;
-            const u32 texture_unit = shader->texture_unit(name);
-            glActiveTexture(GL_TEXTURE0 + texture_unit);
-            glBindTexture(sm.textures[t].type, sm.textures[t].id);
+            shader->activate_and_bind_texture(name.c_str(), sm.textures[t].type, sm.textures[t].id);
 				}
 
         LT_Assert(mesh.vao != 0);
@@ -49,11 +47,9 @@ render_world(World &world) // TODO: maybe change this to render_landscape??
         {
             LT_Assert(entry.vao != 0); // The vao should already be created.
 
-
             glBindVertexArray(entry.vao);
-            // glDrawArrays(GL_TRIANGLES, 0, entry.num_vertices_used);
             glDrawArrays(GL_TRIANGLES, 0, entry.num_vertices_used);
-            glBindBuffer(GL_ARRAY_BUFFER, 0);
+            glBindVertexArray(0);
         }
     }
 }
@@ -107,9 +103,7 @@ render_text(AsciiFontAtlas *atlas, const std::string &text, f32 posx, f32 posy, 
     glEnableVertexAttribArray(1);
 
     shader->use();
-
-    glActiveTexture(GL_TEXTURE0 + shader->texture_unit("font_atlas"));
-    glBindTexture(GL_TEXTURE_2D, atlas->id);
+    shader->activate_and_bind_texture("font_atlas", GL_TEXTURE_2D, atlas->id);
 
     glDrawArrays(GL_TRIANGLES, 0, text_buf.size());
 
