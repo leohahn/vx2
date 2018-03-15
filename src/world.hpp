@@ -22,6 +22,12 @@ struct Sun
     Vec3f ambient;
     Vec3f diffuse;
     Vec3f specular;
+
+    inline Mat4f view_matrix() const
+    {
+        const Vec3f dir_light_pos(-33.0f, 163.0f, -226.5f);
+        return lt::look_at(dir_light_pos, dir_light_pos+direction, Vec3f(0, 1, 0));
+    }
 };
 
 enum WorldStatus
