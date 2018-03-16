@@ -32,6 +32,7 @@ World::World(Application &app, i32 seed, const char *textures_16x16_name,
     , sun()
     , textures_16x16(manager.get_texture<TextureAtlas>(textures_16x16_name))
     , crosshair("crosshair.shader", manager, textures_16x16->id)
+    , sky_color(0.929f, 0.929f, 0.949f)
 {
     const f64 amplitude = 0.70;
     const f64 frequency = 0.02;
@@ -45,7 +46,7 @@ World::World(Application &app, i32 seed, const char *textures_16x16_name,
 
     camera = create_camera(landscape->center(), aspect_ratio);
 
-    sun.direction = lt::normalize(Vec3f(0.49f, -0.35f, 0.80f));
+    sun.direction = lt::normalize(Vec3f(0.2f, -0.9f, 0.1f));
     sun.ambient = Vec3f(.1f);
     sun.diffuse = Vec3f(.7f);
     sun.specular = Vec3f(1.0f);

@@ -91,6 +91,7 @@ public:
     bool                   render_wireframe = false;
     TextureAtlas          *textures_16x16;
     Crosshair              crosshair;
+    Vec3f                  sky_color;
 
 private:
     Camera create_camera(Vec3f position, f32 aspect_ratio);

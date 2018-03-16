@@ -63,7 +63,7 @@ main_render_running(const Application &app, World &world,
     Shader *font_shader = resource_manager.get_shader("font.shader");
     AsciiFontAtlas *font_atlas = resource_manager.get_font("dejavu/ttf/DejaVuSansMono.ttf");
 
-    glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+    glClearColor(world.sky_color.r, world.sky_color.g, world.sky_color.b, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     if (world.render_wireframe)
@@ -100,9 +100,11 @@ main_render_running(const Application &app, World &world,
     }
 
     // Draw the skybox
+#if 0
     world.skybox.shader->use();
     world.skybox.shader->set_matrix("view", world.camera.view_matrix());
     render_skybox(world.skybox);
+#endif
 
     // Add blending and remove depth test.
     glDisable(GL_DEPTH_TEST);
@@ -237,6 +239,8 @@ main()
     basic_shader->set3f("sun.ambient", world.sun.ambient);
     basic_shader->set3f("sun.diffuse", world.sun.diffuse);
     basic_shader->set3f("sun.specular", world.sun.specular);
+    basic_shader->set3f("sky_color", world.sky_color);
+    basic_shader->activate_and_bind_texture("texture_cubemap", GL_TEXTURE_CUBE_MAP, world.skybox.id());
     basic_shader->set_matrix("light_space", light_space);
 
     //

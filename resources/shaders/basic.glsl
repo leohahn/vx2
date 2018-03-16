@@ -19,6 +19,7 @@ out VS_OUT
     vec3 frag_tex_coords_layer;
     vec3 frag_normal;
     vec4 frag_pos_light_space;
+    float visibility;
 } vs_out;
 
 void
@@ -29,7 +30,16 @@ main()
     vs_out.frag_normal = att_normal;
     vs_out.frag_pos_light_space = light_space * vec4(vs_out.frag_world_pos, 1.0f);
 
-    gl_Position = projection * view * vec4(att_position, 1.0f);
+    vec4 pos_in_camera_space = view * vec4(att_position, 1.0);
+
+    const float density = 0.018;
+    const float gradient = 2.0;
+
+    float distance_from_camera = length(pos_in_camera_space.xyz);
+    vs_out.visibility = exp(-pow(distance_from_camera*density, gradient));
+    vs_out.visibility = clamp(vs_out.visibility, 0.0, 1.0);
+
+    gl_Position = projection * pos_in_camera_space;
 }
 
 #endif
@@ -47,6 +57,7 @@ in VS_OUT
     vec3 frag_tex_coords_layer;
     vec3 frag_normal;
     vec4 frag_pos_light_space;
+    float visibility;
 } vs_out;
 
 out vec4 frag_color;
@@ -61,9 +72,11 @@ struct Sun
 
 uniform sampler2DArray texture_array;
 uniform sampler2D texture_shadow_map;
+uniform samplerCube texture_cubemap;
 
 uniform vec3 view_position;
 uniform Sun sun;
+uniform vec3 sky_color;
 
 #define NUM_LAYERS 9
 
@@ -145,8 +158,8 @@ main()
     vec3 color = sun_contribution;
     color = apply_gamma_correction(color);
 
-    // Set the final color
     frag_color = vec4(color, 1.0);
+    frag_color = mix(vec4(sky_color, 1.0), frag_color, vs_out.visibility);
 }
 
 #endif

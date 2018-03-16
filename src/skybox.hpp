@@ -19,6 +19,7 @@ struct Skybox
     TextureCubemap *cubemap;
 
     bool load();
+    u32 id() const;
 
     Skybox();
     Skybox(const char *texture_filepath, const char *shader_filepath, const ResourceManager &manager);

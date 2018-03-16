@@ -89,3 +89,10 @@ Skybox::load()
 
     return false;
 }
+
+u32
+Skybox::id() const
+{
+    LT_Assert(cubemap->id > 0);
+    return cubemap->id;
+}
