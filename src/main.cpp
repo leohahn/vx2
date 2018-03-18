@@ -26,12 +26,19 @@ struct DebugContext
     i32 ups;
     i32 max_frame_time;
     i32 min_frame_time;
+    bool render_shadow_map;
 };
 
 using namespace std::chrono_literals;
 
 lt_global_variable lt::Logger logger("main");
 lt_global_variable DebugContext g_debug_context = {};
+
+lt_internal void
+main_render_paused()
+{
+    logger.log("PAUSED:");
+}
 
 lt_internal void
 main_render_loading(const Application &app, ResourceManager &resource_manager)
@@ -63,6 +70,7 @@ main_render_running(const Application &app, World &world,
     Shader *font_shader = resource_manager.get_shader("font.shader");
     AsciiFontAtlas *font_atlas = resource_manager.get_font("dejavu/ttf/DejaVuSansMono.ttf");
 
+    app.bind_default_framebuffer();
     glClearColor(world.sky_color.r, world.sky_color.g, world.sky_color.b, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
@@ -73,30 +81,52 @@ main_render_running(const Application &app, World &world,
 
         wireframe_shader->use();
         wireframe_shader->set_matrix("view", world.camera.view_matrix());
-        render_world(world);
+        render_landscape(world);
 
         glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
     }
     else
     {
         // Render world to the shadow map texture
-        shadow_map.bind_framebuffer();
-        shadow_map.shader->use();
-        shadow_map.shader->debug_validate();
-        render_world(world);
+        {
+            glViewport(0, 0, shadow_map.width, shadow_map.height);
+            shadow_map.bind_framebuffer();
+            glClear(GL_DEPTH_BUFFER_BIT);
+            glDisable(GL_CULL_FACE);
+            shadow_map.shader->use();
+            shadow_map.shader->debug_validate();
+            render_landscape(world);
+            glEnable(GL_CULL_FACE);
+        }
 
-        // Render world to the default framebuffer
+        glViewport(0, 0, app.screen_width, app.screen_height);
         app.bind_default_framebuffer();
-        basic_shader->use();
-        basic_shader->set_matrix("view", world.camera.view_matrix());
-        basic_shader->set3f("view_position", world.camera.frustum.position);
-        basic_shader->activate_and_bind_texture("texture_array", GL_TEXTURE_2D_ARRAY, world.textures_16x16->id);
-        basic_shader->activate_and_bind_texture("texture_shadow_map", GL_TEXTURE_2D, shadow_map.texture);
 
-        basic_shader->debug_validate();
-        render_world(world);
+        if (g_debug_context.render_shadow_map)
+        {
+            shadow_map.debug_render_shader->use();
+            shadow_map.debug_render_shader->activate_and_bind_texture("texture_shadow_map",
+                                                                      GL_TEXTURE_2D, shadow_map.texture);
+            shadow_map.debug_render_shader->set_matrix("light_space", world.sun.light_space());
+            shadow_map.debug_render_shader->debug_validate();
+            render_mesh(shadow_map.debug_render_quad, shadow_map.debug_render_shader);
 
-        // dump_opengl_errors("oqiwjdoiqwdoid");
+            glfwSwapBuffers(app.window);
+            return;
+        }
+        else
+        {
+            basic_shader->use();
+            basic_shader->set_matrix("view", world.camera.view_matrix());
+            basic_shader->set_matrix("light_space", world.sun.light_space());
+            basic_shader->set3f("view_position", world.camera.frustum.position);
+            basic_shader->activate_and_bind_texture("texture_array", GL_TEXTURE_2D_ARRAY,
+                                                    world.textures_16x16->id);
+            basic_shader->activate_and_bind_texture("texture_shadow_map", GL_TEXTURE_2D,
+                                                    shadow_map.texture);
+            basic_shader->debug_validate();
+            render_landscape(world);
+        }
     }
 
     // Draw the skybox
@@ -118,7 +148,8 @@ main_render_running(const Application &app, World &world,
     lt_local_persist char text_buffer[256] = {};
     snprintf(text_buffer, LT_Count(text_buffer),
              "FPS: %d, UPS: %d -- Frame time: %.2f min | %.2f max\n"
-             "Camera: (%.2f, %.2f, %.2f) -- Front: (%.2f, %.2f, %.2f)",
+             "Camera: (%.2f, %.2f, %.2f) -- Front: (%.2f, %.2f, %.2f)\n"
+             "Sun: (%.2f, %.2f, %.2f) -- Dir: (%.2f, %.2f, %.2f)",
              g_debug_context.fps,
              g_debug_context.ups,
              (f32)g_debug_context.min_frame_time,
@@ -128,7 +159,13 @@ main_render_running(const Application &app, World &world,
              world.camera.position().z,
              world.camera.frustum.front.v.x,
              world.camera.frustum.front.v.y,
-             world.camera.frustum.front.v.z);
+             world.camera.frustum.front.v.z,
+             world.sun.position.x,
+             world.sun.position.y,
+             world.sun.position.z,
+             world.sun.direction.x,
+             world.sun.direction.y,
+             world.sun.direction.z);
 
     render_text(font_atlas, text_buffer, 30.5f, 30.5f, font_shader);
 
@@ -141,15 +178,22 @@ main_render_running(const Application &app, World &world,
 }
 
 lt_internal void
-main_render(const Application &app, World &world, const ShadowMap &shadow_map, ResourceManager &resource_manager)
+main_render(const Application &app, World &world, const ShadowMap &shadow_map,
+            ResourceManager &resource_manager)
 {
-    if (world.state == WorldStatus_InitialLoad)
+    switch (world.state)
     {
+    case WorldStatus_InitialLoad:
         main_render_loading(app, resource_manager);
-    }
-    else
-    {
+        break;
+    case WorldStatus_Paused:
+        main_render_paused();
+        break;
+    case WorldStatus_Running:
         main_render_running(app, world, shadow_map, resource_manager);
+        break;
+    default:
+        LT_Panic("Unrecognized world state.");
     }
 }
 
@@ -181,6 +225,7 @@ main()
             "font.shader",
             "crosshair.shader",
             "shadow_map.shader",
+            "shadow_map_render.shader",
         };
         const char *textures_to_load[] = {
             "skybox.texture", "textures_16x16.texture",
@@ -211,7 +256,7 @@ main()
 
     AsciiFontAtlas *font_atlas = resource_manager.get_font("dejavu/ttf/DejaVuSansMono.ttf");
     LT_Assert(font_atlas);
-    font_atlas->load(18.0f);
+    font_atlas->load(16.0f);
 
     // NOTE, REFACTOR:
     // Call loading screen before creating the world instance, since it takes some time before
@@ -220,17 +265,16 @@ main()
     // function call.
     main_render_loading(app, resource_manager);
 
-    const i32 seed = 12123153;
+    const i32 seed = -1283;
     World world(app, seed, "textures_16x16.texture", resource_manager, app.aspect_ratio());
 
-    ShadowMap shadow_map(app.screen_width, app.screen_height, "shadow_map.shader", resource_manager);
+    ShadowMap shadow_map(app.screen_width, app.screen_height,
+                         "shadow_map.shader", "shadow_map_render.shader", resource_manager);
 
     Shader *shadow_map_shader = resource_manager.get_shader("shadow_map.shader");
     shadow_map_shader->load();
-		const Mat4f light_projection = lt::orthographic(-50, 50, -50, 50, 1, 1000);
-		const Mat4f light_space = light_projection * world.sun.view_matrix();
     shadow_map_shader->use();
-    shadow_map_shader->set_matrix("light_space", light_space);
+    shadow_map_shader->set_matrix("light_space", world.sun.light_space());
 
     Shader *basic_shader = resource_manager.get_shader("basic.shader");
     basic_shader->setup_perspective_matrix(app.aspect_ratio());
@@ -240,8 +284,7 @@ main()
     basic_shader->set3f("sun.diffuse", world.sun.diffuse);
     basic_shader->set3f("sun.specular", world.sun.specular);
     basic_shader->set3f("sky_color", world.sky_color);
-    basic_shader->activate_and_bind_texture("texture_cubemap", GL_TEXTURE_CUBE_MAP, world.skybox.id());
-    basic_shader->set_matrix("light_space", light_space);
+    basic_shader->set_matrix("light_space", world.sun.light_space());
 
     //
     // Here starts the setup for the main loop
@@ -294,8 +337,11 @@ main()
             glfwPollEvents();
             app.process_input();
 
+            if (app.input.keys[GLFW_KEY_F5].last_transition == Transition_Down)
+                g_debug_context.render_shadow_map = !g_debug_context.render_shadow_map;
+
             previous_world = current_world;
-            current_world.update(app.input);
+            current_world.update(app.input, shadow_map, basic_shader);
 
             num_updates++;
             lag -= TIMESTEP;

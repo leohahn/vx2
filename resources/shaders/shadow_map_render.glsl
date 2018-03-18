@@ -6,13 +6,15 @@
 #ifdef COMPILING_VERTEX
 
 layout (location = 0) in vec3 att_position;
+layout (location = 1) in vec2 att_tex_coords;
 
-uniform mat4 light_space;
+out vec2 tex_coords;
 
 void
 main()
 {
-    gl_Position = light_space * vec4(att_position, 1.0f);
+    tex_coords = att_tex_coords;
+    gl_Position = vec4(att_position, 1.0);
 }
 
 #endif
@@ -24,14 +26,16 @@ main()
  * ==================================== */
 #ifdef COMPILING_FRAGMENT
 
-#define BIAS 0.01
+in vec2 tex_coords;
+out vec4 frag_color;
+
+uniform sampler2D texture_shadow_map;
 
 void
 main()
 {
-    gl_FragDepth = gl_FragCoord.z;
-    // Add bias to front facing fragments to mostly fix peter panning isues with the shadow.
-    gl_FragDepth += gl_FrontFacing ? BIAS : 0.0;
+    float depth = texture(texture_shadow_map, tex_coords).r;
+    frag_color = vec4(vec3(depth), 1.0);
 }
 
 #endif

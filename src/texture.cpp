@@ -4,6 +4,7 @@
 #include "io_task_manager.hpp"
 #include "resource_manager.hpp"
 #include "stb_image_write.h"
+#include "vertex_buffer.hpp"
 
 lt_global_variable lt::Logger logger("texture");
 
@@ -153,11 +154,50 @@ TextureAtlas::load()
 // -----------------------------------------------------------------------------
 // Shadow Map
 // -----------------------------------------------------------------------------
+lt_internal Mesh
+create_debug_render_mesh(const char *texture_name, u32 texture_id)
+{
+    Mesh mesh = {};
 
-ShadowMap::ShadowMap(i32 width, i32 height, const char *shader_name, const ResourceManager &manager)
+    const isize NUM_VERTICES = LT_Count(UNIT_PLANE_VERTICES);
+    const isize NUM_INDICES = LT_Count(UNIT_PLANE_INDICES);
+
+    mesh.vertices = std::vector<Vec3f>(NUM_VERTICES);
+    mesh.tex_coords = std::vector<Vec2f>(NUM_VERTICES);
+
+    // Add all only the positions
+    for (usize i = 0; i < NUM_VERTICES; i++)
+    {
+        mesh.vertices[i] = UNIT_PLANE_VERTICES[i];
+        mesh.tex_coords[i] = UNIT_PLANE_TEX_COORDS[i];
+    }
+
+    for (usize i = 0; i < NUM_INDICES; i+=3)
+    {
+        Face face = {};
+        face.val[0] = UNIT_PLANE_INDICES[i];
+        face.val[1] = UNIT_PLANE_INDICES[i+1];
+        face.val[2] = UNIT_PLANE_INDICES[i+2];
+        mesh.faces.push_back(face);
+    }
+
+    Submesh sm = {};
+    sm.start_index = 0;
+    sm.num_indices = mesh.num_indices();
+    sm.textures.push_back(TextureInfo(texture_id, texture_name, GL_TEXTURE_2D));
+    mesh.submeshes.push_back(sm);
+
+    VertexBuffer::setup_pu(mesh);
+
+    return mesh;
+}
+
+ShadowMap::ShadowMap(i32 width, i32 height, const char *shader_name,
+                     const char *debug_shader_name, const ResourceManager &manager)
     : shader(manager.get_shader(shader_name))
     , width(width)
     , height(height)
+    , debug_render_shader(manager.get_shader(debug_shader_name))
 {
     LT_Assert(shader);
 
@@ -183,6 +223,9 @@ ShadowMap::ShadowMap(i32 width, i32 height, const char *shader_name, const Resou
         LT_Panic("framebuffer not complete");
 
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+    LT_Assert(texture > 0);
+    debug_render_quad = create_debug_render_mesh("texture_shadow_map", texture);
 }
 
 ShadowMap::ShadowMap(ShadowMap&& sm)

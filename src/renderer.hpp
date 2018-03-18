@@ -12,7 +12,7 @@ struct Skybox;
 struct Mesh;
 struct AsciiFontAtlas;
 
-void render_world(World &world);
+void render_landscape(World &world);
 // void render_final_quad(const Application &app, const Camera &camera, Shader *shader);
 void render_skybox(const Skybox &skybox);
 void render_text(AsciiFontAtlas *atlas, const std::string &text, f32 posx, f32 posy, Shader *shader);

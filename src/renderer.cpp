@@ -35,12 +35,12 @@ render_mesh(const Mesh &mesh, Shader *shader)
 }
 
 void
-render_world(World &world) // TODO: maybe change this to render_landscape??
+render_landscape(World &world)
 {
     // Assuming that every chunk uses the same shader program.
     for (i32 i = 0; i < Landscape::NUM_CHUNKS; i++)
     {
-        auto &vao_array = world.landscape->vao_array;
+        const auto &vao_array = world.landscape->vao_array;
 
         auto entry = vao_array.vaos[i];
         if (entry.is_used && entry.num_vertices_used > 0)

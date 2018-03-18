@@ -185,7 +185,7 @@ Application::process_input()
 
     const i32 key_codes[] = {
         GLFW_KEY_W, GLFW_KEY_S, GLFW_KEY_A, GLFW_KEY_D, GLFW_KEY_UP,
-        GLFW_KEY_DOWN, GLFW_KEY_LEFT, GLFW_KEY_RIGHT, GLFW_KEY_T,
+        GLFW_KEY_DOWN, GLFW_KEY_LEFT, GLFW_KEY_RIGHT, GLFW_KEY_T, GLFW_KEY_F5
     };
 
     for (auto key_code : key_codes)

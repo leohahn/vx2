@@ -46,14 +46,16 @@ World::World(Application &app, i32 seed, const char *textures_16x16_name,
 
     camera = create_camera(landscape->center(), aspect_ratio);
 
-    sun.direction = lt::normalize(Vec3f(0.2f, -0.9f, 0.1f));
     sun.ambient = Vec3f(.1f);
     sun.diffuse = Vec3f(.7f);
     sun.specular = Vec3f(1.0f);
+    sun.position = landscape->origin + Vec3f(0.0f, 300.0f, 0.0f);
+    sun.direction = lt::normalize(Vec3f(0.5f, -1.0f, 0.5f));
+		sun.projection = lt::orthographic(-200, 200, -200, 200, 1.0f, 800.0f);
 }
 
 void
-World::update(Input &input)
+World::update(Input &input, ShadowMap &shadow_map, Shader *basic_shader)
 {
     if (skybox.load() && textures_16x16->load())
     {
@@ -65,6 +67,15 @@ World::update(Input &input)
             render_wireframe = !render_wireframe;
 
         landscape->update(camera, input);
+        sun.update_position(landscape->origin);
+
+        const Mat4f light_space = sun.light_space();
+
+        basic_shader->use();
+        basic_shader->set_matrix("light_space", light_space);
+
+        shadow_map.shader->use();
+        shadow_map.shader->set_matrix("light_space", light_space);
     }
 }
 
@@ -117,4 +128,15 @@ Crosshair::Crosshair(const char *shader_name, const ResourceManager &manager, u3
     quad.submeshes.push_back(sm);
 
     VertexBuffer::setup_pl(quad, Textures16x16_Crosshair);
+}
+
+// ======================================================================================
+// Sun
+// ======================================================================================
+
+void
+Sun::update_position(Vec3f landscape_origin)
+{
+    position = landscape_origin; //+ 0.5f*Vec3f(Landscape::SIZE_X, 1000.0f, Landscape::SIZE_Z);
+    position.y += 300.0f;
 }

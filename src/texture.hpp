@@ -9,6 +9,7 @@
 #include "glad/glad.h"
 #include "lt_core.hpp"
 #include "io_task.hpp"
+#include "mesh.hpp"
 
 struct IOTaskManager;
 
@@ -100,8 +101,11 @@ struct ShadowMap
     u32 fbo;
     u32 texture;
     i32 width, height;
+    Mesh debug_render_quad;
+    Shader *debug_render_shader;
 
-    ShadowMap(i32 width, i32 height, const char *shader_name, const ResourceManager &manager);
+    ShadowMap(i32 width, i32 height, const char *shader_name,
+              const char *debug_shader_name, const ResourceManager &manager);
     ShadowMap(ShadowMap&&);
     ~ShadowMap();
 

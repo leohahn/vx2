@@ -47,7 +47,8 @@ main()
     // frag_color = vec4(1.0);
     // float r = texture(font_atlas, vs_out.frag_tex_coords).r;
     // frag_color = vec4(r, r, r, 1.0);
-    frag_color = vec4(1.0, 1.0, 1.0, texture(font_atlas, vs_out.frag_tex_coords).r);
+    // frag_color = vec4(0.0, 0.0, 1.0, texture(font_atlas, vs_out.frag_tex_coords).r);
+    frag_color = vec4(0.561, 0.706, 0.937, texture(font_atlas, vs_out.frag_tex_coords).r);
 }
 
 #endif
