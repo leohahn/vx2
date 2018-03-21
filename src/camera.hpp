@@ -36,7 +36,7 @@ struct Frustum
 struct Camera
 {
     static constexpr f32 ZNEAR = 0.1f;
-    static constexpr f32 ZFAR = 1000.0f;
+    static constexpr f32 ZFAR = 800.0f;
     static Camera interpolate(const Camera &previous, const Camera &current, f32 alpha);
 
     enum class Direction { Left, Right, Forwards, Backwards };

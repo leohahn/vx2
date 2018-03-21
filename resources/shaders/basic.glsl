@@ -32,7 +32,7 @@ main()
 
     vec4 pos_in_camera_space = view * vec4(att_position, 1.0);
 
-    const float density = 0.008;
+    const float density = 0.010;
     const float gradient = 2.0;
 
     float distance_from_camera = length(pos_in_camera_space.xyz);

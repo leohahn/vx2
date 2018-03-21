@@ -1,6 +1,7 @@
 # Videos
 - [Dynamically loading the landscape.](https://www.youtube.com/watch?v=kNtDuyCNX14)
 - [Removing blocks with the mouse](https://www.youtube.com/watch?v=jbDEUyFM6O4&feature=youtu.be)
+- [Rendering shadow map and fog (still with perspective aliasing)](https://www.youtube.com/watch?v=eAai1v2k3uc&feature=youtu.be)
 
 # Building
 Since `#include <filesystem>` is not yet supported, specific functions for path manipulations are only implemented on unix systems.
