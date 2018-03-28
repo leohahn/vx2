@@ -727,10 +727,11 @@ Landscape::fill_noise_map_for_chunk_column(f32 origin_x, f32 origin_z)
         {
             chunk_noise->map[z][x] = (chunk_noise->map[z][x] + (max - min)) / (2*max - min);
 
-            const f64 EPSILON = 0.001;
+#define EPSILON 0.001
             LT_Assert(chunk_noise->map[z][x] <= (max+EPSILON) && chunk_noise->map[z][x] >= (min-EPSILON));
 
             LT_Assert(chunk_noise->map[z][x] <= (1.0 + EPSILON) && chunk_noise->map[z][x] >= -EPSILON);
+#undef EPSILON
         }
 
     return chunk_noise;

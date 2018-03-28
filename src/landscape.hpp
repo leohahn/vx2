@@ -1,9 +1,10 @@
 #ifndef __LANDSCAPE_HPP__
 #define __LANDSCAPE_HPP__
 
-#include <atomic>
 #include <thread>
 #include <functional>
+#include <vector>
+#include <atomic>
 #include "pool_allocator.hpp"
 
 #include "lt_core.hpp"
@@ -25,9 +26,6 @@ enum BlockType
     BlockType_Terrain,
     BlockType_Count,
 };
-
-static_assert(std::atomic<bool>::is_always_lock_free);
-static_assert(std::atomic<i32>::is_always_lock_free);
 
 struct Landscape
 {

@@ -20,7 +20,7 @@ if(CMAKE_BUILD_TYPE MATCHES Debug)
 endif(CMAKE_BUILD_TYPE MATCHES Debug)
 
 if(CMAKE_BUILD_TYPE MATCHES Release)
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3 -Wall -Wextra")
 endif(CMAKE_BUILD_TYPE MATCHES Release)
 
 add_executable(dr
@@ -62,12 +62,6 @@ find_package(OpenGL REQUIRED)
 include_directories(${OPENGL_INCLUDE_DIR})
 target_link_libraries(dr ${OPENGL_gl_LIBRARY})
 target_link_libraries(dr -lGL)
-
-# Assimp
-find_package(assimp REQUIRED)
-include_directories(${ASSIMP_INCLUDE_DIR})
-target_link_libraries(dr ${ASSIMP_LIBRARY_DIR})
-target_link_libraries(dr assimp)
 
 if (UNIX)
   target_link_libraries(dr -pthread)
