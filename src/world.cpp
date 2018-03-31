@@ -55,28 +55,42 @@ World::World(Application &app, i32 seed, const char *textures_16x16_name,
 }
 
 void
+World::update_state(const Input &input)
+{
+    if (!skybox.load() || !textures_16x16->load())
+    {
+        state = WorldStatus_InitialLoad;
+    }
+    else if (input.keys[GLFW_KEY_ESCAPE].was_pressed())
+    {
+        if (state == WorldStatus_Paused) state = WorldStatus_Running;
+        else if (state == WorldStatus_Running) state = WorldStatus_Paused;
+        else LT_Panic("this should be unreachable.");
+    }
+    else if (state == WorldStatus_InitialLoad)
+        state = WorldStatus_Running;
+}
+
+void
 World::update(Input &input, ShadowMap &shadow_map, Shader *basic_shader)
 {
-    if (skybox.load() && textures_16x16->load())
-    {
-        state = WorldStatus_Running;
+    update_state(input);
 
-        camera.update(input);
+    camera.update(input);
 
-        if (input.keys[GLFW_KEY_T].last_transition == Transition_Down)
-            render_wireframe = !render_wireframe;
+    if (input.keys[GLFW_KEY_T].last_transition == Transition_Down)
+        render_wireframe = !render_wireframe;
 
-        landscape->update(camera, input);
-        sun.update_position(landscape->origin);
+    landscape->update(camera, input);
+    sun.update_position(landscape->origin);
 
-        const Mat4f light_space = sun.light_space();
+    const Mat4f light_space = sun.light_space();
 
-        basic_shader->use();
-        basic_shader->set_matrix("light_space", light_space);
+    basic_shader->use();
+    basic_shader->set_matrix("light_space", light_space);
 
-        shadow_map.shader->use();
-        shadow_map.shader->set_matrix("light_space", light_space);
-    }
+    shadow_map.shader->use();
+    shadow_map.shader->set_matrix("light_space", light_space);
 }
 
 World

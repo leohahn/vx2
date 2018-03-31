@@ -177,19 +177,22 @@ Application::should_close() const
 void
 Application::process_input()
 {
-    if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS ||
-        glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS)
+    {
+        const i32 key_codes[] = {
+            GLFW_KEY_ESCAPE, GLFW_KEY_Q, GLFW_KEY_W, GLFW_KEY_S, GLFW_KEY_A,
+            GLFW_KEY_D, GLFW_KEY_UP, GLFW_KEY_DOWN, GLFW_KEY_LEFT, GLFW_KEY_RIGHT,
+            // Key codes used for debugging functionality.
+            GLFW_KEY_F5, GLFW_KEY_F6, GLFW_KEY_T
+        };
+
+        for (auto key_code : key_codes)
+            update_key_state(key_code, input.keys, window);
+    }
+
+    if (input.keys[GLFW_KEY_Q].was_pressed())
     {
         glfwSetWindowShouldClose(window, true);
     }
-
-    const i32 key_codes[] = {
-        GLFW_KEY_W, GLFW_KEY_S, GLFW_KEY_A, GLFW_KEY_D, GLFW_KEY_UP,
-        GLFW_KEY_DOWN, GLFW_KEY_LEFT, GLFW_KEY_RIGHT, GLFW_KEY_T, GLFW_KEY_F5
-    };
-
-    for (auto key_code : key_codes)
-        update_key_state(key_code, input.keys, window);
 
     // Process mouse input
     f64 xpos, ypos;

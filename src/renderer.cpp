@@ -11,6 +11,7 @@
 #include "mesh.hpp"
 #include "font.hpp"
 #include "vertex.hpp"
+#include "resource_manager.hpp"
 
 lt_global_variable lt::Logger logger("renderer");
 
@@ -117,4 +118,57 @@ render_loading_screen(const Application &app, AsciiFontAtlas *atlas, Shader *fon
     glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     render_text(atlas, "Loading...", app.screen_width/2.3, app.screen_height/2, font_shader);
+}
+
+// ==========================================================================================
+// GUI
+// ==========================================================================================
+
+UiRenderer::UiRenderer(const char *font_shader_name, ResourceManager &manager)
+    : font_shader(manager.get_shader(font_shader_name))
+{
+    LT_Assert(font_shader);
+    glGenVertexArrays(1, &text_vao);
+    glBindVertexArray(text_vao);
+    glGenBuffers(1, &text_vbo);
+    glBindBuffer(GL_ARRAY_BUFFER, text_vbo);
+    glBindVertexArray(0);
+}
+
+UiRenderer::~UiRenderer()
+{
+    glDeleteVertexArrays(1, &text_vao);
+    glDeleteBuffers(1, &text_vbo);
+}
+
+void
+UiRenderer::begin()
+{
+    text_vertexes.clear();
+}
+
+// void
+// UiRenderer::text(f32 xpos, f32 ypos)
+// {
+
+// }
+
+void
+UiRenderer::flush()
+{
+    glBindVertexArray(text_vao);
+    glBindBuffer(GL_ARRAY_BUFFER, text_vbo);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(Vertex_PU)*text_vertexes.size(), &text_vertexes[0], GL_STATIC_DRAW);
+
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex_PU),
+                          (void*)offsetof(Vertex_PU, position));
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex_PU),
+                          (void*)offsetof(Vertex_PU, tex_coords));
+    glEnableVertexAttribArray(1);
+
+    font_shader->use();
+    font_shader->activate_and_bind_texture("font_atlas", GL_TEXTURE_2D, font_atlas->id);
+    glDrawArrays(GL_TRIANGLES, 0, text_vertexes.size());
+    glBindVertexArray(0);
 }

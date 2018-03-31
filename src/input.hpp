@@ -17,8 +17,10 @@ enum Transition
 
 struct Key
 {
-	bool is_pressed;
-	Transition last_transition;
+    bool is_pressed;
+    Transition last_transition;
+
+    inline bool was_pressed() const { return last_transition == Transition_Down; }
 };
 
 struct MouseState

@@ -9,6 +9,7 @@
 // U -> vec2(u, v) coordinates
 // L -> vec3(u, v, layer) coordinates
 // N -> normal
+//
 
 struct Vertex_PU
 {

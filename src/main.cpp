@@ -35,9 +35,26 @@ lt_global_variable lt::Logger logger("main");
 lt_global_variable DebugContext g_debug_context = {};
 
 lt_internal void
-main_render_paused()
+main_render_paused(const Application &app, UiRenderer &ui_renderer)
 {
-    logger.log("PAUSED:");
+    // Clear screen.
+    glClearColor(1.0f, 0.0f, 0.0f, 1.0f);
+    glClear(GL_COLOR_BUFFER_BIT);
+
+    // Add blending and remove depth test.
+    glDisable(GL_DEPTH_TEST);
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+    // ui_renderer.begin();
+    // ui_renderer.flush();
+
+    glDisable(GL_BLEND);
+    glEnable(GL_DEPTH_TEST);
+
+    dump_opengl_errors("After paused screen");
+
+    glfwSwapBuffers(app.window);
 }
 
 lt_internal void
@@ -179,7 +196,7 @@ main_render_running(const Application &app, World &world,
 
 lt_internal void
 main_render(const Application &app, World &world, const ShadowMap &shadow_map,
-            ResourceManager &resource_manager)
+            ResourceManager &resource_manager, UiRenderer &ui_renderer)
 {
     switch (world.state)
     {
@@ -187,7 +204,7 @@ main_render(const Application &app, World &world, const ShadowMap &shadow_map,
         main_render_loading(app, resource_manager);
         break;
     case WorldStatus_Paused:
-        main_render_paused();
+        main_render_paused(app, ui_renderer);
         break;
     case WorldStatus_Running:
         main_render_running(app, world, shadow_map, resource_manager);
@@ -286,6 +303,8 @@ main()
     basic_shader->set3f("sky_color", world.sky_color);
     basic_shader->set_matrix("light_space", world.sun.light_space());
 
+    UiRenderer ui_renderer("font.shader", resource_manager);
+
     //
     // Here starts the setup for the main loop
     //
@@ -295,17 +314,19 @@ main()
 
     // Define variables to control time
     using clock = std::chrono::high_resolution_clock;
+    using std::chrono::milliseconds;
+    using std::chrono::nanoseconds;
 
-    constexpr std::chrono::nanoseconds TIMESTEP(16ms); // Fixed timestep used for the updates
-    std::chrono::nanoseconds lag(0ns);
+    constexpr nanoseconds TIMESTEP(16ms); // Fixed timestep used for the updates
+    nanoseconds lag(0ns);
     auto previous_time = clock::now();
 
     // Debug variables
     i32 num_updates = 0; // used for counting frames per second
     i32 num_frames = 0;  // used for counting updates per second
     auto start_second = clock::now(); // count seconds
-    std::chrono::milliseconds min_frame_time(10000ms);
-    std::chrono::milliseconds max_frame_time(0ms);
+    milliseconds min_frame_time(10000ms);
+    milliseconds max_frame_time(0ms);
 
     World current_world = world;
     World previous_world = world;
@@ -317,12 +338,12 @@ main()
             auto current_time = clock::now();
             auto frame_time = current_time - previous_time;
             previous_time = current_time;
-            lag += std::chrono::duration_cast<std::chrono::nanoseconds>(frame_time);
+            lag += std::chrono::duration_cast<nanoseconds>(frame_time);
 
             if (frame_time > max_frame_time)
-                max_frame_time = std::chrono::duration_cast<std::chrono::milliseconds>(frame_time);
+                max_frame_time = std::chrono::duration_cast<milliseconds>(frame_time);
             if (frame_time < min_frame_time)
-                min_frame_time = std::chrono::duration_cast<std::chrono::milliseconds>(frame_time);
+                min_frame_time = std::chrono::duration_cast<milliseconds>(frame_time);
         }
 
         // Check if the window should close.
@@ -337,8 +358,8 @@ main()
             glfwPollEvents();
             app.process_input();
 
-            if (app.input.keys[GLFW_KEY_F5].last_transition == Transition_Down)
-                g_debug_context.render_shadow_map = !g_debug_context.render_shadow_map;
+            if (app.input.keys[GLFW_KEY_F5].was_pressed()) LT_Toggle(g_debug_context.render_shadow_map);
+            if (app.input.keys[GLFW_KEY_F6].was_pressed()) LT_Toggle(g_debug_context.render_cascaded_frustum);
 
             previous_world = current_world;
             current_world.update(app.input, shadow_map, basic_shader);
@@ -352,7 +373,7 @@ main()
         World interpolated_world = World::interpolate(previous_world, current_world, lag_offset);
 
         // Render the interpolated state.
-        main_render(app, interpolated_world, shadow_map, resource_manager);
+        main_render(app, interpolated_world, shadow_map, resource_manager, ui_renderer);
         num_frames++;
 
         // Update debug information after one second.
