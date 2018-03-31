@@ -30,7 +30,7 @@ struct Frustum
     Vec3f  normals[6];
     Mat4f  projection;
 
-    // bool   is_chunk_inside(const Chunk &chunk) const;
+    void split_for_csm(i32 num_split_points);
 };
 
 struct Camera

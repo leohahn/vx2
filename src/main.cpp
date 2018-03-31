@@ -27,6 +27,7 @@ struct DebugContext
     i32 max_frame_time;
     i32 min_frame_time;
     bool render_shadow_map;
+    bool render_cascaded_frustum;
 };
 
 using namespace std::chrono_literals;

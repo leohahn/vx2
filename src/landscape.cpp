@@ -743,7 +743,7 @@ Landscape::pass_chunk_buffer_to_gpu(const VAOArray::Entry &entry, const std::vec
     glBindVertexArray(entry.vao);
     glBindBuffer(GL_ARRAY_BUFFER, entry.vbo);
     // TODO: Figure out if GL_DYNAMIC_DRAW is the best enum to use or there's something better.
-    glBufferData(GL_ARRAY_BUFFER, sizeof(Vertex_PLN) * entry.num_vertices_used, &buf[0], GL_DYNAMIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(Vertex_PLN) * entry.num_vertices_used, &buf[0], GL_STATIC_DRAW);
 
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex_PLN),
                           (const void*)offsetof(Vertex_PLN, position));

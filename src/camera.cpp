@@ -50,6 +50,8 @@ Camera::Camera(Vec3f position, Vec3f front_vec, Vec3f up_world,
     frustum.znear = ZNEAR;
     frustum.zfar = ZFAR;
     frustum.projection = lt::perspective(lt::radians(fovy), ratio, ZNEAR, ZFAR);
+    // TODO: Find a better number of split points instead of blindly hardcoding it.
+    frustum.split_for_csm(4);
 
     update_frustum_right_and_up(frustum, up_world);
 }
@@ -144,72 +146,30 @@ Camera::view_matrix() const
                        frustum.up.v);
 }
 
-// bool
-// Frustum::is_chunk_inside(const Chunk &chunk) const
-// {
-//     Vec3f offset_far_right = right.v * (0.5f * zfar_width);
+// ======================================================================================
+// Frustum
+// ======================================================================================
 
-//     Vec3f far_top_left = zfar_center + up.v * (zfar_height * 0.5f) - offset_far_right;
-//     Vec3f far_top_right = zfar_center + up.v * (zfar_height * 0.5f) + offset_far_right;
-//     Vec3f far_bottom_left = zfar_center - up.v * (zfar_height * 0.5f) - offset_far_right;
-//     Vec3f far_bottom_right = zfar_center - up.v * (zfar_height * 0.5f) + offset_far_right;
+void
+Frustum::split_for_csm(i32 num_split_points)
+{
+    // Formula for splitting the points
+    // zi = lambda*near(far/near)^(i/N) + (1-lambda)(near+(i/N)(far-near))
 
-//     Vec3f offset_near_right = right.v * (znear_width * 0.5f);
-//     Vec3f near_top_left = (znear_center + up.v * (znear_height * 0.5f)) - offset_near_right;
-//     Vec3f near_top_right = (znear_center + up.v * (znear_height * 0.5f)) + offset_near_right;
-//     Vec3f near_bottom_left = (znear_center - up.v * (znear_height * 0.5f)) - offset_near_right;
-//     Vec3f near_bottom_right = (znear_center - up.v * (znear_height * 0.5f)) + offset_near_right;
+    logger.log("Splitting frustum for CSM");
 
-//     Vec3f top_left_vec = far_top_left - near_top_left;
-//     Vec3f bottom_left_vec = far_bottom_left - near_bottom_left;
-//     Vec3f top_right_vec = far_top_right - near_top_right;
-//     Vec3f bottom_right_vec = far_bottom_right - near_bottom_right;
-//     Vec3f far_h = far_top_left - far_top_right;
-//     Vec3f far_v = far_bottom_left - far_top_left;
-//     Vec3f frustum_normals[6] =
-//     {
-//         // Right normal
-//         lt::normalize(lt::cross(bottom_right_vec, top_right_vec)),
-//         /* UM::Normalize(Vec3f_Cross(farV, topRightVec)), */
-//         // LEft normal
-//         lt::normalize(lt::cross(top_left_vec, bottom_left_vec)),
-//         // TOp normal
-//         lt::normalize(lt::cross(top_right_vec, top_left_vec)),
-//         // BOttom normal
-//         lt::normalize(lt::cross(bottom_left_vec, bottom_right_vec)),
-//         // FAr normal
-//         lt::normalize(lt::cross(far_v, far_h)),
-//         // NEar normal
-//         lt::normalize(lt::cross(far_h, far_v))
-//     };
-//     Vec3f frustum_points[6] =
-//     {
-//         far_top_right,
-//         far_top_left,
-//         far_top_right,
-//         far_bottom_right,
-//         far_bottom_right,
-//         near_top_left,
-//     };
+    const auto do_split = [num_split_points](i32 index, f32 n, f32 f) {
+        constexpr f32 lambda = 0.9f;
+        const f32 first_term = lambda*n*std::pow(f/n, static_cast<f32>(index)/num_split_points);
+        const f32 second_term = (1-lambda)*(n+(index/num_split_points)*(f-n));
+        const f32 z = first_term + second_term;
+        return z;
+    };
 
-//     bool inside_frustum = true;
-//     Vec3f point_vec;
-//     for (i32 p = 0; p < 6; p++)
-//     {
-//         bool insidePlane = false;
-//         for (i32 v = 0; v < 8; v++)
-//         {
-//             point_vec = frustum_points[p] - chunk.max_vertices[v];
-//             if (lt::dot(point_vec, frustum_normals[p]) >= 0.0f)
-//             {
-//                 insidePlane = true;
-//             }
-//         }
-//         if (!insidePlane)
-//         {
-//             inside_frustum = false;
-//             break;
-//         }
-//     }
-//     return inside_frustum;
-// }
+    std::vector<f32> z_splits(num_split_points);
+    for (i32 i = 0; i < num_split_points; i++)
+    {
+        z_splits[i] = do_split(i+1, Camera::ZNEAR, Camera::ZFAR);
+        logger.log("Split for ", i, " = ", z_splits[i]);
+    }
+}
