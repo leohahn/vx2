@@ -282,11 +282,11 @@ main()
 
     AsciiFontAtlas *debug_font_atlas = resource_manager.get_font(names::DEBUG_FONT);
     LT_Assert(debug_font_atlas);
-    debug_font_atlas->load(16.0f);
+    debug_font_atlas->load(16.0f, 256, 256);
 
     AsciiFontAtlas *ui_font_atlas = resource_manager.get_font(names::UI_FONT);
     LT_Assert(ui_font_atlas);
-    ui_font_atlas->load(54.0f);
+    ui_font_atlas->load(54.0f, 1024, 1024);
 
     // NOTE, REFACTOR:
     // Call loading screen before creating the world instance, since it takes some time before

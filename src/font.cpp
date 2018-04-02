@@ -16,10 +16,10 @@ AsciiFontAtlas::AsciiFontAtlas()
     , bitmap(nullptr)
 {}
 
-AsciiFontAtlas::AsciiFontAtlas(const std::string &fontpath, i32 width, i32 height)
+AsciiFontAtlas::AsciiFontAtlas(const std::string &fontpath)
     : fontpath(fontpath)
-    , width(width)
-    , height(height)
+    , width(0)
+    , height(0)
     , bitmap(nullptr)
     , id(0)
 {
@@ -43,8 +43,11 @@ AsciiFontAtlas::AsciiFontAtlas(AsciiFontAtlas &&atlas)
 }
 
 void
-AsciiFontAtlas::load(f32 font_size)
+AsciiFontAtlas::load(f32 font_size, i32 _width, i32 _height)
 {
+    width = _width;
+    height = _height;
+
     bitmap = new u8[width*height];
 
     FileContents *ttf_buffer = file_read_contents(fontpath.c_str());

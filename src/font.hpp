@@ -19,10 +19,10 @@ struct AsciiFontAtlas
     u32 vao, vbo;
 
     inline bool is_valid() { return bitmap != nullptr; }
-    void load(f32 font_size);
+    void load(f32 font_size, i32 width, i32 height);
 
     AsciiFontAtlas();
-    AsciiFontAtlas(const std::string &fontpath, i32 width, i32 height);
+    AsciiFontAtlas(const std::string &fontpath);
     AsciiFontAtlas(AsciiFontAtlas &&atlas);
     ~AsciiFontAtlas();
 

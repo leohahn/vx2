@@ -206,7 +206,7 @@ ResourceManager::load_from_font_file(const std::string &filename)
     std::string abs_filepath = ltfs::absolute_path(filepath, &error);
     LT_Assert(!error);
 
-    auto new_font = std::make_unique<AsciiFontAtlas>(abs_filepath, 1024, 1024);
+    auto new_font = std::make_unique<AsciiFontAtlas>(abs_filepath);
 
     LT_Assert(m_shaders.find(filename) == m_shaders.end());
 
