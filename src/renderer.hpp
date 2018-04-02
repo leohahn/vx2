@@ -11,7 +11,7 @@ struct Application;
 struct Skybox;
 struct Mesh;
 struct AsciiFontAtlas;
-struct Vertex_PU;
+struct Vertex_PUC;
 struct ResourceManager;
 
 void render_landscape(World &world);
@@ -27,7 +27,7 @@ void render_setup_mesh_buffers_p(Mesh *m);
 // UI
 struct UiRenderer
 {
-    std::vector<Vertex_PU> text_vertexes;
+    std::vector<Vertex_PUC> text_vertexes;
     u32 text_vao, text_vbo;
     Shader *font_shader;
     AsciiFontAtlas *font_atlas;
@@ -37,7 +37,7 @@ struct UiRenderer
 
     void begin();
     void flush();
-    void text(const std::string &text, f32 xpos, f32 ypos);
+    void text(const std::string &text, Vec3f color, f32 xpos, f32 ypos);
 
 public:
     UiRenderer(const UiRenderer &) = delete;

@@ -88,8 +88,8 @@ AsciiFontAtlas::load(f32 font_size, i32 _width, i32 _height)
 }
 
 void
-AsciiFontAtlas::render_text_to_buffer(const std::string &text, f32 start_xpos, f32 start_ypos,
-                                      std::vector<Vertex_PU> &buf)
+AsciiFontAtlas::render_text_to_buffer(const std::string &text, Vec3f color, f32 start_xpos, f32 start_ypos,
+                                      std::vector<Vertex_PUC> &buf)
 {
     float xpos = start_xpos;
     float ypos = start_ypos;
@@ -105,10 +105,10 @@ AsciiFontAtlas::render_text_to_buffer(const std::string &text, f32 start_xpos, f
         stbtt_aligned_quad quad;
         stbtt_GetPackedQuad(char_data, width, height, text[i], &xpos, &ypos, &quad, true);
 
-        Vertex_PU top_left(Vec3f(quad.x0, quad.y0, 0), Vec2f(quad.s0, quad.t0));
-        Vertex_PU bottom_right(Vec3f(quad.x1, quad.y1, 0), Vec2f(quad.s1, quad.t1));
-        Vertex_PU top_right(Vec3f(quad.x1, quad.y0, 0), Vec2f(quad.s1, quad.t0));
-        Vertex_PU bottom_left(Vec3f(quad.x0, quad.y1, 0), Vec2f(quad.s0, quad.t1));
+        Vertex_PUC top_left(Vec3f(quad.x0, quad.y0, 0), Vec2f(quad.s0, quad.t0), color);
+        Vertex_PUC bottom_right(Vec3f(quad.x1, quad.y1, 0), Vec2f(quad.s1, quad.t1), color);
+        Vertex_PUC top_right(Vec3f(quad.x1, quad.y0, 0), Vec2f(quad.s1, quad.t0), color);
+        Vertex_PUC bottom_left(Vec3f(quad.x0, quad.y1, 0), Vec2f(quad.s0, quad.t1), color);
 
         buf.push_back(top_left);
         buf.push_back(bottom_left);

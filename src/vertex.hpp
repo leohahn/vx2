@@ -9,6 +9,7 @@
 // U -> vec2(u, v) coordinates
 // L -> vec3(u, v, layer) coordinates
 // N -> normal
+// C -> color
 //
 
 struct Vertex_PU
@@ -18,6 +19,16 @@ struct Vertex_PU
 
     Vertex_PU(Vec3f p, Vec2f t) : position(p), tex_coords(t) {}
     Vertex_PU() : position(Vec3f(0)), tex_coords(Vec2f(0)) {}
+};
+
+struct Vertex_PUC
+{
+    Vec3f position;
+    Vec2f tex_coords;
+    Vec3f color;
+
+    Vertex_PUC(Vec3f p, Vec2f t, Vec3f c) : position(p), tex_coords(t), color(c) {}
+    Vertex_PUC() : position(0), tex_coords(0), color(0) {}
 };
 
 struct Vertex_PL

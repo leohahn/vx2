@@ -17,6 +17,17 @@ struct Input;
 struct ShadowMap;
 struct TextureAtlas;
 
+struct UiState
+{
+    enum Selection
+    {
+        Selection_Resume,
+        Selection_Quit,
+    };
+
+    Selection current_selection = Selection_Resume;
+};
+
 struct Sun
 {
     Vec3f direction;
@@ -96,6 +107,7 @@ public:
     TextureAtlas          *textures_16x16;
     Crosshair              crosshair;
     Vec3f                  sky_color;
+    UiState                ui_state;
 
 private:
     Camera create_camera(Vec3f position, f32 aspect_ratio);

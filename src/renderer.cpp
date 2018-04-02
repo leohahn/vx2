@@ -88,21 +88,25 @@ render_setup_mesh_buffers_p(Mesh *m)
 void
 render_text(AsciiFontAtlas *atlas, const std::string &text, f32 posx, f32 posy, Shader *shader)
 {
-    // TODO, SPEED: Add a static array here, instead of allocating a new vector each frame.
-    std::vector<Vertex_PU> text_buf;
-    atlas->render_text_to_buffer(text, posx, posy, text_buf);
+    // TODO, PERFORMANCE: Add a static array here, instead of allocating a new vector each frame.
+    std::vector<Vertex_PUC> text_buf;
+    atlas->render_text_to_buffer(text, Vec3f(1.0f), posx, posy, text_buf);
 
     glBindVertexArray(atlas->vao);
     glBindBuffer(GL_ARRAY_BUFFER, atlas->vbo);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(Vertex_PU)*text_buf.size(), &text_buf[0], GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(Vertex_PUC)*text_buf.size(), &text_buf[0], GL_STATIC_DRAW);
 
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex_PU),
-                          (void*)offsetof(Vertex_PU, position));
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex_PUC),
+                          (void*)offsetof(Vertex_PUC, position));
     glEnableVertexAttribArray(0);
 
-    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex_PU),
-                          (void*)offsetof(Vertex_PU, tex_coords));
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex_PUC),
+                          (void*)offsetof(Vertex_PUC, tex_coords));
     glEnableVertexAttribArray(1);
+
+    glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex_PUC),
+                          (void*)offsetof(Vertex_PUC, color));
+    glEnableVertexAttribArray(2);
 
     shader->use();
     shader->activate_and_bind_texture("font_atlas", GL_TEXTURE_2D, atlas->id);
@@ -152,9 +156,9 @@ UiRenderer::begin()
 }
 
 void
-UiRenderer::text(const std::string &text, f32 xpos, f32 ypos)
+UiRenderer::text(const std::string &text, Vec3f color, f32 xpos, f32 ypos)
 {
-    font_atlas->render_text_to_buffer(text, xpos, ypos, text_vertexes);
+    font_atlas->render_text_to_buffer(text, color, xpos, ypos, text_vertexes);
 }
 
 void
@@ -165,14 +169,17 @@ UiRenderer::flush()
 
     glBindVertexArray(text_vao);
     glBindBuffer(GL_ARRAY_BUFFER, text_vbo);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(Vertex_PU)*text_vertexes.size(), &text_vertexes[0], GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(Vertex_PUC)*text_vertexes.size(), &text_vertexes[0], GL_STATIC_DRAW);
 
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex_PU),
-                          (void*)offsetof(Vertex_PU, position));
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex_PUC),
+                          (void*)offsetof(Vertex_PUC, position));
     glEnableVertexAttribArray(0);
-    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex_PU),
-                          (void*)offsetof(Vertex_PU, tex_coords));
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex_PUC),
+                          (void*)offsetof(Vertex_PUC, tex_coords));
     glEnableVertexAttribArray(1);
+    glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex_PUC),
+                          (void*)offsetof(Vertex_PUC, color));
+    glEnableVertexAttribArray(2);
 
     font_shader->use();
     font_shader->activate_and_bind_texture("font_atlas", GL_TEXTURE_2D, font_atlas->id);

@@ -38,8 +38,11 @@ lt_global_variable lt::Logger logger("main");
 lt_global_variable DebugContext g_debug_context = {};
 
 lt_internal void
-main_render_paused(const Application &app, UiRenderer &ui_renderer)
+main_render_paused(const Application &app, UiRenderer &ui_renderer, const UiState &ui_state)
 {
+    const Vec3f item_color(1.0f);
+    const Vec3f selected_color(1.0f, 0.0f, 0.0);
+
     // Clear screen.
     glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT);
@@ -52,9 +55,19 @@ main_render_paused(const Application &app, UiRenderer &ui_renderer)
     ui_renderer.begin();
     f32 ypos = 0.40f*app.screen_height;
     f32 xpos = 0.45f*app.screen_width;
-    ui_renderer.text("Resume", xpos, ypos);
+
+    if (ui_state.current_selection == UiState::Selection_Resume)
+        ui_renderer.text("Resume", selected_color, xpos, ypos);
+    else
+        ui_renderer.text("Resume", item_color, xpos, ypos);
+
     ypos += 60.0f;
-    ui_renderer.text("Quit", xpos, ypos);
+
+    if (ui_state.current_selection == UiState::Selection_Quit)
+        ui_renderer.text("Quit", selected_color, xpos, ypos);
+    else
+        ui_renderer.text("Quit", item_color, xpos, ypos);
+
     ui_renderer.flush();
 
     glDisable(GL_BLEND);
@@ -212,7 +225,7 @@ main_render(const Application &app, World &world, const ShadowMap &shadow_map,
         main_render_loading(app, resource_manager);
         break;
     case WorldStatus_Paused:
-        main_render_paused(app, ui_renderer);
+        main_render_paused(app, ui_renderer, world.ui_state);
         break;
     case WorldStatus_Running:
         main_render_running(app, world, shadow_map, resource_manager);

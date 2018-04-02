@@ -7,10 +7,12 @@
 
 layout (location = 0) in vec3 att_position;
 layout (location = 1) in vec2 att_tex_coords;
+layout (location = 2) in vec3 att_color;
 
 out VS_OUT
 {
     vec2 frag_tex_coords;
+    vec3 color;
 } vs_out;
 
 uniform mat4 projection;
@@ -19,6 +21,7 @@ void
 main()
 {
     vs_out.frag_tex_coords = att_tex_coords;
+    vs_out.color = att_color;
     gl_Position = projection * vec4(att_position, 1.0f);
 }
 
@@ -34,6 +37,7 @@ main()
 in VS_OUT
 {
     vec2 frag_tex_coords;
+    vec3 color;
 } vs_out;
 
 out vec4 frag_color;
@@ -48,7 +52,7 @@ main()
     // float r = texture(font_atlas, vs_out.frag_tex_coords).r;
     // frag_color = vec4(r, r, r, 1.0);
     // frag_color = vec4(0.0, 0.0, 1.0, texture(font_atlas, vs_out.frag_tex_coords).r);
-    frag_color = vec4(0.561, 0.706, 0.937, texture(font_atlas, vs_out.frag_tex_coords).r);
+    frag_color = vec4(vs_out.color, texture(font_atlas, vs_out.frag_tex_coords).r);
 }
 
 #endif
