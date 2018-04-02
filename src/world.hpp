@@ -19,13 +19,26 @@ struct TextureAtlas;
 
 struct UiState
 {
-    enum Selection
+    enum Selection : u32
     {
-        Selection_Resume,
+        Selection_Resume = 0,
         Selection_Quit,
+        Selection_Count,
     };
 
     Selection current_selection = Selection_Resume;
+
+    void next_selection()
+    {
+        current_selection = static_cast<Selection>((current_selection+1) % Selection_Count);
+    }
+    void prev_selection()
+    {
+        if (current_selection == 0)
+            current_selection = static_cast<Selection>(Selection_Count-1);
+        else
+            current_selection = static_cast<Selection>(current_selection-1);
+    }
 };
 
 struct Sun

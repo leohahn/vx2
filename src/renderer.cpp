@@ -167,6 +167,7 @@ UiRenderer::flush()
     if (text_vertexes.empty())
         return;
 
+    // Drawing the text accumulated between begin and flush.
     glBindVertexArray(text_vao);
     glBindBuffer(GL_ARRAY_BUFFER, text_vbo);
     glBufferData(GL_ARRAY_BUFFER, sizeof(Vertex_PUC)*text_vertexes.size(), &text_vertexes[0], GL_STATIC_DRAW);

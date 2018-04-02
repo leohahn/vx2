@@ -77,8 +77,10 @@ World::update(Input &input, ShadowMap &shadow_map, Shader *basic_shader)
 {
     update_state(input);
 
-    if (status == WorldStatus_Running)
+    switch (status)
     {
+    case WorldStatus_InitialLoad: break;
+    case WorldStatus_Running: {
         camera.update(input);
 
         landscape->update(camera, input);
@@ -91,6 +93,14 @@ World::update(Input &input, ShadowMap &shadow_map, Shader *basic_shader)
 
         shadow_map.shader->use();
         shadow_map.shader->set_matrix("light_space", light_space);
+    } break;
+    case WorldStatus_Paused: {
+        if (input.keys[GLFW_KEY_DOWN].was_pressed())
+            ui_state.next_selection();
+        if (input.keys[GLFW_KEY_UP].was_pressed())
+            ui_state.prev_selection();
+    } break;
+    default: LT_Unreachable;
     }
 }
 
