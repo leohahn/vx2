@@ -53,8 +53,8 @@ main_render_paused(const Application &app, UiRenderer &ui_renderer, const UiStat
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
     ui_renderer.begin();
-    f32 ypos = 0.40f*app.screen_height;
-    f32 xpos = 0.45f*app.screen_width;
+    f32 ypos = 0.45f*app.screen_height;
+    f32 xpos = 0.46f*app.screen_width;
 
     if (ui_state.current_selection == UiState::Selection_Resume)
         ui_renderer.text("Resume", selected_color, xpos, ypos);

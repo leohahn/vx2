@@ -105,6 +105,8 @@ World::update(Input &input, ShadowMap &shadow_map, Shader *basic_shader)
         {
             if (ui_state.current_selection == UiState::Selection_Quit)
                 status = WorldStatus_Finished;
+            else if (ui_state.current_selection == UiState::Selection_Resume)
+                status = WorldStatus_Running;
         }
     } break;
     default: LT_Unreachable;
