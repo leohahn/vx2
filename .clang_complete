@@ -4,3 +4,4 @@
 -I./thirdparty/freetype-2.9/include
 -I./lt/src
 -DLT_DEBUG
+-Wno-unused-variable

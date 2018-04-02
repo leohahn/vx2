@@ -92,7 +92,7 @@ public:
     Skybox                 skybox;
     Sun                    sun;
     Vec3f                  origin;
-    WorldStatus            state = WorldStatus_InitialLoad;
+    WorldStatus            status = WorldStatus_InitialLoad;
     bool                   render_wireframe = false;
     TextureAtlas          *textures_16x16;
     Crosshair              crosshair;

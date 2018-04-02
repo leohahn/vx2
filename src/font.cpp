@@ -84,12 +84,10 @@ AsciiFontAtlas::load(f32 font_size)
     file_free_contents(ttf_buffer);
 }
 
-std::vector<Vertex_PU>
-AsciiFontAtlas::render_text_to_buffer(const std::string &text, f32 start_xpos, f32 start_ypos)
+void
+AsciiFontAtlas::render_text_to_buffer(const std::string &text, f32 start_xpos, f32 start_ypos,
+                                      std::vector<Vertex_PU> &buf)
 {
-    // TODO: Eventually use a custom allocator.
-    std::vector<Vertex_PU> vertexes;
-
     float xpos = start_xpos;
     float ypos = start_ypos;
     for (u32 i = 0; i < text.size(); i++)
@@ -109,13 +107,11 @@ AsciiFontAtlas::render_text_to_buffer(const std::string &text, f32 start_xpos, f
         Vertex_PU top_right(Vec3f(quad.x1, quad.y0, 0), Vec2f(quad.s1, quad.t0));
         Vertex_PU bottom_left(Vec3f(quad.x0, quad.y1, 0), Vec2f(quad.s0, quad.t1));
 
-        vertexes.push_back(top_left);
-        vertexes.push_back(bottom_left);
-        vertexes.push_back(bottom_right);
-        vertexes.push_back(bottom_right);
-        vertexes.push_back(top_right);
-        vertexes.push_back(top_left);
+        buf.push_back(top_left);
+        buf.push_back(bottom_left);
+        buf.push_back(bottom_right);
+        buf.push_back(bottom_right);
+        buf.push_back(top_right);
+        buf.push_back(top_left);
     }
-
-    return vertexes;
 }

@@ -10,6 +10,7 @@
 #include "application.hpp"
 #include "vertex.hpp"
 #include "vertex_buffer.hpp"
+#include "resource_names.hpp"
 
 lt_global_variable lt::Logger logger("world");
 
@@ -28,10 +29,10 @@ World::create_camera(Vec3f position, f32 aspect_ratio)
 World::World(Application &app, i32 seed, const char *textures_16x16_name,
              const ResourceManager &manager, f32 aspect_ratio)
     : landscape(nullptr)
-    , skybox("skybox.texture", "skybox.shader", manager)
+    , skybox(names::SKYBOX_TEXTURE, names::SKYBOX_SHADER, manager)
     , sun()
     , textures_16x16(manager.get_texture<TextureAtlas>(textures_16x16_name))
-    , crosshair("crosshair.shader", manager, textures_16x16->id)
+    , crosshair(names::CROSSHAIR_SHADER, manager, textures_16x16->id)
     , sky_color(0.929f, 0.929f, 0.949f)
 {
     const f64 amplitude = 0.70;
@@ -59,16 +60,16 @@ World::update_state(const Input &input)
 {
     if (!skybox.load() || !textures_16x16->load())
     {
-        state = WorldStatus_InitialLoad;
+        status = WorldStatus_InitialLoad;
     }
     else if (input.keys[GLFW_KEY_ESCAPE].was_pressed())
     {
-        if (state == WorldStatus_Paused) state = WorldStatus_Running;
-        else if (state == WorldStatus_Running) state = WorldStatus_Paused;
+        if (status == WorldStatus_Paused) status = WorldStatus_Running;
+        else if (status == WorldStatus_Running) status = WorldStatus_Paused;
         else LT_Panic("this should be unreachable.");
     }
-    else if (state == WorldStatus_InitialLoad)
-        state = WorldStatus_Running;
+    else if (status == WorldStatus_InitialLoad)
+        status = WorldStatus_Running;
 }
 
 void

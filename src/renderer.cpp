@@ -89,7 +89,8 @@ void
 render_text(AsciiFontAtlas *atlas, const std::string &text, f32 posx, f32 posy, Shader *shader)
 {
     // TODO, SPEED: Add a static array here, instead of allocating a new vector each frame.
-    std::vector<Vertex_PU> text_buf = atlas->render_text_to_buffer(text, posx, posy);
+    std::vector<Vertex_PU> text_buf;
+    atlas->render_text_to_buffer(text, posx, posy, text_buf);
 
     glBindVertexArray(atlas->vao);
     glBindBuffer(GL_ARRAY_BUFFER, atlas->vbo);
@@ -121,13 +122,16 @@ render_loading_screen(const Application &app, AsciiFontAtlas *atlas, Shader *fon
 }
 
 // ==========================================================================================
-// GUI
+// UI
 // ==========================================================================================
 
-UiRenderer::UiRenderer(const char *font_shader_name, ResourceManager &manager)
+UiRenderer::UiRenderer(const char *font_shader_name, const char *font_name, ResourceManager &manager)
     : font_shader(manager.get_shader(font_shader_name))
+    , font_atlas(manager.get_font(font_name))
 {
     LT_Assert(font_shader);
+    LT_Assert(font_atlas);
+
     glGenVertexArrays(1, &text_vao);
     glBindVertexArray(text_vao);
     glGenBuffers(1, &text_vbo);
@@ -147,15 +151,18 @@ UiRenderer::begin()
     text_vertexes.clear();
 }
 
-// void
-// UiRenderer::text(f32 xpos, f32 ypos)
-// {
-
-// }
+void
+UiRenderer::text(const std::string &text, f32 xpos, f32 ypos)
+{
+    font_atlas->render_text_to_buffer(text, xpos, ypos, text_vertexes);
+}
 
 void
 UiRenderer::flush()
 {
+    if (text_vertexes.empty())
+        return;
+
     glBindVertexArray(text_vao);
     glBindBuffer(GL_ARRAY_BUFFER, text_vbo);
     glBufferData(GL_ARRAY_BUFFER, sizeof(Vertex_PU)*text_vertexes.size(), &text_vertexes[0], GL_STATIC_DRAW);

@@ -26,7 +26,8 @@ struct AsciiFontAtlas
     AsciiFontAtlas(AsciiFontAtlas &&atlas);
     ~AsciiFontAtlas();
 
-    std::vector<Vertex_PU> render_text_to_buffer(const std::string &text, f32 start_xpos, f32 start_ypos);
+    void render_text_to_buffer(const std::string &text, f32 start_xpos, f32 start_ypos,
+                               std::vector<Vertex_PU> &buf);
 };
 
 #endif // __FONT_HPP__

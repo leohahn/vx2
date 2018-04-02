@@ -32,11 +32,12 @@ struct UiRenderer
     Shader *font_shader;
     AsciiFontAtlas *font_atlas;
 
-    UiRenderer(const char *font_shader_name, ResourceManager &manager);
+    UiRenderer(const char *font_shader_name, const char *font_name, ResourceManager &manager);
     ~UiRenderer();
 
     void begin();
     void flush();
+    void text(const std::string &text, f32 xpos, f32 ypos);
 
 public:
     UiRenderer(const UiRenderer &) = delete;

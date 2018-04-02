@@ -15,6 +15,7 @@
 #include "skybox.hpp"
 #include "font.hpp"
 #include "gl_resources.hpp"
+#include "resource_names.hpp"
 
 #ifdef LT_DEBUG
 #include <fenv.h>
@@ -39,7 +40,7 @@ lt_internal void
 main_render_paused(const Application &app, UiRenderer &ui_renderer)
 {
     // Clear screen.
-    glClearColor(1.0f, 0.0f, 0.0f, 1.0f);
+    glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT);
 
     // Add blending and remove depth test.
@@ -47,8 +48,9 @@ main_render_paused(const Application &app, UiRenderer &ui_renderer)
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
-    // ui_renderer.begin();
-    // ui_renderer.flush();
+    ui_renderer.begin();
+    ui_renderer.text("Hello my friend!", 50.0f, 50.0f);
+    ui_renderer.flush();
 
     glDisable(GL_BLEND);
     glEnable(GL_DEPTH_TEST);
@@ -199,7 +201,7 @@ lt_internal void
 main_render(const Application &app, World &world, const ShadowMap &shadow_map,
             ResourceManager &resource_manager, UiRenderer &ui_renderer)
 {
-    switch (world.state)
+    switch (world.status)
     {
     case WorldStatus_InitialLoad:
         main_render_loading(app, resource_manager);
@@ -237,19 +239,20 @@ main()
         // changing its value it is not necessary to rename it throughout the project but only
         // in one place.
         const char *shaders_to_load[] = {
-            "basic.shader",
-            "wireframe.shader",
-            "skybox.shader",
-            "font.shader",
-            "crosshair.shader",
-            "shadow_map.shader",
-            "shadow_map_render.shader",
+            names::BASIC_SHADER,
+            names::WIREFRAME_SHADER,
+            names::SKYBOX_SHADER,
+            names::FONT_SHADER,
+            names::CROSSHAIR_SHADER,
+            names::SHADOW_MAP_SHADER,
+            names::SHADOW_MAP_RENDER_SHADER
         };
         const char *textures_to_load[] = {
-            "skybox.texture", "textures_16x16.texture",
+            names::SKYBOX_TEXTURE, names::TEXTURES_16x16_TEXTURE
         };
         const char *fonts_to_load[] = {
-            "dejavu/ttf/DejaVuSansMono.ttf",
+            names::DEBUG_FONT,
+            // names::UI_FONT
         };
 
         for (auto name : shaders_to_load)
@@ -262,17 +265,17 @@ main()
             resource_manager.load_from_font_file(name);
     }
 
-    Shader *wireframe_shader = resource_manager.get_shader("wireframe.shader");
+    Shader *wireframe_shader = resource_manager.get_shader(names::WIREFRAME_SHADER);
     wireframe_shader->load();
     wireframe_shader->setup_perspective_matrix(app.aspect_ratio());
 
-    Shader *font_shader = resource_manager.get_shader("font.shader");
+    Shader *font_shader = resource_manager.get_shader(names::FONT_SHADER);
     font_shader->setup_orthographic_matrix(0, app.screen_width, app.screen_height, 0);
 
-    Shader *skybox_shader = resource_manager.get_shader("skybox.shader");
+    Shader *skybox_shader = resource_manager.get_shader(names::SKYBOX_SHADER);
     skybox_shader->setup_perspective_matrix(app.aspect_ratio());
 
-    AsciiFontAtlas *font_atlas = resource_manager.get_font("dejavu/ttf/DejaVuSansMono.ttf");
+    AsciiFontAtlas *font_atlas = resource_manager.get_font(names::DEBUG_FONT);
     LT_Assert(font_atlas);
     font_atlas->load(16.0f);
 
@@ -284,17 +287,17 @@ main()
     main_render_loading(app, resource_manager);
 
     const i32 seed = -1283;
-    World world(app, seed, "textures_16x16.texture", resource_manager, app.aspect_ratio());
+    World world(app, seed, names::TEXTURES_16x16_TEXTURE, resource_manager, app.aspect_ratio());
 
     ShadowMap shadow_map(app.screen_width, app.screen_height,
-                         "shadow_map.shader", "shadow_map_render.shader", resource_manager);
+                         names::SHADOW_MAP_SHADER, names::SHADOW_MAP_RENDER_SHADER, resource_manager);
 
-    Shader *shadow_map_shader = resource_manager.get_shader("shadow_map.shader");
+    Shader *shadow_map_shader = resource_manager.get_shader(names::SHADOW_MAP_SHADER);
     shadow_map_shader->load();
     shadow_map_shader->use();
     shadow_map_shader->set_matrix("light_space", world.sun.light_space());
 
-    Shader *basic_shader = resource_manager.get_shader("basic.shader");
+    Shader *basic_shader = resource_manager.get_shader(names::BASIC_SHADER);
     basic_shader->setup_perspective_matrix(app.aspect_ratio());
     basic_shader->use();
     basic_shader->set3f("sun.direction", world.sun.direction);
@@ -304,7 +307,7 @@ main()
     basic_shader->set3f("sky_color", world.sky_color);
     basic_shader->set_matrix("light_space", world.sun.light_space());
 
-    UiRenderer ui_renderer("font.shader", resource_manager);
+    UiRenderer ui_renderer(names::FONT_SHADER, names::DEBUG_FONT, resource_manager);
 
     //
     // Here starts the setup for the main loop
