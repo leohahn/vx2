@@ -64,6 +64,7 @@ enum WorldStatus
     WorldStatus_InitialLoad,
     WorldStatus_Running,
     WorldStatus_Paused,
+    WorldStatus_Finished,
 };
 
 struct WorldState

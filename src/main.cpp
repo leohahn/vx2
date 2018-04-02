@@ -230,6 +230,9 @@ main_render(const Application &app, World &world, const ShadowMap &shadow_map,
     case WorldStatus_Running:
         main_render_running(app, world, shadow_map, resource_manager);
         break;
+    case WorldStatus_Finished:
+        // Skip rendering if the game finished.
+        break;
     default:
         LT_Panic("Unrecognized world state.");
     }
@@ -373,7 +376,7 @@ main()
         }
 
         // Check if the window should close.
-        if (app.should_close())
+        if (app.should_close() || current_world.status == WorldStatus_Finished)
         {
             running = false;
             continue;

@@ -80,6 +80,7 @@ World::update(Input &input, ShadowMap &shadow_map, Shader *basic_shader)
     switch (status)
     {
     case WorldStatus_InitialLoad: break;
+    case WorldStatus_Finished: break;
     case WorldStatus_Running: {
         camera.update(input);
 
@@ -99,6 +100,12 @@ World::update(Input &input, ShadowMap &shadow_map, Shader *basic_shader)
             ui_state.next_selection();
         if (input.keys[GLFW_KEY_UP].was_pressed())
             ui_state.prev_selection();
+
+        if (input.keys[GLFW_KEY_ENTER].was_pressed())
+        {
+            if (ui_state.current_selection == UiState::Selection_Quit)
+                status = WorldStatus_Finished;
+        }
     } break;
     default: LT_Unreachable;
     }
