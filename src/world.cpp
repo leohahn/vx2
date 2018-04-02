@@ -77,21 +77,21 @@ World::update(Input &input, ShadowMap &shadow_map, Shader *basic_shader)
 {
     update_state(input);
 
-    camera.update(input);
+    if (status == WorldStatus_Running)
+    {
+        camera.update(input);
 
-    if (input.keys[GLFW_KEY_T].last_transition == Transition_Down)
-        render_wireframe = !render_wireframe;
+        landscape->update(camera, input);
+        sun.update_position(landscape->origin);
 
-    landscape->update(camera, input);
-    sun.update_position(landscape->origin);
+        const Mat4f light_space = sun.light_space();
 
-    const Mat4f light_space = sun.light_space();
+        basic_shader->use();
+        basic_shader->set_matrix("light_space", light_space);
 
-    basic_shader->use();
-    basic_shader->set_matrix("light_space", light_space);
-
-    shadow_map.shader->use();
-    shadow_map.shader->set_matrix("light_space", light_space);
+        shadow_map.shader->use();
+        shadow_map.shader->set_matrix("light_space", light_space);
+    }
 }
 
 World

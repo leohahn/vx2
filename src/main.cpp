@@ -29,6 +29,7 @@ struct DebugContext
     i32 min_frame_time;
     bool render_shadow_map;
     bool render_cascaded_frustum;
+    bool render_wireframe;
 };
 
 using namespace std::chrono_literals;
@@ -49,7 +50,11 @@ main_render_paused(const Application &app, UiRenderer &ui_renderer)
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
     ui_renderer.begin();
-    ui_renderer.text("Hello my friend!", 50.0f, 50.0f);
+    f32 ypos = 0.40f*app.screen_height;
+    f32 xpos = 0.45f*app.screen_width;
+    ui_renderer.text("Resume", xpos, ypos);
+    ypos += 60.0f;
+    ui_renderer.text("Quit", xpos, ypos);
     ui_renderer.flush();
 
     glDisable(GL_BLEND);
@@ -63,8 +68,8 @@ main_render_paused(const Application &app, UiRenderer &ui_renderer)
 lt_internal void
 main_render_loading(const Application &app, ResourceManager &resource_manager)
 {
-    AsciiFontAtlas *font_atlas = resource_manager.get_font("dejavu/ttf/DejaVuSansMono.ttf");
-    Shader *font_shader = resource_manager.get_shader("font.shader");
+    AsciiFontAtlas *font_atlas = resource_manager.get_font(names::UI_FONT);
+    Shader *font_shader = resource_manager.get_shader(names::FONT_SHADER);
 
     // Add blending and remove depth test.
     glDisable(GL_DEPTH_TEST);
@@ -85,16 +90,16 @@ lt_internal void
 main_render_running(const Application &app, World &world,
                     const ShadowMap &shadow_map, ResourceManager &resource_manager)
 {
-    Shader *basic_shader = resource_manager.get_shader("basic.shader");
-    Shader *wireframe_shader = resource_manager.get_shader("wireframe.shader");
-    Shader *font_shader = resource_manager.get_shader("font.shader");
-    AsciiFontAtlas *font_atlas = resource_manager.get_font("dejavu/ttf/DejaVuSansMono.ttf");
+    Shader *basic_shader = resource_manager.get_shader(names::BASIC_SHADER);
+    Shader *wireframe_shader = resource_manager.get_shader(names::WIREFRAME_SHADER);
+    Shader *font_shader = resource_manager.get_shader(names::FONT_SHADER);
+    AsciiFontAtlas *font_atlas = resource_manager.get_font(names::DEBUG_FONT);
 
     app.bind_default_framebuffer();
     glClearColor(world.sky_color.r, world.sky_color.g, world.sky_color.b, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-    if (world.render_wireframe)
+    if (g_debug_context.render_wireframe)
     {
         // Wireframe rendering
         glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
@@ -252,7 +257,7 @@ main()
         };
         const char *fonts_to_load[] = {
             names::DEBUG_FONT,
-            // names::UI_FONT
+            names::UI_FONT
         };
 
         for (auto name : shaders_to_load)
@@ -275,9 +280,13 @@ main()
     Shader *skybox_shader = resource_manager.get_shader(names::SKYBOX_SHADER);
     skybox_shader->setup_perspective_matrix(app.aspect_ratio());
 
-    AsciiFontAtlas *font_atlas = resource_manager.get_font(names::DEBUG_FONT);
-    LT_Assert(font_atlas);
-    font_atlas->load(16.0f);
+    AsciiFontAtlas *debug_font_atlas = resource_manager.get_font(names::DEBUG_FONT);
+    LT_Assert(debug_font_atlas);
+    debug_font_atlas->load(16.0f);
+
+    AsciiFontAtlas *ui_font_atlas = resource_manager.get_font(names::UI_FONT);
+    LT_Assert(ui_font_atlas);
+    ui_font_atlas->load(54.0f);
 
     // NOTE, REFACTOR:
     // Call loading screen before creating the world instance, since it takes some time before
@@ -307,7 +316,7 @@ main()
     basic_shader->set3f("sky_color", world.sky_color);
     basic_shader->set_matrix("light_space", world.sun.light_space());
 
-    UiRenderer ui_renderer(names::FONT_SHADER, names::DEBUG_FONT, resource_manager);
+    UiRenderer ui_renderer(names::FONT_SHADER, names::UI_FONT, resource_manager);
 
     //
     // Here starts the setup for the main loop
@@ -364,6 +373,7 @@ main()
 
             if (app.input.keys[GLFW_KEY_F5].was_pressed()) LT_Toggle(g_debug_context.render_shadow_map);
             if (app.input.keys[GLFW_KEY_F6].was_pressed()) LT_Toggle(g_debug_context.render_cascaded_frustum);
+            if (app.input.keys[GLFW_KEY_T].was_pressed()) LT_Toggle(g_debug_context.render_wireframe);
 
             previous_world = current_world;
             current_world.update(app.input, shadow_map, basic_shader);

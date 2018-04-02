@@ -93,7 +93,6 @@ public:
     Sun                    sun;
     Vec3f                  origin;
     WorldStatus            status = WorldStatus_InitialLoad;
-    bool                   render_wireframe = false;
     TextureAtlas          *textures_16x16;
     Crosshair              crosshair;
     Vec3f                  sky_color;
