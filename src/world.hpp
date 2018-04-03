@@ -125,7 +125,7 @@ public:
 
 private:
     Camera create_camera(Vec3f position, f32 aspect_ratio);
-    void update_state(const Input &input);
+    void update_status(const Input &input);
 };
 
 #endif // __WORLD_HPP__

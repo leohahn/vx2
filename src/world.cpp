@@ -56,7 +56,7 @@ World::World(Application &app, i32 seed, const char *textures_16x16_name,
 }
 
 void
-World::update_state(const Input &input)
+World::update_status(const Input &input)
 {
     if (!skybox.load() || !textures_16x16->load())
     {
@@ -75,7 +75,7 @@ World::update_state(const Input &input)
 void
 World::update(Input &input, ShadowMap &shadow_map, Shader *basic_shader)
 {
-    update_state(input);
+    update_status(input);
 
     switch (status)
     {
