@@ -179,7 +179,7 @@ Application::process_input()
 {
     {
         const i32 key_codes[] = {
-            GLFW_KEY_ESCAPE, GLFW_KEY_Q, GLFW_KEY_W, GLFW_KEY_S, GLFW_KEY_A,
+            GLFW_KEY_ESCAPE, GLFW_KEY_W, GLFW_KEY_S, GLFW_KEY_A,
             GLFW_KEY_D, GLFW_KEY_UP, GLFW_KEY_DOWN, GLFW_KEY_LEFT, GLFW_KEY_RIGHT,
             GLFW_KEY_ENTER,
             // Key codes used for debugging functionality.
@@ -188,11 +188,6 @@ Application::process_input()
 
         for (auto key_code : key_codes)
             update_key_state(key_code, input.keys, window);
-    }
-
-    if (input.keys[GLFW_KEY_Q].was_pressed())
-    {
-        glfwSetWindowShouldClose(window, true);
     }
 
     // Process mouse input
