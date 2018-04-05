@@ -7,17 +7,6 @@
 
 static lt::Logger logger("camera");
 
-lt_internal void
-update_frustum_points(Frustum &frustum)
-{
-    f32 fovy_rads = lt::radians(frustum.fovy);
-    frustum.znear_center = frustum.position + frustum.front.v * frustum.znear;
-    frustum.zfar_center  = frustum.position + frustum.front.v * frustum.zfar;
-    frustum.zfar_height  = std::abs(2 * std::tan(fovy_rads / 2) * frustum.zfar);
-    frustum.zfar_width   = frustum.zfar_height * frustum.ratio;
-    frustum.znear_height = std::abs(2 * std::tan(fovy_rads / 2) * frustum.znear);
-    frustum.znear_width  = frustum.znear_height * frustum.ratio;
-}
 
 lt_internal void
 update_frustum_right_and_up(Frustum& frustum, Vec3f up_world)
@@ -43,17 +32,8 @@ Camera::Camera(Vec3f position, Vec3f front_vec, Vec3f up_world,
     , rotation_speed(rotation_speed)
 {
     logger.log("initializing frustum");
-    frustum.front = Quatf(0, lt::normalize(front_vec));
-    frustum.position = position;
-    frustum.ratio = ratio;
-    frustum.fovy = fovy;
-    frustum.znear = ZNEAR;
-    frustum.zfar = ZFAR;
-    frustum.projection = lt::perspective(lt::radians(fovy), ratio, ZNEAR, ZFAR);
-    // TODO: Find a better number of split points instead of blindly hardcoding it.
-    frustum.split_for_csm(4);
 
-    update_frustum_right_and_up(frustum, up_world);
+    frustum = Frustum(position, front_vec, ratio, fovy);
 }
 
 void
@@ -110,8 +90,7 @@ Camera::update(Input &input)
         rotate(-frustum.right.v, yoffset);
     }
 
-    // Finally move and rotate the camera based on the previous added frame data.
-    update_frustum_points(frustum);
+    // update_frustum_points(frustum);
 }
 
 void
@@ -150,26 +129,44 @@ Camera::view_matrix() const
 // Frustum
 // ======================================================================================
 
+Frustum::Frustum(Vec3f position, Vec3f front_vec, f32 ratio, f32 fovy)
+    : position(position)
+    , ratio(ratio)
+    , fovy(fovy)
+    , znear(Camera::ZNEAR)
+    , zfar(Camera::ZFAR)
+    , front(0.0f, lt::normalize(front_vec))
+    , projection(lt::perspective(lt::radians(fovy), ratio, znear, zfar))
+{
+    create_splits();
+    update_frustum_right_and_up(*this, Vec3f(0.0f, 1.0f, 0.0f));
+}
+
 void
-Frustum::split_for_csm(i32 num_split_points)
+Frustum::create_splits()
 {
     // Formula for splitting the points
     // zi = lambda*near(far/near)^(i/N) + (1-lambda)(near+(i/N)(far-near))
 
     logger.log("Splitting frustum for CSM");
 
-    const auto do_split = [num_split_points](i32 index, f32 n, f32 f) {
+    const auto do_split = [](i32 index, f32 n, f32 f) {
         constexpr f32 lambda = 0.9f;
-        const f32 first_term = lambda*n*std::pow(f/n, static_cast<f32>(index)/num_split_points);
-        const f32 second_term = (1-lambda)*(n+(index/num_split_points)*(f-n));
+        const f32 first_term = lambda*n*std::pow(f/n, static_cast<f32>(index)/NUM_SPLITS);
+        const f32 second_term = (1-lambda)*(n+(index/NUM_SPLITS)*(f-n));
         const f32 z = first_term + second_term;
         return z;
     };
 
-    std::vector<f32> z_splits(num_split_points);
-    for (i32 i = 0; i < num_split_points; i++)
+    for (i32 i = 0; i < NUM_SPLITS; i++)
     {
-        z_splits[i] = do_split(i+1, Camera::ZNEAR, Camera::ZFAR);
-        logger.log("Split for ", i, " = ", z_splits[i]);
+        splits[i] = do_split(i+1, Camera::ZNEAR, Camera::ZFAR);
+        logger.log("Split for ", i, " = ", splits[i]);
     }
+}
+
+FrustumCorners
+Frustum::get_corners(f32 znear, f32 zfar) const
+{
+    LT_Unfinished;
 }

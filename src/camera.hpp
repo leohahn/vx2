@@ -7,6 +7,22 @@ struct Key;
 struct Chunk;
 struct Input;
 
+union FrustumCorners
+{
+    Vec3f values[8];
+    struct
+    {
+        Vec3f near_bottom_left;
+        Vec3f near_bottom_right;
+        Vec3f near_top_right;
+        Vec3f near_top_left;
+        Vec3f far_bottom_left;
+        Vec3f far_top_left;
+        Vec3f far_top_right;
+        Vec3f far_bottom_right;
+    };
+};
+
 struct Frustum
 {
     Vec3f  position;
@@ -14,24 +30,25 @@ struct Frustum
     f32    fovy;
 
     f32    znear;
-    f32    znear_width;
-    f32    znear_height;
-    Vec3f  znear_center;
-
     f32    zfar;
-    f32    zfar_width;
-    f32    zfar_height;
-    Vec3f  zfar_center;
 
     // Calculated attributes
     Quatf  front;
     Quatf  right;
     Quatf  up;
-    Vec3f  normals[6];
     Mat4f  projection;
 
-    void split_for_csm(i32 num_split_points);
+    static constexpr i32 NUM_SPLITS = 4;
+    f32 splits[NUM_SPLITS];
+
+    Frustum() {}
+    Frustum(Vec3f position, Vec3f front_vec, f32 ratio, f32 fovy);
+
+    void create_splits();
+    FrustumCorners get_corners(f32 znear, f32 zfar) const;
 };
+
+#undef NUM_FRUSTUM_SPLITS
 
 struct Camera
 {
