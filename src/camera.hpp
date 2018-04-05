@@ -28,6 +28,7 @@ struct Frustum
     Vec3f  position;
     f32    ratio;
     f32    fovy;
+    f32    fovx;
 
     f32    znear;
     f32    zfar;
