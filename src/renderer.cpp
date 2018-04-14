@@ -187,3 +187,21 @@ UiRenderer::flush()
     glDrawArrays(GL_TRIANGLES, 0, text_vertexes.size());
     glBindVertexArray(0);
 }
+
+// ======================================================================================
+// Debug Functions
+// ======================================================================================
+
+void
+debug_render_frustum(const Frustum &frustum)
+{
+    const f32 znear = frustum.splits[0];
+    const f32 zfar = frustum.splits[Frustum::NUM_SPLITS-1];
+
+    FrustumCorners corners = frustum.calculate_corners(znear, zfar);
+
+    // corners are returned in camera view space. They have now to be converted back to world
+    // space using an inverse world transform matrix.
+
+    LT_Unfinished;
+}

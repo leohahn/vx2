@@ -27,9 +27,21 @@ struct DebugContext
     i32 ups;
     i32 max_frame_time;
     i32 min_frame_time;
+    Frustum frustum;
     bool render_shadow_map;
     bool render_cascaded_frustum;
     bool render_wireframe;
+
+    void update(const Input &input, const Frustum &_frustum)
+    {
+        if (input.keys[GLFW_KEY_F5].was_pressed()) LT_Toggle(render_shadow_map);
+        if (input.keys[GLFW_KEY_T].was_pressed()) LT_Toggle(render_wireframe);
+        if (input.keys[GLFW_KEY_F6].was_pressed())
+        {
+            frustum = _frustum;
+            LT_Toggle(render_cascaded_frustum);
+        }
+    }
 };
 
 using namespace std::chrono_literals;
@@ -52,23 +64,25 @@ main_render_paused(const Application &app, UiRenderer &ui_renderer, const UiStat
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
-    ui_renderer.begin();
-    f32 ypos = 0.45f*app.screen_height;
-    f32 xpos = 0.46f*app.screen_width;
+    {
+        ui_renderer.begin();
+        f32 ypos = 0.45f*app.screen_height;
+        f32 xpos = 0.46f*app.screen_width;
 
-    if (ui_state.current_selection == UiState::Selection_Resume)
-        ui_renderer.text("Resume", selected_color, xpos, ypos);
-    else
-        ui_renderer.text("Resume", item_color, xpos, ypos);
+        if (ui_state.current_selection == UiState::Selection_Resume)
+            ui_renderer.text("Resume", selected_color, xpos, ypos);
+        else
+            ui_renderer.text("Resume", item_color, xpos, ypos);
 
-    ypos += 60.0f;
+        ypos += 60.0f;
 
-    if (ui_state.current_selection == UiState::Selection_Quit)
-        ui_renderer.text("Quit", selected_color, xpos, ypos);
-    else
-        ui_renderer.text("Quit", item_color, xpos, ypos);
+        if (ui_state.current_selection == UiState::Selection_Quit)
+            ui_renderer.text("Quit", selected_color, xpos, ypos);
+        else
+            ui_renderer.text("Quit", item_color, xpos, ypos);
 
-    ui_renderer.flush();
+        ui_renderer.flush();
+    }
 
     glDisable(GL_BLEND);
     glEnable(GL_DEPTH_TEST);
@@ -126,6 +140,8 @@ main_render_running(const Application &app, World &world,
     else
     {
         // Render world to the shadow map texture
+        // TODO, PERFORMANCE: Figure out a way not to render this every frame,
+        // maybe only when parts of the world are newly generated.
         {
             glViewport(0, 0, shadow_map.width, shadow_map.height);
             shadow_map.bind_framebuffer();
@@ -164,6 +180,11 @@ main_render_running(const Application &app, World &world,
                                                     shadow_map.texture);
             basic_shader->debug_validate();
             render_landscape(world);
+
+            if (g_debug_context.render_cascaded_frustum)
+            {
+                debug_render_frustum(g_debug_context.frustum);
+            }
         }
     }
 
@@ -266,7 +287,8 @@ main()
             names::FONT_SHADER,
             names::CROSSHAIR_SHADER,
             names::SHADOW_MAP_SHADER,
-            names::SHADOW_MAP_RENDER_SHADER
+            names::SHADOW_MAP_RENDER_SHADER,
+            names::FRUSTUM
         };
         const char *textures_to_load[] = {
             names::SKYBOX_TEXTURE, names::TEXTURES_16x16_TEXTURE
@@ -387,9 +409,7 @@ main()
             glfwPollEvents();
             app.process_input();
 
-            if (app.input.keys[GLFW_KEY_F5].was_pressed()) LT_Toggle(g_debug_context.render_shadow_map);
-            if (app.input.keys[GLFW_KEY_F6].was_pressed()) LT_Toggle(g_debug_context.render_cascaded_frustum);
-            if (app.input.keys[GLFW_KEY_T].was_pressed()) LT_Toggle(g_debug_context.render_wireframe);
+            g_debug_context.update(app.input, world.camera.frustum);
 
             previous_world = current_world;
             current_world.update(app.input, shadow_map, basic_shader);

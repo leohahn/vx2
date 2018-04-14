@@ -46,7 +46,7 @@ struct Frustum
     Frustum(Vec3f position, Vec3f front_vec, f32 ratio, f32 fovy);
 
     void create_splits();
-    FrustumCorners get_corners(f32 znear, f32 zfar) const;
+    FrustumCorners calculate_corners(f32 znear, f32 zfar) const;
 };
 
 #undef NUM_FRUSTUM_SPLITS

@@ -13,9 +13,9 @@ struct Mesh;
 struct AsciiFontAtlas;
 struct Vertex_PUC;
 struct ResourceManager;
+struct Frustum;
 
 void render_landscape(World &world);
-// void render_final_quad(const Application &app, const Camera &camera, Shader *shader);
 void render_skybox(const Skybox &skybox);
 void render_text(AsciiFontAtlas *atlas, const std::string &text, f32 posx, f32 posy, Shader *shader);
 void render_loading_screen(const Application &app, AsciiFontAtlas *atlas, Shader *font_shader);
@@ -23,6 +23,9 @@ void render_mesh(const Mesh &mesh, Shader *shader);
 
 // Mesh layouts
 void render_setup_mesh_buffers_p(Mesh *m);
+
+// Debug rendering
+void debug_render_frustum(const Frustum &frustum);
 
 // UI
 struct UiRenderer

@@ -16,6 +16,7 @@ constexpr const char FONT_SHADER[] = "font.shader";
 constexpr const char CROSSHAIR_SHADER[] = "crosshair.shader";
 constexpr const char SHADOW_MAP_SHADER[] = "shadow_map.shader";
 constexpr const char SHADOW_MAP_RENDER_SHADER[] = "shadow_map_render.shader";
+constexpr const char FRUSTUM[] = "frustum.shader";
 
 // Textures
 constexpr const char SKYBOX_TEXTURE[] = "skybox.texture";
