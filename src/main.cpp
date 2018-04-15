@@ -132,7 +132,7 @@ main_render_running(const Application &app, World &world,
         glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 
         wireframe_shader->use();
-        wireframe_shader->set_matrix("view", world.camera.view_matrix());
+        wireframe_shader->set_matrix("view", world.camera.frustum.view_matrix());
         render_landscape(world);
 
         glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
@@ -171,7 +171,7 @@ main_render_running(const Application &app, World &world,
         else
         {
             basic_shader->use();
-            basic_shader->set_matrix("view", world.camera.view_matrix());
+            basic_shader->set_matrix("view", world.camera.frustum.view_matrix());
             basic_shader->set_matrix("light_space", world.sun.light_space());
             basic_shader->set3f("view_position", world.camera.frustum.position);
             basic_shader->activate_and_bind_texture("texture_array", GL_TEXTURE_2D_ARRAY,

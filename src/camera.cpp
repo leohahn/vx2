@@ -118,11 +118,9 @@ Camera::interpolate(const Camera &previous, const Camera &current, f32 alpha)
 }
 
 Mat4f
-Camera::view_matrix() const
+Frustum::view_matrix() const
 {
-    return lt::look_at(frustum.position,
-                       frustum.position + frustum.front.v,
-                       frustum.up.v);
+    return lt::look_at(position, position + front.v, up.v);
 }
 
 // ======================================================================================
@@ -134,12 +132,12 @@ Frustum::Frustum(Vec3f position, Vec3f front_vec, f32 ratio, f32 fovy)
     , ratio(ratio)
     , fovy(fovy)
     , fovx(2.0f * lt::degrees(std::atan(std::tan(lt::radians(0.5f*fovy)) * ratio)))
-    , znear(Camera::ZNEAR)
-    , zfar(Camera::ZFAR)
+    // , znear(Camera::ZNEAR)
+    // , zfar(Camera::ZFAR)
     , front(0.0f, lt::normalize(front_vec))
-    , projection(lt::perspective(lt::radians(fovy), ratio, znear, zfar))
 {
     create_splits();
+    projection = lt::perspective(lt::radians(fovy), ratio, splits[0], splits[NUM_SPLITS-1]);
     update_frustum_right_and_up(*this, Vec3f(0.0f, 1.0f, 0.0f));
 }
 
@@ -153,15 +151,14 @@ Frustum::create_splits()
 
     const auto do_split = [](i32 index, f32 n, f32 f) {
         constexpr f32 lambda = 0.9f;
-        const f32 first_term = lambda*n*std::pow(f/n, static_cast<f32>(index)/NUM_SPLITS);
-        const f32 second_term = (1-lambda)*(n+(index/NUM_SPLITS)*(f-n));
-        const f32 z = first_term + second_term;
-        return z;
+        const f32 first_term = lambda*n*std::pow(f/n, static_cast<f32>(index)/(NUM_SPLITS-1));
+        const f32 second_term = (1-lambda)*(n+(index/(NUM_SPLITS-1))*(f-n));
+        return first_term + second_term;
     };
 
     for (i32 i = 0; i < NUM_SPLITS; i++)
     {
-        splits[i] = do_split(i+1, Camera::ZNEAR, Camera::ZFAR);
+        splits[i] = do_split(i, Camera::ZNEAR, Camera::ZFAR);
         logger.log("Split for ", i, " = ", splits[i]);
     }
 }

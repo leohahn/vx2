@@ -30,16 +30,13 @@ struct Frustum
     f32    fovy;
     f32    fovx;
 
-    f32    znear;
-    f32    zfar;
-
     // Calculated attributes
     Quatf  front;
     Quatf  right;
     Quatf  up;
     Mat4f  projection;
 
-    static constexpr i32 NUM_SPLITS = 4;
+    static constexpr i32 NUM_SPLITS = 5;
     f32 splits[NUM_SPLITS];
 
     Frustum() {}
@@ -47,6 +44,8 @@ struct Frustum
 
     void create_splits();
     FrustumCorners calculate_corners(f32 znear, f32 zfar) const;
+
+    Mat4f view_matrix() const;
 };
 
 #undef NUM_FRUSTUM_SPLITS
@@ -68,8 +67,6 @@ struct Camera
     void interpolate_frustum(f64 lag_offset);
     inline Vec3f position() const { return frustum.position; }
     inline Vec3f front() const { return frustum.front.v; }
-
-    Mat4f view_matrix() const;
 
 public:
     Frustum frustum;
