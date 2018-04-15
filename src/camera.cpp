@@ -177,16 +177,16 @@ Frustum::calculate_corners(f32 znear, f32 zfar) const
     const f32 yfar = zfar * std::tan(0.5f*fovy);
 
     FrustumCorners corners = {};
-
+    // Points for the near plane.
     corners.near_bottom_left = Vec3f(-xnear, -ynear, znear);
     corners.near_bottom_right = Vec3f(xnear, -ynear, znear);
     corners.near_top_right = Vec3f(xnear, ynear, znear);
     corners.near_top_left = Vec3f(-xnear, ynear, znear);
-
-    corners.far_bottom_left = Vec3f(-xnear, -ynear, zfar);
-    corners.far_bottom_right = Vec3f(xnear, -ynear, zfar);
-    corners.far_top_right = Vec3f(xnear, ynear, zfar);
-    corners.far_top_left = Vec3f(-xnear, ynear, zfar);
+    // Points for the far plane.
+    corners.far_bottom_left = Vec3f(-xfar, -yfar, zfar);
+    corners.far_bottom_right = Vec3f(xfar, -yfar, zfar);
+    corners.far_top_right = Vec3f(xfar, yfar, zfar);
+    corners.far_top_left = Vec3f(-xfar, yfar, zfar);
 
     return corners;
 }
